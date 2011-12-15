@@ -2,22 +2,24 @@ import numpy
 
 def weights(basis, X, deriv=None):
     """
-    Calculates the interpolant weights at points x. The weights can be
-    calculated for the derivatives of the interpolants.
+    Calculates the interpolant value or derivative weights for points X.
     
-    #>>> import numpy
-    #>>> x = numpy.array([[0.13, 0.23], [0.77, 0.06]])
-    #>>> weights(['L1', 'L2'], x, deriv=[0, 1])
-    
-    :param basis: interpolation function in each direction
+    :param basis: interpolation function in each direction, eg,
+        ``['L1', 'L1']`` for bilinear.
     :type basis: list of strings
-    :param x: locations to calculate interpolant weights
-    :type x: numpy array (N x M)
-    :param deriv: derivative in each direction
-        0 = value, 1: first derivative, 2: second derivative
+    :param X: locations to calculate interpolant weights
+    :type X: list or numpy array (npoints, ndims)
+    :param deriv: derivative in each dimension, e.g., ``deriv=[1, 1]``
     :type deriv: list of integers
-    :return: basis weights
-    :rtype: numpy array (N x L)
+    :return: basis weights (ndims)
+    :rtype: numpy array, size: (npoints, nweights)
+    
+    >>> import numpy
+    >>> x = numpy.array([[0.13, 0.23], [0.77, 0.06]])
+    >>> weights(['L1', 'L2'], x, deriv=[0, 1])
+    array([[-1.8096, -0.2704,  1.8792,  0.2808, -0.0696, -0.0104],
+           [-0.6348, -2.1252,  0.8096,  2.7104, -0.1748, -0.5852]])
+    
     """
     
     basis_functions, dimensions = _get_basis_functions(basis, deriv)
@@ -43,6 +45,10 @@ def weights(basis, X, deriv=None):
 
 
 def _get_basis_product_indices(basis, dimensions, W):
+    """
+    Returns the indicies for the product between the weights for each
+    interpolant for basis functions.
+    """
     if dimensions == 1:
         return None
     elif dimensions == 2:
@@ -70,18 +76,22 @@ def _get_basis_product_indices(basis, dimensions, W):
     
     
 def _get_basis_functions(basis, deriv):
-    
+    """
+    Returns a list of interpolation function for the interpolation
+    definition and derivatives specified by the user. Also returns the
+    number of dimensions as defined in the basis parameter.
+    """
     # List of basis functions
     bsfn_list = {
-        'L1': [L1, L1dx, L1dxdx],
-        'L2': [L2, L2dx],
-        'L3': [L3, L3dx],
-        'L4': [L4, L4dx],
-        'H3': [H3, H3dx],
+        'L1': [L1, L1d1, L1d1d1],
+        'L2': [L2, L2d1],
+        'L3': [L3, L3d1],
+        'L4': [L4, L4d1],
+        'H3': [H3, H3d1],
         'T11': [T11],
         'T22': [T22],
         'T33': [T33],
-        'T44': [T44, T44dx1, T44dx2]}
+        'T44': [T44, T44d1, T44d2]}
     
     # Set the index of the basis function in BFn from the deriv input
     di = []
@@ -89,20 +99,23 @@ def _get_basis_functions(basis, deriv):
         for bs in basis:
             di.append(0)
     else:
-        for ind, bs in enumerate(basis):
+        ind = 0
+        for bs in basis:
             if bs[0] == 'T':
-                if deriv[ind] == [0, 0]:
+                if deriv[ind:ind+2] == [0, 0]:
                     di.append(0)
-                elif deriv[ind] == [1, 0]:
+                elif deriv[ind:ind+2] == [1, 0]:
                     di.append(1)
-                elif deriv[ind] == [0, 1]:
+                elif deriv[ind:ind+2] == [0, 1]:
                     di.append(2)
                 else:
                     raise ValueError(
                         'Derivative (%d) for %s basis not implemented' %
                         (ind, bs))
+                ind += 2
             else:
                 di.append(deriv[ind])
+                ind += 1
     
     # Set the basis functions pointers and index in X for each basis in
     # the basis input 
@@ -124,7 +137,11 @@ def _get_basis_functions(basis, deriv):
 
 
 def _process_x(X, dimensions):
-    
+    """
+    Converts the X parameter to the correct numpy array for the
+    interpolation functions. The return numpy array should be size
+    (npoints, ndims).
+    """
     # Converting X to a numpy array if the input is a list
     if isinstance(X, list):
         if isinstance(X[0], list):
@@ -146,54 +163,34 @@ def L1(x):
     """
     Linear lagrange basis function.
     
-    >>> import numpy
-    >>> x = numpy.array([0.13, 0.37, 0.669, 0.87])
-    >>> L1(x)
-    array([[ 0.87 ,  0.13 ],
-           [ 0.63 ,  0.37 ],
-           [ 0.331,  0.669],
-           [ 0.13 ,  0.87 ]])
-    
-    :param x: location along basis
-    :type x: numpy array (N)
+    :param x: points to interpolate
+    :type x: numpy array (npoints)
     :return: basis weights
-    :rtype: numpy array (N x 2)
+    :rtype: numpy array (npoints, 2)
     """
     return numpy.array([1. - x, x]).T
 
-def L1dx(x):
+def L1d1(x):
     """
-    Linear lagrange basis function.
+    First derivative for the linear lagrange basis function.
     
-    >>> import numpy
-    >>> x = numpy.array([0.13, 0.77])
-    >>> L1dx(x)
-    array([[-1.,  1.],
-           [-1.,  1.]])
-    
-    :param x: location along basis
-    :type x: numpy array (N)
+    :param x: points to interpolate
+    :type x: numpy array (npoints)
     :return: basis weights
-    :rtype: numpy array (N x 2)
+    :rtype: numpy array (npoints, 2)
     """
     W = numpy.ones((x.shape[0], 2))
     W[:, 0] -= 2
     return W
 
-def L1dxdx(x):
+def L1d1d1(x):
     """
-    Linear lagrange basis function.
+    Second derivative for the linear lagrange basis function.
     
-    >>> import numpy
-    >>> x = numpy.array([0.13, 0.77])
-    >>> L1dxdx(x)
-    array([[ 0.,  0.],
-           [ 0.,  0.]])
-    
-    :param x: location along basis
-    :type x: numpy array (N)
+    :param x: points to interpolate
+    :type x: numpy array (npoints)
     :return: basis weights
-    :rtype: numpy array (N x 2)
+    :rtype: numpy array (npoints, 2)
     """
     return numpy.zeros((x.shape[0], 2))
 
@@ -201,16 +198,10 @@ def L2(x):
     """
     Quadratic lagrange basis function.
     
-    >>> import numpy
-    >>> x = numpy.array([0.13, 0.77])
-    >>> L2(x)
-    array([[ 0.6438,  0.4524, -0.0962],
-           [-0.1242,  0.7084,  0.4158]])
-    
-    :param x: location along basis
-    :type x: numpy array (N)
+    :param x: points to interpolate
+    :type x: numpy array (npoints)
     :return: basis weights
-    :rtype: numpy array (N x 3)
+    :rtype: numpy array(npoints, 3)
     """
     L1, L2 = 1-x, x
     Phi = numpy.array([
@@ -219,20 +210,14 @@ def L2(x):
         L2 * (2.0 * L2 - 1)])
     return Phi.T
 
-def L2dx(x):
+def L2d1(x):
     """
     First derivative of the quadratic lagrange basis function.
     
-    >>> import numpy
-    >>> x = numpy.array([0.13, 0.77])
-    >>> L2dx(x)
-    array([[-2.48,  2.96, -0.48],
-           [ 0.08, -2.16,  2.08]])
-    
-    :param x: location along basis
-    :type x: numpy array (N)
+    :param x: points to interpolate
+    :type x: numpy array (npoints)
     :return: basis weights
-    :rtype: numpy array (N x 3)
+    :rtype: numpy array(npoints, 3)
     """
     L1 = 1-x
     return numpy.array([
@@ -246,16 +231,10 @@ def L3(x):
     """
     Cubic lagrange basis function.
     
-    >>> import numpy
-    >>> x = numpy.array([0.13, 0.77])
-    >>> L3(x)
-    array([[ 0.4272135,  0.8194095, -0.3104595,  0.0638365],
-           [ 0.0467015, -0.2470545,  1.0440045,  0.1563485]])
-    
-    :param x: location along basis
-    :type x: numpy array (N)
+    :param x: points to interpolate
+    :type x: numpy array (npoints)
     :return: basis weights
-    :rtype: numpy array (N x 4)
+    :rtype: numpy array(npoints, 4)
     """
     L1, L2 = 1-x, x
     sc = 9./2.
@@ -265,20 +244,14 @@ def L3(x):
         sc*L1*L2*(3*L2-1),
         0.5*L2*(3*L2-1)*(3*L2-2)]).T
 
-def L3dx(x):
+def L3d1(x):
     """
     First derivative of the cubic lagrange basis function.
     
-    >>> import numpy
-    >>> x = numpy.array([0.13, 0.77])
-    >>> L3dx(x)
-    array([[-3.38815,  3.83445, -0.50445,  0.05815],
-           [ 0.35585, -1.63755, -0.79245,  2.07415]])
-    
-    :param x: location along basis
-    :type x: numpy array (N)
+    :param x: points to interpolate
+    :type x: numpy array (npoints)
     :return: basis weights
-    :rtype: numpy array (N x 4)
+    :rtype: numpy array(npoints, 4)
     """
     L1 = x*x
     return numpy.array([
@@ -293,16 +266,10 @@ def L4(x):
     """
     Quartic lagrange basis function.
     
-    >>> import numpy
-    >>> x = numpy.array([0.13, 0.77])
-    >>> L4(x)
-    array([[ 0.25545984,  1.10699264, -0.53853696,  0.21425664, -0.03817216],
-           [-0.00688896,  0.04080384, -0.11787776,  1.06089984,  0.02306304]])
-    
-    :param x: location along basis
-    :type x: numpy array (N)
+    :param x: points to interpolate
+    :type x: numpy array (npoints)
     :return: basis weights
-    :rtype: numpy array (N x 5)
+    :rtype: numpy array(npoints, 5)
     """
     sc = 1/3.
     x2 = x*x
@@ -315,20 +282,14 @@ def L4(x):
         sc*(-128*x4+224*x3-112*x2+16*x),
         sc*(32*x4-48*x3+22*x2-3*x)]).T
 
-def L4dx(x):
+def L4d1(x):
     """
     First derivative of the quartic lagrange basis function.
     
-    >>> import numpy
-    >>> x = numpy.array([0.13, 0.77])
-    >>> L4dx(x)
-    array([[-3.524928  ,  2.46557867,  1.832832  , -0.962688  ,  0.18920533],
-           [-0.35325867,  2.06690133, -5.761152  ,  2.73463467,  1.31287467]])
-    
-    :param x: location along basis
-    :type x: numpy array (N)
+    :param x: points to interpolate
+    :type x: numpy array (npoints)
     :return: basis weights
-    :rtype: numpy array (N x 5)
+    :rtype: numpy array(npoints, 5)
     """
     sc = 1/3.
     x2 = x*x
@@ -347,16 +308,10 @@ def H3(x):
     """
     Cubic-Hermite basis function.
     
-    >>> import numpy
-    >>> x = numpy.array([0.13, 0.77])
-    >>> H3(x)
-    array([[ 0.953694,  0.098397,  0.046306, -0.014703],
-           [ 0.134366,  0.040733,  0.865634, -0.136367]])
-    
-    :param x: location along basis
-    :type x: numpy array (N)
+    :param x: points to interpolate
+    :type x: numpy array (npoints)
     :return: basis weights
-    :rtype: numpy array (N x 4)
+    :rtype: numpy array(npoints, 4)
     """
     x2 = x*x
     Phi = numpy.array([ \
@@ -366,20 +321,14 @@ def H3(x):
         x2*(x-1)])
     return Phi.T
     
-def H3dx(x):
+def H3d1(x):
     """
     First derivative of the cubic-Hermite basis function.
     
-    >>> import numpy
-    >>> x = numpy.array([0.13, 0.77])
-    >>> H3dx(x)
-    array([[-0.6786,  0.5307,  0.6786, -0.2093],
-           [-1.0626, -0.3013,  1.0626,  0.2387]])
-    
-    :param x: location along basis
-    :type x: numpy array (N)
+    :param x: points to interpolate
+    :type x: numpy array (npoints)
     :return: basis weights
-    :rtype: numpy array (N x 4)
+    :rtype: numpy array(npoints, 4)
     """
     x2 = x*x
     Phi = numpy.array([ \
@@ -389,68 +338,45 @@ def H3dx(x):
         x*(3*x-2)])
     return Phi.T
     
-# .. todo: H3dxdx
-
+    
 # Triangle Elements
 def T11(x): # Linear-Linear
     """
     Linear lagrange triangle element.
     
-    >>> import numpy
-    >>> x = numpy.array([[0.13, 0.23], [0.77, 0.06]])
-    >>> T11(x)
-    array([[ 0.64,  0.13,  0.23],
-           [ 0.17,  0.77,  0.06]])
-    
-    :param x: location along basis 0<=x<=1, x1+x2<=1
-    :type x: numpy array (N)
+    :param x: points to interpolate 0<=x<=1, x1+x2<=1
+    :type x: numpy array (npoints)
     :return: basis weights
-    :rtype: numpy array (N x 4)
+    :rtype: numpy array(npoints, 4)
     """
     L1, L2, L3 = 1-x[:, 0]-x[:, 1], x[:, 0], x[:, 1]
     return numpy.array([L1, L2, L3]).T
 
-# .. todo: T11d1, T11d2
 
 def T22(x): # Quadratic-Quadratic
     """
     Quadratic lagrange triangle element.
     
-    >>> import numpy
-    >>> x = numpy.array([[0.13, 0.23], [0.77, 0.06]])
-    >>> T22(x)
-    array([[ 0.1792,  0.3328, -0.0962,  0.5888,  0.1196, -0.1242],
-           [-0.1122,  0.5236,  0.4158,  0.0408,  0.1848, -0.0528]])
-    
-    :param x: location along basis 0<=x<=1, x1+x2<=1
-    :type x: numpy array (N)
+    :param x: points to interpolate 0<=x<=1, x1+x2<=1
+    :type x: numpy array (npoints, 2)
     :return: basis weights
-    :rtype: numpy array (N x 4)
+    :rtype: numpy array(npoints, 4)
     """
     L1, L2, L3 = 1-x[:, 0]-x[:, 1], x[:, 0], x[:, 1]
     Phi = numpy.array([ \
         L1*(2.0*L1-1.0), 4.0*L1*L2, L2*(2.0*L2-1.0), \
         4.0*L1*L3, 4.0*L2*L3, L3*(2.0*L3-1.0)])
     return Phi.T
-    
-# .. todo: T22d1, T22d2
+
 
 def T33(x): # Cubic-Cubic
     """
     Cubic lagrange triangle element.
     
-    >>> import numpy
-    >>> x = numpy.array([[0.13, 0.23], [0.77, 0.06]])
-    >>> T33(x)
-    array([[-0.023552 ,  0.344448 , -0.228384 ,  0.0638365,  0.609408 ,
-             0.516672 , -0.0820755, -0.205344 , -0.0417105,  0.0467015],
-           [ 0.0620585, -0.2886345,  0.7716555,  0.1563485, -0.022491 ,
-             0.212058 ,  0.272349 , -0.037638 , -0.170478 ,  0.044772 ]])
-    
-    :param x: location along basis 0<=x<=1, x1+x2<=1
-    :type x: numpy array (N)
+    :param x: points to interpolate 0<=x<=1, x1+x2<=1
+    :type x: numpy array (npoints, 2)
     :return: basis weights
-    :rtype: numpy array (N x 4)
+    :rtype: numpy array(npoints, 4)
     """
     L1, L2, L3 = 1-x[:, 0]-x[:, 1], x[:, 0], x[:, 1]
     sc = 9./2.
@@ -461,26 +387,14 @@ def T33(x): # Cubic-Cubic
         0.5*L3*(3*L3-1)*(3*L3-2)])
     return Phi.T
 
-# .. todo: T33d1, T33d2
-
 def T44(x): # Quartic-Quartic
     """
     Quartic lagrange triangle element.
     
-    >>> import numpy
-    >>> x = numpy.array([[0.13, 0.23], [0.77, 0.06]])
-    >>> T44(x)
-    array([[-0.04100096,  0.19382272, -0.24920064,  0.15761408, -0.03817216,
-             0.34291712,  0.95526912, -0.29392896,  0.05664256, -0.07348224,
-            -0.04898816,  0.00459264,  0.03391488,  0.00688896, -0.00688896],
-           [-0.02776576,  0.14744576, -0.34850816,  0.78414336,  0.02306304,
-             0.01148928, -0.08042496,  0.52276224,  0.27675648,  0.00992256,
-            -0.19100928, -0.29213184,  0.03638272,  0.16479232, -0.03691776]])
-
-    :param x: location along basis 0<=x<=1, x1+x2<=1
-    :type x: numpy array (N x 2)
+    :param x: points to interpolate 0<=x<=1, x1+x2<=1
+    :type x: numpy array(npoints, 2)
     :return: basis weights
-    :rtype: numpy array (N x 15)
+    :rtype: numpy array(npoints, 15)
     """
     L1, L2, L3 = 1-x[:, 0]-x[:, 1], x[:, 0], x[:, 1]
     Phi = numpy.array([ \
@@ -502,29 +416,15 @@ def T44(x): # Quartic-Quartic
         ])
     return Phi.T
     
-def T44dx1(x): # Quartic-Quartic
+def T44d1(x): # Quartic-Quartic
     """
-    First derivative in x1 direction for the quartic lagrange triangle
+    First derivative in dimension 1 for the quartic lagrange triangle
     element.
     
-    >>> import numpy
-    >>> x = numpy.array([[0.13, 0.23], [0.77, 0.06]])
-    >>> T44dx1(x)
-    array([[  8.93226667e-02,  -6.93333333e-01,   1.18809600e+00,
-             -7.73290667e-01,   1.89205333e-01,  -3.86449067e+00,
-              3.40620800e+00,   6.47680000e-01,  -1.89397333e-01,
-              3.03232000e-01,  -3.00288000e-01,  -2.94400000e-03,
-             -5.29920000e-02,   5.29920000e-02,   0.00000000e+00],
-           [ -3.15754667e-01,   1.61403733e+00,  -3.42912000e+00,
-              8.17962667e-01,   1.31287467e+00,   1.10848000e-01,
-             -6.36672000e-01,  -1.39084800e+00,   1.91667200e+00,
-              6.56640000e-02,   8.75520000e-01,  -9.41184000e-01,
-             -2.14016000e-01,   2.14016000e-01,   0.00000000e+00]])
-    
-    :param x: location along basis 0<=x<=1, x1+x2<=1
-    :type x: numpy array (N x 2)
+    :param x: points to interpolate 0<=x<=1, x1+x2<=1
+    :type x: numpy array(npoints, 2)
     :return: basis weights
-    :rtype: numpy array (N x 15)
+    :rtype: numpy array(npoints, 15)
     """
     x1 = x[:, 0]
     x2 = x[:, 1]
@@ -550,25 +450,15 @@ def T44dx1(x): # Quartic-Quartic
         0*x1])
     return dPhi.T
     
-def T44dx2(x): # Quartic-Quartic
+def T44d2(x): # Quartic-Quartic
     """
-    First derivative in x2 direction for the quartic lagrange triangle
+    First derivative in dimension 2 for the quartic lagrange triangle
     element.
     
-    >>> import numpy
-    >>> x = numpy.array([[0.13, 0.23], [0.77, 0.06]])
-    >>> T44dx2(x)
-    array([[ 0.08932267, -2.18427733,  1.028352  , -0.246272  ,  0.        ,
-            -2.37354667,  0.211328  , -0.818688  ,  0.246272  ,  3.657856  ,
-             2.31296   , -0.209664  , -1.72689067, -0.34001067,  0.35325867],
-           [-0.31575467,  1.42254933, -2.306304  , -4.612608  ,  0.        ,
-             0.302336  , -1.87264   ,  5.637632  ,  4.612608  ,  0.178816  ,
-            -1.054592  , -3.331328  ,  0.11818667,  1.50468267, -0.283584  ]])
-
-    :param x: location along basis 0<=x1<=1, 0<=x2<=1, x1+x2<=1
-    :type x: numpy array (N x 2)
+    :param x: points to interpolate 0<=x1<=1, 0<=x2<=1, x1+x2<=1
+    :type x: numpy array(npoints, 2)
     :return: basis weights
-    :rtype: numpy array (N x 15)
+    :rtype: numpy array(npoints, 15)
     """
     x1 = x[:, 0]
     x2 = x[:, 1]

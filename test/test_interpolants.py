@@ -2,6 +2,7 @@ import unittest
 import doctest
 
 import numpy
+from numpy import array
 import numpy.testing
 
 from fieldscape import interpolants
@@ -67,7 +68,7 @@ class Test(unittest.TestCase):
         basisfn, dim = interpolants._get_basis_functions(['L1'],
             deriv=[1])
         self.assertEqual(1, len(basisfn))
-        self.assertEqual('L1dx', basisfn[0][0].__name__)
+        self.assertEqual('L1d1', basisfn[0][0].__name__)
         self.assertEqual([0], basisfn[0][1])
         
         basisfn, dim = interpolants._get_basis_functions(
@@ -85,19 +86,19 @@ class Test(unittest.TestCase):
         basisfn, dim = interpolants._get_basis_functions(
             ['L1', 'L2', 'L3', 'L4'], deriv=[1, 1, 1, 1])
         self.assertEqual(4, len(basisfn))
-        self.assertEqual('L1dx', basisfn[0][0].__name__)
+        self.assertEqual('L1d1', basisfn[0][0].__name__)
         self.assertEqual([0], basisfn[0][1])
-        self.assertEqual('L2dx', basisfn[1][0].__name__)
+        self.assertEqual('L2d1', basisfn[1][0].__name__)
         self.assertEqual([1], basisfn[1][1])
-        self.assertEqual('L3dx', basisfn[2][0].__name__)
+        self.assertEqual('L3d1', basisfn[2][0].__name__)
         self.assertEqual([2], basisfn[2][1])
-        self.assertEqual('L4dx', basisfn[3][0].__name__)
+        self.assertEqual('L4d1', basisfn[3][0].__name__)
         self.assertEqual([3], basisfn[3][1])
         
         basisfn, dim = interpolants._get_basis_functions(
             ['L1'], deriv=[2])
         self.assertEqual(1, len(basisfn))
-        self.assertEqual('L1dxdx', basisfn[0][0].__name__)
+        self.assertEqual('L1d1d1', basisfn[0][0].__name__)
         
         basisfn, dim = interpolants._get_basis_functions(
             ['H3'], deriv=[0])
@@ -108,12 +109,12 @@ class Test(unittest.TestCase):
         basisfn, dim = interpolants._get_basis_functions(
             ['H3'], deriv=[1])
         self.assertEqual(1, len(basisfn))
-        self.assertEqual('H3dx', basisfn[0][0].__name__)
+        self.assertEqual('H3d1', basisfn[0][0].__name__)
         self.assertEqual([0], basisfn[0][1])
         
         basisfn, dim = interpolants._get_basis_functions(
             ['T11', 'T22', 'T33', 'T44'],
-            deriv=[[0, 0], [0, 0], [0, 0], [0, 0]])
+            deriv=[0, 0, 0, 0, 0, 0, 0, 0])
         self.assertEqual(4, len(basisfn))
         self.assertEqual('T11', basisfn[0][0].__name__)
         self.assertEqual([0, 1], basisfn[0][1])
@@ -126,20 +127,20 @@ class Test(unittest.TestCase):
         
         basisfn, dim = interpolants._get_basis_functions(
             ['T44', 'T44'],
-            deriv=[[1, 0], [0, 1]])
+            deriv=[1, 0, 0, 1])
         self.assertEqual(2, len(basisfn))
-        self.assertEqual('T44dx1', basisfn[0][0].__name__)
+        self.assertEqual('T44d1', basisfn[0][0].__name__)
         self.assertEqual([0, 1], basisfn[0][1])
-        self.assertEqual('T44dx2', basisfn[1][0].__name__)
+        self.assertEqual('T44d2', basisfn[1][0].__name__)
         self.assertEqual([2, 3], basisfn[1][1])
         
         basisfn, dim = interpolants._get_basis_functions(
             ['T44', 'L2'],
-            deriv=[[1, 0], 1])
+            deriv=[1, 0, 1])
         self.assertEqual(2, len(basisfn))
-        self.assertEqual('T44dx1', basisfn[0][0].__name__)
+        self.assertEqual('T44d1', basisfn[0][0].__name__)
         self.assertEqual([0, 1], basisfn[0][1])
-        self.assertEqual('L2dx', basisfn[1][0].__name__)
+        self.assertEqual('L2d1', basisfn[1][0].__name__)
         self.assertEqual([2], basisfn[1][1])
         
     def test_weights_process_x(self):
@@ -337,7 +338,134 @@ class Test(unittest.TestCase):
                [-0.75264, -0.14112,  0.25088,  0.04704, -0.20736,  0.06048,
                  0.06912, -0.02016,  0.75264,  0.14112, -0.21952, -0.04116,
                  0.20736, -0.06048, -0.06048,  0.01764]]))
-               
+                 
+    
+class TestBasisFunction(unittest.TestCase):
+    """Unit tests for fieldscape interpolants."""
+    
+    def test_L1(self):
+        x = numpy.array([0.13, 0.37, 0.669, 0.87])
+        numpy.testing.assert_almost_equal(interpolants.L1(x),
+            array([[ 0.87 ,  0.13 ],
+                   [ 0.63 ,  0.37 ],
+                   [ 0.331,  0.669],
+                   [ 0.13 ,  0.87 ]]))
+    
+    def test_L1d1(self):
+        x = numpy.array([0.13, 0.77])
+        numpy.testing.assert_almost_equal(interpolants.L1d1(x),
+            array([[-1.,  1.],
+                   [-1.,  1.]]))
+    
+    def test_L1d1d1(self):
+        x = numpy.array([0.13, 0.77])
+        numpy.testing.assert_almost_equal(interpolants.L1d1d1(x),
+            array([[ 0.,  0.],
+                   [ 0.,  0.]]))
+    
+    def test_L2(self):
+        x = numpy.array([0.13, 0.77])
+        numpy.testing.assert_almost_equal(interpolants.L2(x),
+            array([[ 0.6438,  0.4524, -0.0962],
+                   [-0.1242,  0.7084,  0.4158]]))
+    
+    def test_L2d1(self):
+        x = numpy.array([0.13, 0.77])
+        numpy.testing.assert_almost_equal(interpolants.L2d1(x),
+            array([[-2.48,  2.96, -0.48],
+                   [ 0.08, -2.16,  2.08]]))
+    
+    def test_L3(self):
+        x = numpy.array([0.13, 0.77])
+        numpy.testing.assert_almost_equal(interpolants.L3(x),
+            array([[ 0.4272135,  0.8194095, -0.3104595,  0.0638365],
+                   [ 0.0467015, -0.2470545,  1.0440045,  0.1563485]]))
+    
+    def test_L3d1(self):
+        x = numpy.array([0.13, 0.77])
+        numpy.testing.assert_almost_equal(interpolants.L3d1(x),
+            array([[-3.38815,  3.83445, -0.50445,  0.05815],
+                   [ 0.35585, -1.63755, -0.79245,  2.07415]]))
+    
+    def test_L4(self):
+        x = numpy.array([0.13, 0.77])
+        numpy.testing.assert_almost_equal(interpolants.L4(x),
+            array([[ 0.25545984,  1.10699264, -0.53853696,  0.21425664, -0.03817216],
+                   [-0.00688896,  0.04080384, -0.11787776,  1.06089984,  0.02306304]]))
+    
+    def test_L4d1(self):
+        x = numpy.array([0.13, 0.77])
+        numpy.testing.assert_almost_equal(interpolants.L4d1(x),
+            array([[-3.524928  ,  2.46557867,  1.832832  , -0.962688  ,  0.18920533],
+                   [-0.35325867,  2.06690133, -5.761152  ,  2.73463467,  1.31287467]]))
+    
+    def test_H3(self):
+        x = numpy.array([0.13, 0.77])
+        numpy.testing.assert_almost_equal(interpolants.H3(x),
+            array([[ 0.953694,  0.098397,  0.046306, -0.014703],
+                   [ 0.134366,  0.040733,  0.865634, -0.136367]]))
+        
+    def test_H3d1(self):
+        x = numpy.array([0.13, 0.77])
+        numpy.testing.assert_almost_equal(interpolants.H3d1(x),
+            array([[-0.6786,  0.5307,  0.6786, -0.2093],
+                   [-1.0626, -0.3013,  1.0626,  0.2387]]))
+        
+    def test_T11(self):
+        x = numpy.array([[0.13, 0.23], [0.77, 0.06]])
+        numpy.testing.assert_almost_equal(interpolants.T11(x),
+            array([[ 0.64,  0.13,  0.23],
+                   [ 0.17,  0.77,  0.06]]))
+    
+    
+    def test_T22(self):
+        x = numpy.array([[0.13, 0.23], [0.77, 0.06]])
+        numpy.testing.assert_almost_equal(interpolants.T22(x),
+            array([[ 0.1792,  0.3328, -0.0962,  0.5888,  0.1196, -0.1242],
+                   [-0.1122,  0.5236,  0.4158,  0.0408,  0.1848, -0.0528]]))
+    
+    def test_T33(self):
+        x = numpy.array([[0.13, 0.23], [0.77, 0.06]])
+        numpy.testing.assert_almost_equal(interpolants.T33(x),
+            array([[-0.023552 ,  0.344448 , -0.228384 ,  0.0638365,  0.609408 ,
+                     0.516672 , -0.0820755, -0.205344 , -0.0417105,  0.0467015],
+                   [ 0.0620585, -0.2886345,  0.7716555,  0.1563485, -0.022491 ,
+                     0.212058 ,  0.272349 , -0.037638 , -0.170478 ,  0.044772 ]]))
+    
+    def test_T44(self):
+        x = numpy.array([[0.13, 0.23], [0.77, 0.06]])
+        numpy.testing.assert_almost_equal(interpolants.T44(x),
+            array([[-0.04100096,  0.19382272, -0.24920064,  0.15761408, -0.03817216,
+                     0.34291712,  0.95526912, -0.29392896,  0.05664256, -0.07348224,
+                    -0.04898816,  0.00459264,  0.03391488,  0.00688896, -0.00688896],
+                   [-0.02776576,  0.14744576, -0.34850816,  0.78414336,  0.02306304,
+                     0.01148928, -0.08042496,  0.52276224,  0.27675648,  0.00992256,
+                    -0.19100928, -0.29213184,  0.03638272,  0.16479232, -0.03691776]]))
+        
+    def test_T44d1(self):
+        x = numpy.array([[0.13, 0.23], [0.77, 0.06]])
+        numpy.testing.assert_almost_equal(interpolants.T44d1(x),
+            array([[  8.93226667e-02,  -6.93333333e-01,   1.18809600e+00,
+                     -7.73290667e-01,   1.89205333e-01,  -3.86449067e+00,
+                      3.40620800e+00,   6.47680000e-01,  -1.89397333e-01,
+                      3.03232000e-01,  -3.00288000e-01,  -2.94400000e-03,
+                     -5.29920000e-02,   5.29920000e-02,   0.00000000e+00],
+                   [ -3.15754667e-01,   1.61403733e+00,  -3.42912000e+00,
+                      8.17962667e-01,   1.31287467e+00,   1.10848000e-01,
+                     -6.36672000e-01,  -1.39084800e+00,   1.91667200e+00,
+                      6.56640000e-02,   8.75520000e-01,  -9.41184000e-01,
+                     -2.14016000e-01,   2.14016000e-01,   0.00000000e+00]]))
+        
+    def test_T44d2(self):
+        x = numpy.array([[0.13, 0.23], [0.77, 0.06]])
+        numpy.testing.assert_almost_equal(interpolants.T44d2(x),
+            array([[ 0.08932267, -2.18427733,  1.028352  , -0.246272  ,  0.        ,
+                    -2.37354667,  0.211328  , -0.818688  ,  0.246272  ,  3.657856  ,
+                     2.31296   , -0.209664  , -1.72689067, -0.34001067,  0.35325867],
+                   [-0.31575467,  1.42254933, -2.306304  , -4.612608  ,  0.        ,
+                     0.302336  , -1.87264   ,  5.637632  ,  4.612608  ,  0.178816  ,
+                    -1.054592  , -3.331328  ,  0.11818667,  1.50468267, -0.283584  ]]))
+
         
 if __name__ == "__main__":
     unittest.main()
