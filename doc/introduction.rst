@@ -4,7 +4,7 @@ Introduction
 .. toctree::
    :maxdepth: 2
   
-Fieldscape is a convinient module for mesh creation, analysis,
+Morphic is a convinient module for mesh creation, analysis,
 rendering and fitting to data.
 
 Currently it can handle 1D and 2D meshes with:
@@ -12,7 +12,7 @@ Currently it can handle 1D and 2D meshes with:
     - **Triangle elements** (up to 4th order)
     - **Hermite elements** (cubic-Hermites only)
 
-Fieldscape also offers four types of nodes allowing creation of complex
+Morphic also offers four types of nodes allowing creation of complex
 meshes:
     - **Standard nodes** which store field values, e.g., x, y, z and
       temperature, with components such as derivatives.

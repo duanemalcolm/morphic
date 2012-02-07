@@ -16,14 +16,14 @@ The interpolants include:
 - `Triangular (2D)`_ interpolator:
     bilinear ('T11'), biquadratic ('T22'), bicubic ('T33), biquartic ('T44')
 
-:func:`fieldscape.interpolator.weights` is the main function used for
+:func:`morphic.interpolator.weights` is the main function used for
 calculating weights for the values or derivatives for an interpolant.
 Multiple interpolants can be combined to create higher
 order interpolants.
 
 **Examples**
 
-The basic usage of :func:`fieldscape.interpolator.weights` requires a
+The basic usage of :func:`morphic.interpolator.weights` requires a
 list of interpolants (``basis``) and a list of point (``X``) for which
 the weights are calculated.
 
@@ -93,7 +93,7 @@ Interpolants can be combined to create higher-order elements. For example,::
 Calculating Weights
 -------------------
 
-.. automodule:: fieldscape.interpolator
+.. automodule:: morphic.interpolator
     :members: weights
     
 
@@ -102,22 +102,22 @@ Lagrange (1D)
 
 Linear Lagrange
 +++++++++++++++
-.. automodule:: fieldscape.interpolator
+.. automodule:: morphic.interpolator
     :members: L1, L1d1, L1d1d1
         
 Quadratic Lagrange
 ++++++++++++++++++
-.. automodule:: fieldscape.interpolator
+.. automodule:: morphic.interpolator
     :members: L2, L2d1
 
 Cubic Lagrange
 ++++++++++++++
-.. automodule:: fieldscape.interpolator
+.. automodule:: morphic.interpolator
     :members: L3, L3d1
 
 Quartic Lagrange
 ++++++++++++++++
-.. automodule:: fieldscape.interpolator
+.. automodule:: morphic.interpolator
     :members: L4, L4d1
 
 
@@ -126,7 +126,7 @@ Hermite (1D)
 
 Cubic-Hermite
 +++++++++++++
-.. automodule:: fieldscape.interpolator
+.. automodule:: morphic.interpolator
     :members: H3, H3d1
 
 
@@ -135,21 +135,21 @@ Triangular (2D)
 
 Linear Triangle
 +++++++++++++++
-.. automodule:: fieldscape.interpolator
+.. automodule:: morphic.interpolator
     :members: T11
 
 Quadratic Triangle
 ++++++++++++++++++
-.. automodule:: fieldscape.interpolator
+.. automodule:: morphic.interpolator
     :members: T22
 
 Cubic Triangle
 ++++++++++++++
-.. automodule:: fieldscape.interpolator
+.. automodule:: morphic.interpolator
     :members: T33
 
 Quartic Triangle
 ++++++++++++++++
-.. automodule:: fieldscape.interpolator
+.. automodule:: morphic.interpolator
     :members: T44, T44d1, T44d2
 

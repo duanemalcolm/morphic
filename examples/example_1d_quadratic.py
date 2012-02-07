@@ -8,7 +8,7 @@ docimagedir = os.path.join('..', 'doc', 'images')
 
 # sphinx tag start
 import scipy
-from fieldscape import mesher
+from morphic import mesher
 
 x = scipy.linspace(0, 2 * scipy.pi, 5)
 y = scipy.sin(x)

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Fieldscape documentation build configuration file, created by
+# Morphic documentation build configuration file, created by
 # sphinx-quickstart on Mon Dec 12 13:39:41 2011.
 #
 # This file is execfile()d with the current directory set to its containing dir.
@@ -40,7 +40,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Fieldscape'
+project = u'Morphic'
 copyright = u'2011, Duane Malcolm'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -164,7 +164,7 @@ html_static_path = ['_static']
 #html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'Fieldscapedoc'
+htmlhelp_basename = 'Morphicdoc'
 
 
 # -- Options for LaTeX output --------------------------------------------------
@@ -178,7 +178,7 @@ htmlhelp_basename = 'Fieldscapedoc'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'Fieldscape.tex', u'Fieldscape Documentation',
+  ('index', 'Morphic.tex', u'Morphic Documentation',
    u'Duane Malcolm', 'manual'),
 ]
 
@@ -211,6 +211,6 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'fieldscape', u'Fieldscape Documentation',
+    ('index', 'morphic', u'Morphic Documentation',
      [u'Duane Malcolm'], 1)
 ]

@@ -1,6 +1,6 @@
 # import modules
 import scipy
-from fieldscape import mesher
+from morphic import mesher
 
 def generate_data():
     # Start Generate Data

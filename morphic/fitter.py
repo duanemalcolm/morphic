@@ -5,7 +5,7 @@ import scipy.optimize
 import scipy.sparse
 from scipy.spatial import cKDTree
 
-from fieldscape import core
+from morphic import core
 
 class BoundElementPoint:
     
@@ -209,7 +209,7 @@ class Fit:
         for point in self.points:
             point.update_from_mesh(mesh)
         self.generate_matrix()
-        self.generate_fast_data()
+        # self.generate_fast_data()
     
     def generate_matrix(self):
         param_ids = []

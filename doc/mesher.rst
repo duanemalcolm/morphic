@@ -11,7 +11,7 @@ derivatives for various types of interpolants.
 Mesh
 ----
 
-.. autoclass:: fieldscape.mesher.Mesh
+.. autoclass:: morphic.mesher.Mesh
 
 
 -----------------
@@ -45,15 +45,15 @@ There are four types of nodes that can be added to a mesh:
     different versions of node values.
 
 
-.. automethod:: fieldscape.mesher.Mesh.add_stdnode
+.. automethod:: morphic.mesher.Mesh.add_stdnode
 
-.. automethod:: fieldscape.mesher.Mesh.add_depnode
+.. automethod:: morphic.mesher.Mesh.add_depnode
 
 ^^^^^^^^
 Elements
 ^^^^^^^^
 
-.. automethod:: fieldscape.mesher.Mesh.add_element
+.. automethod:: morphic.mesher.Mesh.add_element
 
 
 ----------------

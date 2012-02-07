@@ -7,7 +7,7 @@ import numpy.testing as npt
 sys.path.append('../examples/')
         
 class TestExamples(unittest.TestCase):
-    """Unit tests for fieldscape Node superclass."""
+    """Unit tests for morphic Node superclass."""
 
     def test_example_1d_linear(self):
         example = 'example_1d_linear'

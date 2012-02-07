@@ -7,7 +7,7 @@ API
 ----
 Core
 ----
-.. automodule:: fieldscape.core
+.. automodule:: morphic.core
     :members:
     :undoc-members:
     
@@ -15,27 +15,27 @@ Core
 -----------
 Discretizer
 -----------
-.. automodule:: fieldscape.discretizer
+.. automodule:: morphic.discretizer
     :members:
     :undoc-members:
 
 ------
 Fitter
 ------
-.. automodule:: fieldscape.fitter
+.. automodule:: morphic.fitter
     :members:
     :undoc-members:
 
 ------------
 Interpolator
 ------------
-.. automodule:: fieldscape.interpolator
+.. automodule:: morphic.interpolator
     :members:
     :undoc-members:
 
 ------
 Mesher
 ------
-.. automodule:: fieldscape.mesher
+.. automodule:: morphic.mesher
     :members:
     :undoc-members:

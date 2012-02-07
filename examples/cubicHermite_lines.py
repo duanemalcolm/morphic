@@ -1,7 +1,7 @@
-import fieldscape.mesher
-reload(fieldscape.mesher)
+import morphic.mesher
+reload(morphic.mesher)
 
-mesh = fieldscape.mesher.Mesh()
+mesh = morphic.mesher.Mesh()
 mesh.add_node(1, [[0, 0.3], [0, 1.5]])
 mesh.add_node(2, [[0.3, -0.3], [1.5, 1.5]])
 mesh.add_node(4, [[0., -0.3], [0.4, 0.5]])

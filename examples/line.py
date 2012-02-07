@@ -1,4 +1,4 @@
-from fieldscape import mesher
+from morphic import mesher
 
 mesh = mesher.Mesh()
 mesh.add_stdnode(1, [0, 0])

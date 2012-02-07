@@ -1,11 +1,11 @@
 import xviewer
-import fieldscape.mesher
-reload(fieldscape.mesher)
+import morphic.mesher
+reload(morphic.mesher)
 
 
 raise BaseException('Not Working, got to implement 3D')
 
-mesh = fieldscape.mesher.Mesh()
+mesh = morphic.mesher.Mesh()
 
 # Prism element
 mesh.add_node(1, [0, 0, 0])

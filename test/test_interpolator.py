@@ -5,10 +5,10 @@ import numpy
 from numpy import array
 import numpy.testing
 
-from fieldscape import interpolator
+from morphic import interpolator
 
 class Test(unittest.TestCase):
-    """Unit tests for fieldscape interpolator."""
+    """Unit tests for morphic interpolator."""
 
     def test_doctests(self):
         """Run interpolator doctests"""
@@ -341,7 +341,7 @@ class Test(unittest.TestCase):
                  
     
 class TestBasisFunction(unittest.TestCase):
-    """Unit tests for fieldscape interpolator."""
+    """Unit tests for morphic interpolator."""
     
     def test_L1(self):
         x = numpy.array([0.13, 0.37, 0.669, 0.87])

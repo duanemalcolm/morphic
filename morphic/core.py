@@ -6,7 +6,7 @@ import scipy
 
 class ObjectList:
     '''
-    This object is used by a few fieldscape modules to store collections
+    This object is used by a few morphic modules to store collections
     of objects. For example, nodes, elements, fixed points.
     '''
     

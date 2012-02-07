@@ -1,9 +1,9 @@
-.. Fieldscape documentation master file, created by
+.. Morphic documentation master file, created by
    sphinx-quickstart on Mon Dec 12 13:39:41 2011.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Fieldscape's documentation!
+Welcome to Morphic's documentation!
 ======================================
 
 Contents:
@@ -23,7 +23,7 @@ Contents:
    roadmap
    api
 
-.. automodule:: fieldscape
+.. automodule:: morphic
     :members:
     
 .. include introduction.rst

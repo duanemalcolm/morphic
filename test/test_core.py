@@ -4,11 +4,11 @@ import doctest
 import numpy
 import numpy.testing as npt
 
-from fieldscape import core
-from fieldscape import mesher
+from morphic import core
+from morphic import mesher
 
 class TestObjectList(unittest.TestCase):
-    """Unit tests for fieldscape."""
+    """Unit tests for morphic."""
 
     def test_init(self):
         mol = core.ObjectList()
@@ -92,7 +92,7 @@ class TestObjectList(unittest.TestCase):
          
 
 class TestCore(unittest.TestCase):
-    """Unit tests for fieldscape."""
+    """Unit tests for morphic."""
 
     def test_init(self):
         c = core.Core()

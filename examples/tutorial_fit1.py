@@ -1,7 +1,7 @@
 # import modules
 import scipy
-from fieldscape import mesher
-from fieldscape import fitter
+from morphic import mesher
+from morphic import fitter
 reload(mesher)
 reload(fitter)
 

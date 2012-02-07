@@ -4,11 +4,11 @@ import doctest
 import numpy
 import numpy.testing as npt
 
-from fieldscape import fitter
-from fieldscape import mesher
+from morphic import fitter
+from morphic import mesher
 
 class TestBoundElementPoint(unittest.TestCase):
-    """Unit tests for fieldscape."""
+    """Unit tests for morphic."""
 
     def test_init(self):
         pt = fitter.BoundElementPoint(2, [0.1, 0.3], 'datacloud',
@@ -37,7 +37,7 @@ class TestBoundElementPoint(unittest.TestCase):
         
         
 class TestBoundNodePoint(unittest.TestCase):
-    """Unit tests for fieldscape."""
+    """Unit tests for morphic."""
 
     def test_init(self):
         pt = fitter.BoundNodePoint(2, 'datacloud', data_index=0,
@@ -65,7 +65,7 @@ class TestBoundNodePoint(unittest.TestCase):
         
         
 class TestData(unittest.TestCase):
-    """Unit tests for fieldscape."""
+    """Unit tests for morphic."""
 
     def test_init(self):
         Xd = numpy.array([
@@ -80,7 +80,7 @@ class TestData(unittest.TestCase):
         
         
 class TestFitter(unittest.TestCase):
-    """Unit tests for fieldscape."""
+    """Unit tests for morphic."""
 
     def setUp(self):
         self.mesh = mesher.Mesh()
@@ -107,6 +107,7 @@ class TestFitter(unittest.TestCase):
         
     def test_update_from_mesh(self):
         fit = fitter.Fit()
+        fit.use_sparse = False
         fit.bind_element_point(9, [0.3], 'datacloud', 0, weight=2)
         fit.bind_element_point(9, [0.7], 'datacloud', 1, weight=1)
         fit.update_from_mesh(self.mesh)
@@ -135,6 +136,7 @@ class TestFitter(unittest.TestCase):
 
     def test_get_data(self):
         fit = fitter.Fit()
+        fit.use_sparse = False
         fit.bind_element_point(9, [0.3], 'datacloud', 1, weight=2)
         fit.bind_element_point(9, [0.8], 'datacloud', 0, weight=2)
         fit.update_from_mesh(self.mesh)
@@ -151,7 +153,7 @@ class TestFitter(unittest.TestCase):
         Xd = numpy.array([[0.3, 0.15], [0.8, 0.4]])
         fit.set_data('datacloud', Xd)
         mesh = fit.solve(self.mesh)
-        print mesh.get_nodes()
+        npt.assert_almost_equal(mesh.get_nodes(), [[ 0, 0], [1.0, 0.5]])
         
         
     

@@ -1,7 +1,7 @@
-import fieldscape.mesher
-reload(fieldscape.mesher)
+import morphic.mesher
+reload(morphic.mesher)
 
-mesh = fieldscape.mesher.Mesh()
+mesh = morphic.mesher.Mesh()
 mesh.add_stdnode(1, [0, 0])
 mesh.add_stdnode(2, [2, 1])
 mesh.add_element('elem1', ['L1'], [1, 2])

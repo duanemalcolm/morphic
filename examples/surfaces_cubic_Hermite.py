@@ -1,8 +1,8 @@
 import xviewer
-import fieldscape.mesher
-reload(fieldscape.mesher)
+import morphic.mesher
+reload(morphic.mesher)
 
-mesh = fieldscape.mesher.Mesh()
+mesh = morphic.mesher.Mesh()
 mesh.add_node(1, [[0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 0]])
 mesh.add_node(2, [[1.2, 1, 0, 0], [0, 0, 1, 0], [0.3, 0, 0, 0]])
 mesh.add_node(3, [[0.1, 1, 0, 0], [0.8, 0, 1, 0], [0.4, 0, 0, 0]])

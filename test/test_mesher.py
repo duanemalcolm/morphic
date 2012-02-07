@@ -5,12 +5,12 @@ import numpy
 from numpy import array
 import numpy.testing as npt
 
-from fieldscape import core
-from fieldscape import mesher
+from morphic import core
+from morphic import mesher
 
         
 class TestNode(unittest.TestCase):
-    """Unit tests for fieldscape Node superclass."""
+    """Unit tests for morphic Node superclass."""
 
     def test_node_init(self):
         mesh = mesher.Mesh()
@@ -149,7 +149,7 @@ class TestNode(unittest.TestCase):
         
         
 class TestStdNode(unittest.TestCase):
-    """Unit tests for fieldscape interpolants."""
+    """Unit tests for morphic interpolants."""
 
     def test_node_init(self):
         mesh = mesher.Mesh()
@@ -165,7 +165,7 @@ class TestStdNode(unittest.TestCase):
         
 
 class TestDepNode(unittest.TestCase):
-    """Unit tests for fieldscape interpolants."""
+    """Unit tests for morphic interpolants."""
 
     def test_node_init(self):
         mesh = mesher.Mesh()
@@ -180,7 +180,7 @@ class TestDepNode(unittest.TestCase):
         
 
 class TestElement(unittest.TestCase):
-    """Unit tests for fieldscape interpolants."""
+    """Unit tests for morphic interpolants."""
 
     def test_elem_init(self):
         mesh = mesher.Mesh()
@@ -201,7 +201,7 @@ class TestElement(unittest.TestCase):
         
         
 class TestMesh(unittest.TestCase):
-    """Unit tests for fieldscape interpolants."""
+    """Unit tests for morphic interpolants."""
 
     def test_doctests(self):
         """Run interpolants doctests"""
