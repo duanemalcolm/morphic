@@ -1,13 +1,11 @@
-import fieldscape.mesher
-reload(fieldscape.mesher)
+from fieldscape import mesher
 
-mesh = fieldscape.mesher.Mesh()
-mesh.add_node(1, [0, 0])
-mesh.add_node(2, [0.3, 1.5])
-mesh.add_node(3, [0.6, 1.0])
+mesh = mesher.Mesh()
+mesh.add_stdnode(1, [0, 0])
+mesh.add_stdnode(2, [0.3, 1.5])
+mesh.add_stdnode(3, [0.6, 1.0])
 mesh.add_element(1, ['L1'], [1, 2])
 mesh.add_element(2, ['L1'], [2, 3])
-mesh.generate()
 
 Xl = mesh.get_lines()
 pylab.figure(1)

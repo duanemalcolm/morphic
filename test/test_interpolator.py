@@ -5,34 +5,34 @@ import numpy
 from numpy import array
 import numpy.testing
 
-from fieldscape import interpolants
+from fieldscape import interpolator
 
 class Test(unittest.TestCase):
-    """Unit tests for fieldscape interpolants."""
+    """Unit tests for fieldscape interpolator."""
 
     def test_doctests(self):
-        """Run interpolants doctests"""
-        doctest.testmod(interpolants)
+        """Run interpolator doctests"""
+        doctest.testmod(interpolator)
         
     def test_weights_get_functions(self):
         """Tests the preprocessing for weights function"""
         import numpy
-        basisfn, dim = interpolants._get_basis_functions(['L1'], None)
+        basisfn, dim = interpolator._get_basis_functions(['L1'], None)
         self.assertEqual(1, len(basisfn))
         self.assertEqual('L1', basisfn[0][0].__name__)
         self.assertEqual([0], basisfn[0][1])
         
-        basisfn, dim = interpolants._get_basis_functions(['L1'], None)
+        basisfn, dim = interpolator._get_basis_functions(['L1'], None)
         self.assertEqual(1, len(basisfn))
         self.assertEqual('L1', basisfn[0][0].__name__)
         self.assertEqual([0], basisfn[0][1])
         
-        basisfn, dim = interpolants._get_basis_functions(['L1'], None)
+        basisfn, dim = interpolator._get_basis_functions(['L1'], None)
         self.assertEqual(1, len(basisfn))
         self.assertEqual('L1', basisfn[0][0].__name__)
         self.assertEqual([0], basisfn[0][1])
         
-        basisfn, dim = interpolants._get_basis_functions(
+        basisfn, dim = interpolator._get_basis_functions(
             ['L1', 'L3'], None)
         self.assertEqual(2, len(basisfn))
         self.assertEqual('L1', basisfn[0][0].__name__)
@@ -40,7 +40,7 @@ class Test(unittest.TestCase):
         self.assertEqual('L3', basisfn[1][0].__name__)
         self.assertEqual([1], basisfn[1][1])
         
-        basisfn, dim = interpolants._get_basis_functions(
+        basisfn, dim = interpolator._get_basis_functions(
             ['L1', 'T22'], None)
         self.assertEqual(2, len(basisfn))
         self.assertEqual('L1', basisfn[0][0].__name__)
@@ -48,7 +48,7 @@ class Test(unittest.TestCase):
         self.assertEqual('T22', basisfn[1][0].__name__)
         self.assertEqual([1, 2], basisfn[1][1])
         
-        basisfn, dim = interpolants._get_basis_functions(
+        basisfn, dim = interpolator._get_basis_functions(
             ['T44', 'L2'], None)
         self.assertEqual(2, len(basisfn))
         self.assertEqual('T44', basisfn[0][0].__name__)
@@ -59,19 +59,19 @@ class Test(unittest.TestCase):
     def test_weights_get_functions_deriv(self):
         """Tests the preprocessing for weights function"""
         import numpy
-        basisfn, dim = interpolants._get_basis_functions(['L1'],
+        basisfn, dim = interpolator._get_basis_functions(['L1'],
             deriv=[0])
         self.assertEqual(1, len(basisfn))
         self.assertEqual('L1', basisfn[0][0].__name__)
         self.assertEqual([0], basisfn[0][1])
         
-        basisfn, dim = interpolants._get_basis_functions(['L1'],
+        basisfn, dim = interpolator._get_basis_functions(['L1'],
             deriv=[1])
         self.assertEqual(1, len(basisfn))
         self.assertEqual('L1d1', basisfn[0][0].__name__)
         self.assertEqual([0], basisfn[0][1])
         
-        basisfn, dim = interpolants._get_basis_functions(
+        basisfn, dim = interpolator._get_basis_functions(
             ['L1', 'L2', 'L3', 'L4'], deriv=[0, 0, 0, 0])
         self.assertEqual(4, len(basisfn))
         self.assertEqual('L1', basisfn[0][0].__name__)
@@ -83,7 +83,7 @@ class Test(unittest.TestCase):
         self.assertEqual('L4', basisfn[3][0].__name__)
         self.assertEqual([3], basisfn[3][1])
         
-        basisfn, dim = interpolants._get_basis_functions(
+        basisfn, dim = interpolator._get_basis_functions(
             ['L1', 'L2', 'L3', 'L4'], deriv=[1, 1, 1, 1])
         self.assertEqual(4, len(basisfn))
         self.assertEqual('L1d1', basisfn[0][0].__name__)
@@ -95,24 +95,24 @@ class Test(unittest.TestCase):
         self.assertEqual('L4d1', basisfn[3][0].__name__)
         self.assertEqual([3], basisfn[3][1])
         
-        basisfn, dim = interpolants._get_basis_functions(
+        basisfn, dim = interpolator._get_basis_functions(
             ['L1'], deriv=[2])
         self.assertEqual(1, len(basisfn))
         self.assertEqual('L1d1d1', basisfn[0][0].__name__)
         
-        basisfn, dim = interpolants._get_basis_functions(
+        basisfn, dim = interpolator._get_basis_functions(
             ['H3'], deriv=[0])
         self.assertEqual(1, len(basisfn))
         self.assertEqual('H3', basisfn[0][0].__name__)
         self.assertEqual([0], basisfn[0][1])
         
-        basisfn, dim = interpolants._get_basis_functions(
+        basisfn, dim = interpolator._get_basis_functions(
             ['H3'], deriv=[1])
         self.assertEqual(1, len(basisfn))
         self.assertEqual('H3d1', basisfn[0][0].__name__)
         self.assertEqual([0], basisfn[0][1])
         
-        basisfn, dim = interpolants._get_basis_functions(
+        basisfn, dim = interpolator._get_basis_functions(
             ['T11', 'T22', 'T33', 'T44'],
             deriv=[0, 0, 0, 0, 0, 0, 0, 0])
         self.assertEqual(4, len(basisfn))
@@ -125,7 +125,7 @@ class Test(unittest.TestCase):
         self.assertEqual('T44', basisfn[3][0].__name__)
         self.assertEqual([6, 7], basisfn[3][1])
         
-        basisfn, dim = interpolants._get_basis_functions(
+        basisfn, dim = interpolator._get_basis_functions(
             ['T44', 'T44'],
             deriv=[1, 0, 0, 1])
         self.assertEqual(2, len(basisfn))
@@ -134,7 +134,7 @@ class Test(unittest.TestCase):
         self.assertEqual('T44d2', basisfn[1][0].__name__)
         self.assertEqual([2, 3], basisfn[1][1])
         
-        basisfn, dim = interpolants._get_basis_functions(
+        basisfn, dim = interpolator._get_basis_functions(
             ['T44', 'L2'],
             deriv=[1, 0, 1])
         self.assertEqual(2, len(basisfn))
@@ -146,28 +146,28 @@ class Test(unittest.TestCase):
     def test_weights_process_x(self):
         """Tests the preprocessing for weights function"""
         import numpy
-        X = interpolants._process_x([0.1], 1)
+        X = interpolator._process_x([0.1], 1)
         Xc = numpy.array([[0.1]])
         numpy.testing.assert_almost_equal(Xc, X)
         
-        X = interpolants._process_x([0.1, 0.2, 0.3], 1)
+        X = interpolator._process_x([0.1, 0.2, 0.3], 1)
         Xc = numpy.array([[0.1], [0.2], [0.3]])
         numpy.testing.assert_almost_equal(Xc, X)
         
-        X = interpolants._process_x([[0.1], [0.2], [0.3]], 1)
+        X = interpolator._process_x([[0.1], [0.2], [0.3]], 1)
         Xc = numpy.array([[0.1], [0.2], [0.3]])
         numpy.testing.assert_almost_equal(Xc, X)
         
-        X = interpolants._process_x([[0.1, 0.2]], 2)
+        X = interpolator._process_x([[0.1, 0.2]], 2)
         Xc = numpy.array([[0.1, 0.2]])
         numpy.testing.assert_almost_equal(Xc, X)
         
-        X = interpolants._process_x([[0.1, 0.2], [0.4, 0.5]], 2)
+        X = interpolator._process_x([[0.1, 0.2], [0.4, 0.5]], 2)
         Xc = numpy.array([[0.1, 0.2], [0.4, 0.5]])
         numpy.testing.assert_almost_equal(Xc, X)
         
         Xc = numpy.array([[0.1, 0.2], [0.4, 0.5]])
-        X = interpolants._process_x(Xc, 2)
+        X = interpolator._process_x(Xc, 2)
         numpy.testing.assert_almost_equal(Xc, X)
         
     def test_weights_values(self):
@@ -176,37 +176,37 @@ class Test(unittest.TestCase):
         Xi1 = numpy.array([[0.1], [0.3], [0.2]])
         Xi2 = numpy.array([[0.1, 0.2], [0.2, 0.3], [0.3, 0.2]])
         
-        W = interpolants.weights(['L2'], Xi1)
+        W = interpolator.weights(['L2'], Xi1)
         numpy.testing.assert_almost_equal(W, numpy.array([
                 [0.72, 0.36, -0.08],
                 [0.28, 0.84, -0.12],
                 [0.48, 0.64, -0.12]]))
         
-        W = interpolants.weights(['L3'], Xi1)
+        W = interpolator.weights(['L3'], Xi1)
         numpy.testing.assert_almost_equal(W, numpy.array([
                 [0.5355,  0.6885, -0.2835,  0.0595],
                 [0.0385,  1.0395, -0.0945,  0.0165],
                 [0.224,   1.008,  -0.288,   0.056 ]]))
                 
-        W = interpolants.weights(['H3'], Xi1)
+        W = interpolator.weights(['H3'], Xi1)
         numpy.testing.assert_almost_equal(W, numpy.array([
                 [ 0.972,  0.081,  0.028, -0.009],
                 [ 0.784,  0.147,  0.216, -0.063],
                 [ 0.896,  0.128,  0.104, -0.032]]))
         
-        W = interpolants.weights(['L1', 'L1'], Xi2)
+        W = interpolator.weights(['L1', 'L1'], Xi2)
         numpy.testing.assert_almost_equal(W, numpy.array([
                 [0.72, 0.08, 0.18, 0.02],
                 [0.56, 0.14, 0.24, 0.06],
                 [0.56, 0.24, 0.14, 0.06]]))
         
-        W = interpolants.weights(['L1', 'L2'], Xi2)
+        W = interpolator.weights(['L1', 'L2'], Xi2)
         numpy.testing.assert_almost_equal(W, numpy.array([
                 [0.432,  0.048,  0.576,  0.064, -0.108, -0.012],
                 [0.224,  0.056,  0.672,  0.168, -0.096, -0.024],
                 [0.336,  0.144,  0.448,  0.192, -0.084, -0.036]]))
         
-        W = interpolants.weights(['L3', 'L2'], Xi2)
+        W = interpolator.weights(['L3', 'L2'], Xi2)
         numpy.testing.assert_almost_equal(W, numpy.array([
              [ 0.25704, 0.33048, -0.13608, 0.02856, 0.34272, 0.44064, -0.18144, 0.03808,
               -0.06426, -0.08262, 0.03402, -0.00714],
@@ -215,7 +215,7 @@ class Test(unittest.TestCase):
              [ 0.01848, 0.49896, -0.04536, 0.00792, 0.02464, 0.66528, -0.06048, 0.01056,
               -0.00462, -0.12474, 0.01134, -0.00198]]))
         
-        W = interpolants.weights(['L3', 'L3'], Xi2)
+        W = interpolator.weights(['L3', 'L3'], Xi2)
         numpy.testing.assert_almost_equal(W, numpy.array([
              [  1.19952000e-01,  1.54224000e-01, -6.35040000e-02,  1.33280000e-02,
                 5.39784000e-01,  6.94008000e-01, -2.85768000e-01,  5.99760000e-02,
@@ -230,7 +230,7 @@ class Test(unittest.TestCase):
                -1.10880000e-02, -2.99376000e-01,  2.72160000e-02, -4.75200000e-03,
                 2.15600000e-03,  5.82120000e-02, -5.29200000e-03,  9.24000000e-04]]))
         
-        W = interpolants.weights(['L4', 'L4'], Xi2)
+        W = interpolator.weights(['L4', 'L4'], Xi2)
         numpy.testing.assert_almost_equal(W, numpy.array([
              [  2.63577600e-02,  7.02873600e-02, -3.95366400e-02,  1.62201600e-02,
                -2.92864000e-03,  4.21724160e-01,  1.12459776e+00, -6.32586240e-01,
@@ -254,7 +254,7 @@ class Test(unittest.TestCase):
                 5.91360000e-04, -1.41926400e-02, -5.32224000e-03,  1.57696000e-03,
                -2.53440000e-04]]))
         
-        W = interpolants.weights(['H3', 'H3'], Xi2)
+        W = interpolator.weights(['H3', 'H3'], Xi2)
         numpy.testing.assert_almost_equal(W, numpy.array([
              [  8.70912000e-01,   7.25760000e-02,   1.24416000e-01,   1.03680000e-02,
                 2.50880000e-02,  -8.06400000e-03,   3.58400000e-03,  -1.15200000e-03,
@@ -269,13 +269,13 @@ class Test(unittest.TestCase):
                 8.15360000e-02,   1.52880000e-02,  -2.50880000e-02,  -4.70400000e-03,
                 2.24640000e-02,  -6.55200000e-03,  -6.91200000e-03,   2.01600000e-03]]))
         
-        W = interpolants.weights(['H3', 'L1'], Xi2)
+        W = interpolator.weights(['H3', 'L1'], Xi2)
         numpy.testing.assert_almost_equal(W, numpy.array([
                  [ 0.7776,  0.0648,  0.0224, -0.0072,  0.1944,  0.0162,  0.0056, -0.0018],
                  [ 0.6272,  0.0896,  0.0728, -0.0224,  0.2688,  0.0384,  0.0312, -0.0096],
                  [ 0.6272,  0.1176,  0.1728, -0.0504,  0.1568,  0.0294,  0.0432, -0.0126]]))
         
-        W = interpolants.weights(['T22'], Xi2)
+        W = interpolator.weights(['T22'], Xi2)
         numpy.testing.assert_almost_equal(W, numpy.array([
                  [  2.80000000e-01,   2.80000000e-01,  -8.00000000e-02,
                     5.60000000e-01,   8.00000000e-02,  -1.20000000e-01],
@@ -288,13 +288,13 @@ class Test(unittest.TestCase):
         ### interpolations, e.g., L2, L3, L4...
         
         # Derivatives
-        W = interpolants.weights(['L4'], Xi1, deriv=[1])
+        W = interpolator.weights(['L4'], Xi1, deriv=[1])
         numpy.testing.assert_almost_equal(W, numpy.array([
                 [-4.424     ,  4.84266667, -0.384     , -0.064     ,  0.02933333],
                 [-0.38133333, -4.288     ,  5.952     , -1.51466667,  0.232     ],
                 [-1.85866667, -1.57866667,  5.088     , -2.00533333,  0.35466667]]))
         
-        W = interpolants.weights(['L3', 'L3'], Xi2, deriv=[1, 0])
+        W = interpolator.weights(['L3', 'L3'], Xi2, deriv=[1, 0])
         numpy.testing.assert_almost_equal(W, numpy.array([
                [ -8.59040000e-01,   1.09872000e+00,  -2.92320000e-01,
                   5.26400000e-02,  -3.86568000e+00,   4.94424000e+00,
@@ -315,7 +315,7 @@ class Test(unittest.TestCase):
                  -7.36400000e-02,  -4.78800000e-02,   1.48680000e-01,
                  -2.71600000e-02]]))
         
-        W = interpolants.weights(['L3', 'L3'], Xi2, deriv=[1, 1])
+        W = interpolator.weights(['L3', 'L3'], Xi2, deriv=[1, 1])
         numpy.testing.assert_almost_equal(W, numpy.array([
                [  9.3574, -11.9682,   3.1842,  -0.5734,  -6.2127,   7.9461,
                  -2.1141,   0.3807,  -4.1418,   5.2974,  -1.4094,   0.2538,
@@ -327,7 +327,7 @@ class Test(unittest.TestCase):
                   4.3011,  -0.7857,  -1.4202,  -0.9234,   2.8674,  -0.5238,
                   0.3419,   0.2223,  -0.6903,   0.1261]]))
         
-        W = interpolants.weights(['H3', 'H3'], Xi2, deriv=[0, 1])
+        W = interpolator.weights(['H3', 'H3'], Xi2, deriv=[0, 1])
         numpy.testing.assert_almost_equal(W, numpy.array([
                [-0.93312, -0.07776,  0.31104,  0.02592, -0.02688,  0.00864,
                  0.00896, -0.00288,  0.93312,  0.07776, -0.27216, -0.02268,
@@ -341,11 +341,11 @@ class Test(unittest.TestCase):
                  
     
 class TestBasisFunction(unittest.TestCase):
-    """Unit tests for fieldscape interpolants."""
+    """Unit tests for fieldscape interpolator."""
     
     def test_L1(self):
         x = numpy.array([0.13, 0.37, 0.669, 0.87])
-        numpy.testing.assert_almost_equal(interpolants.L1(x),
+        numpy.testing.assert_almost_equal(interpolator.L1(x),
             array([[ 0.87 ,  0.13 ],
                    [ 0.63 ,  0.37 ],
                    [ 0.331,  0.669],
@@ -353,80 +353,80 @@ class TestBasisFunction(unittest.TestCase):
     
     def test_L1d1(self):
         x = numpy.array([0.13, 0.77])
-        numpy.testing.assert_almost_equal(interpolants.L1d1(x),
+        numpy.testing.assert_almost_equal(interpolator.L1d1(x),
             array([[-1.,  1.],
                    [-1.,  1.]]))
     
     def test_L1d1d1(self):
         x = numpy.array([0.13, 0.77])
-        numpy.testing.assert_almost_equal(interpolants.L1d1d1(x),
+        numpy.testing.assert_almost_equal(interpolator.L1d1d1(x),
             array([[ 0.,  0.],
                    [ 0.,  0.]]))
     
     def test_L2(self):
         x = numpy.array([0.13, 0.77])
-        numpy.testing.assert_almost_equal(interpolants.L2(x),
+        numpy.testing.assert_almost_equal(interpolator.L2(x),
             array([[ 0.6438,  0.4524, -0.0962],
                    [-0.1242,  0.7084,  0.4158]]))
     
     def test_L2d1(self):
         x = numpy.array([0.13, 0.77])
-        numpy.testing.assert_almost_equal(interpolants.L2d1(x),
+        numpy.testing.assert_almost_equal(interpolator.L2d1(x),
             array([[-2.48,  2.96, -0.48],
                    [ 0.08, -2.16,  2.08]]))
     
     def test_L3(self):
         x = numpy.array([0.13, 0.77])
-        numpy.testing.assert_almost_equal(interpolants.L3(x),
+        numpy.testing.assert_almost_equal(interpolator.L3(x),
             array([[ 0.4272135,  0.8194095, -0.3104595,  0.0638365],
                    [ 0.0467015, -0.2470545,  1.0440045,  0.1563485]]))
     
     def test_L3d1(self):
         x = numpy.array([0.13, 0.77])
-        numpy.testing.assert_almost_equal(interpolants.L3d1(x),
+        numpy.testing.assert_almost_equal(interpolator.L3d1(x),
             array([[-3.38815,  3.83445, -0.50445,  0.05815],
                    [ 0.35585, -1.63755, -0.79245,  2.07415]]))
     
     def test_L4(self):
         x = numpy.array([0.13, 0.77])
-        numpy.testing.assert_almost_equal(interpolants.L4(x),
+        numpy.testing.assert_almost_equal(interpolator.L4(x),
             array([[ 0.25545984,  1.10699264, -0.53853696,  0.21425664, -0.03817216],
                    [-0.00688896,  0.04080384, -0.11787776,  1.06089984,  0.02306304]]))
     
     def test_L4d1(self):
         x = numpy.array([0.13, 0.77])
-        numpy.testing.assert_almost_equal(interpolants.L4d1(x),
+        numpy.testing.assert_almost_equal(interpolator.L4d1(x),
             array([[-3.524928  ,  2.46557867,  1.832832  , -0.962688  ,  0.18920533],
                    [-0.35325867,  2.06690133, -5.761152  ,  2.73463467,  1.31287467]]))
     
     def test_H3(self):
         x = numpy.array([0.13, 0.77])
-        numpy.testing.assert_almost_equal(interpolants.H3(x),
+        numpy.testing.assert_almost_equal(interpolator.H3(x),
             array([[ 0.953694,  0.098397,  0.046306, -0.014703],
                    [ 0.134366,  0.040733,  0.865634, -0.136367]]))
         
     def test_H3d1(self):
         x = numpy.array([0.13, 0.77])
-        numpy.testing.assert_almost_equal(interpolants.H3d1(x),
+        numpy.testing.assert_almost_equal(interpolator.H3d1(x),
             array([[-0.6786,  0.5307,  0.6786, -0.2093],
                    [-1.0626, -0.3013,  1.0626,  0.2387]]))
         
     def test_T11(self):
         x = numpy.array([[0.13, 0.23], [0.77, 0.06]])
-        numpy.testing.assert_almost_equal(interpolants.T11(x),
+        numpy.testing.assert_almost_equal(interpolator.T11(x),
             array([[ 0.64,  0.13,  0.23],
                    [ 0.17,  0.77,  0.06]]))
     
     
     def test_T22(self):
         x = numpy.array([[0.13, 0.23], [0.77, 0.06]])
-        numpy.testing.assert_almost_equal(interpolants.T22(x),
+        numpy.testing.assert_almost_equal(interpolator.T22(x),
             array([[ 0.1792,  0.3328, -0.0962,  0.5888,  0.1196, -0.1242],
                    [-0.1122,  0.5236,  0.4158,  0.0408,  0.1848, -0.0528]]))
     
     def test_T33(self):
         x = numpy.array([[0.13, 0.23], [0.77, 0.06]])
-        numpy.testing.assert_almost_equal(interpolants.T33(x),
+        numpy.testing.assert_almost_equal(interpolator.T33(x),
             array([[-0.023552 ,  0.344448 , -0.228384 ,  0.0638365,  0.609408 ,
                      0.516672 , -0.0820755, -0.205344 , -0.0417105,  0.0467015],
                    [ 0.0620585, -0.2886345,  0.7716555,  0.1563485, -0.022491 ,
@@ -434,7 +434,7 @@ class TestBasisFunction(unittest.TestCase):
     
     def test_T44(self):
         x = numpy.array([[0.13, 0.23], [0.77, 0.06]])
-        numpy.testing.assert_almost_equal(interpolants.T44(x),
+        numpy.testing.assert_almost_equal(interpolator.T44(x),
             array([[-0.04100096,  0.19382272, -0.24920064,  0.15761408, -0.03817216,
                      0.34291712,  0.95526912, -0.29392896,  0.05664256, -0.07348224,
                     -0.04898816,  0.00459264,  0.03391488,  0.00688896, -0.00688896],
@@ -444,7 +444,7 @@ class TestBasisFunction(unittest.TestCase):
         
     def test_T44d1(self):
         x = numpy.array([[0.13, 0.23], [0.77, 0.06]])
-        numpy.testing.assert_almost_equal(interpolants.T44d1(x),
+        numpy.testing.assert_almost_equal(interpolator.T44d1(x),
             array([[  8.93226667e-02,  -6.93333333e-01,   1.18809600e+00,
                      -7.73290667e-01,   1.89205333e-01,  -3.86449067e+00,
                       3.40620800e+00,   6.47680000e-01,  -1.89397333e-01,
@@ -458,7 +458,7 @@ class TestBasisFunction(unittest.TestCase):
         
     def test_T44d2(self):
         x = numpy.array([[0.13, 0.23], [0.77, 0.06]])
-        numpy.testing.assert_almost_equal(interpolants.T44d2(x),
+        numpy.testing.assert_almost_equal(interpolator.T44d2(x),
             array([[ 0.08932267, -2.18427733,  1.028352  , -0.246272  ,  0.        ,
                     -2.37354667,  0.211328  , -0.818688  ,  0.246272  ,  3.657856  ,
                      2.31296   , -0.209664  , -1.72689067, -0.34001067,  0.35325867],

@@ -30,5 +30,5 @@ Xs, Ts = mesh.get_surfaces(res=16)
 try: S.clear()
 except: S = xviewer.Scenes()
 S.plotSurfaces('surface', Xs, Ts, color=(1,0.9,0.8))
-S.plotPoints('nodes', Xn, size=0.01)
+S.plotPoints('nodes', Xn, size=0.02)
 

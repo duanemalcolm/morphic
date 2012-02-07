@@ -5,77 +5,163 @@ import numpy
 from numpy import array
 import numpy.testing as npt
 
+from fieldscape import core
 from fieldscape import mesher
 
-class TestMeshObjectList(unittest.TestCase):
-    """Unit tests for fieldscape."""
-
-    def test_init(self):
-        mol = mesher.MeshObjectList()
-        self.assertEqual(mol._objects, [])
-        self.assertEqual(mol._object_ids, {})
-        self.assertEqual(mol._id_counter, 0)
-    
-    def test_set_counter(self):
-        mol = mesher.MeshObjectList()
-        self.assertEqual(mol._id_counter, 0)
-        mol.set_counter(3)
-        self.assertEqual(mol._id_counter, 3)
-    
-    def test_get_unique_id(self):
-        mol = mesher.MeshObjectList()
-        self.assertEqual(mol.get_unique_id(), 0)
-        mol._object_ids[0] = ''
-        self.assertEqual(mol.get_unique_id(), 1)
-        for i in range(10):
-            mol._object_ids[i] = ''
-        self.assertEqual(mol.get_unique_id(), 10)
-        mol._object_ids.pop(5)
-        self.assertEqual(mol.get_unique_id(), 10)
-        mol._id_counter = 0
-        self.assertEqual(mol.get_unique_id(), 5)
-    
-    def test_add(self):
-        mesh = mesher.Mesh()
-        node1 = mesher.Node(mesh, 1, [0.1])
-        node2 = mesher.Node(mesh, 2, [0.2])
-        node3 = mesher.Node(mesh, 3, [0.3])
-        nodea = mesher.Node(mesh, 'a', [0.3])
-        mol = mesher.MeshObjectList()
-        mol.add(node1)
-        mol.add(node2)
-        mol.add(node3)
-        mol.add(nodea)
-        self.assertEqual(mol._objects[0], node1)
-        self.assertEqual(mol._objects[1], node2)
-        self.assertEqual(mol._objects[2], node3)
-        self.assertEqual(mol._objects[3], nodea)
-        Nodes = [node1, node2, node3, nodea]
-        for i, node in enumerate(mol):
-            self.assertEqual(node, Nodes[i])
-        Nodes = [node3, node1]
-        for i, node in enumerate(mol[[3,1]]):
-            self.assertEqual(node, Nodes[i])
-        self.assertEqual(mol[1], node1)
-        self.assertEqual(mol[2], node2)
-        self.assertEqual(mol[3], node3)
-        self.assertEqual(mol['a'], nodea)
-         
         
 class TestNode(unittest.TestCase):
+    """Unit tests for fieldscape Node superclass."""
+
+    def test_node_init(self):
+        mesh = mesher.Mesh()
+        node = mesher.Node(mesh, '4')
+        self.assertEqual(node._type, 'standard')
+        self.assertEqual(node.mesh, mesh)
+        self.assertEqual(node.id, '4')
+        self.assertEqual(node.cids, None)
+        self.assertEqual(node.num_values, 0)
+        self.assertEqual(node.num_fields, 0)
+        self.assertEqual(node.num_components, 0)
+        self.assertEqual(node._added, False)
+        self.assertEqual(node.mesh._regenerate, True)
+        self.assertEqual(node.mesh._reupdate, True)
+        
+    def test_one_field_no_components(self):
+        mesh = mesher.Mesh()
+        node = mesher.Node(mesh, '4')
+        node.set_values([3])
+        self.assertEqual(node.num_values, 1)
+        self.assertEqual(node.num_fields, 1)
+        self.assertEqual(node.num_components, 1)
+        self.assertEqual(node.cids, [0])
+        self.assertEqual(node._added, True)
+        self.assertEqual(node.mesh._regenerate, True)
+        self.assertEqual(node.mesh._reupdate, True)
+        
+        npt.assert_almost_equal(node.values, [3])
+        npt.assert_almost_equal(node.all_values, [[3]])
+        npt.assert_almost_equal(node.all_values_flat, [3])
+        npt.assert_almost_equal(node.cids, [0])
+        npt.assert_almost_equal(node.field_cids, [[0]])
+        
+    def test_three_fields_no_components(self):
+        mesh = mesher.Mesh()
+        node = mesher.Node(mesh, '4')
+        node.set_values([3, 4, 6])
+        self.assertEqual(node.num_values, 3)
+        self.assertEqual(node.num_fields, 3)
+        self.assertEqual(node.num_components, 1)
+        self.assertEqual(node.cids, [0, 1, 2])
+        self.assertEqual(node._added, True)
+        self.assertEqual(node.mesh._regenerate, True)
+        self.assertEqual(node.mesh._reupdate, True)
+        
+        npt.assert_almost_equal(node.values, [3, 4, 6])
+        npt.assert_almost_equal(node.all_values, [[3], [4], [6]])
+        npt.assert_almost_equal(node.all_values_flat, [3, 4, 6])
+        npt.assert_almost_equal(node.cids, [0, 1, 2])
+        npt.assert_almost_equal(node.field_cids, [[0], [1], [2]])
+        
+    def test_three_fields_alt_no_components(self):
+        mesh = mesher.Mesh()
+        node = mesher.Node(mesh, '4')
+        node.set_values([[3], [4], [6]])
+        self.assertEqual(node.num_values, 3)
+        self.assertEqual(node.num_fields, 3)
+        self.assertEqual(node.num_components, 1)
+        self.assertEqual(node.cids, [0, 1, 2])
+        self.assertEqual(node._added, True)
+        self.assertEqual(node.mesh._regenerate, True)
+        self.assertEqual(node.mesh._reupdate, True)
+        
+        npt.assert_almost_equal(node.values, [3, 4, 6])
+        npt.assert_almost_equal(node.all_values, [[3], [4], [6]])
+        npt.assert_almost_equal(node.all_values_flat, [3, 4, 6])
+        npt.assert_almost_equal(node.cids, [0, 1, 2])
+        npt.assert_almost_equal(node.field_cids, [[0], [1], [2]])
+        
+    def test_one_field_with_components(self):
+        mesh = mesher.Mesh()
+        node = mesher.Node(mesh, '4')
+        node.set_values([[3, 1, 0, 0]])
+        self.assertEqual(node.num_values, 4)
+        self.assertEqual(node.num_fields, 1)
+        self.assertEqual(node.num_components, 4)
+        self.assertEqual(node.cids, [0, 1, 2, 3])
+        self.assertEqual(node._added, True)
+        self.assertEqual(node.mesh._regenerate, True)
+        self.assertEqual(node.mesh._reupdate, True)
+        
+        npt.assert_almost_equal(node.values, [3])
+        npt.assert_almost_equal(node.all_values, [[3, 1, 0, 0]])
+        npt.assert_almost_equal(node.all_values_flat, [3, 1, 0, 0])
+        npt.assert_almost_equal(node.cids, [0, 1, 2, 3])
+        npt.assert_almost_equal(node.field_cids, [[0, 1, 2, 3]])
+        
+    def test_three_field_with_components(self):
+        mesh = mesher.Mesh()
+        node = mesher.Node(mesh, '4')
+        node.set_values([[3, 1, 0, 0], [4, 2, 0, 0], [5, 3, 0, 0]])
+        self.assertEqual(node.num_values, 12)
+        self.assertEqual(node.num_fields, 3)
+        self.assertEqual(node.num_components, 4)
+        self.assertEqual(node.cids, range(12))
+        self.assertEqual(node._added, True)
+        self.assertEqual(node.mesh._regenerate, True)
+        self.assertEqual(node.mesh._reupdate, True)
+        
+        npt.assert_almost_equal(node.values, [3, 4, 5])
+        npt.assert_almost_equal(node.all_values,
+            [[3, 1, 0, 0], [4, 2, 0, 0], [5, 3, 0, 0]])
+        npt.assert_almost_equal(node.all_values_flat,
+            [3, 1, 0, 0, 4, 2, 0, 0, 5, 3, 0, 0])
+        npt.assert_almost_equal(node.cids, range(12))
+        npt.assert_almost_equal(node.field_cids,
+            [range(4), range(4, 8), range(8, 12)])
+            
+    def test_fix_all(self):
+        mesh = mesher.Mesh()
+        node = mesher.Node(mesh, '4')
+        node.set_values([[3, 1], [4, 2], [5, 3]])
+        node.fix(True)
+        npt.assert_equal(node.fixed, [True, True, True, True, True, True])
+        node.fix(False)
+        npt.assert_equal(node.fixed, [False, False, False, False, False, False])
+        
+    def test_fix_fields(self):
+        mesh = mesher.Mesh()
+        node = mesher.Node(mesh, '4')
+        node.set_values([[3, 1], [4, 2], [5, 3]])
+        node.fix([False, True, False])
+        npt.assert_equal(node.fixed, [False, False, True, True, False, False])
+        node.fix([True, False, True])
+        npt.assert_equal(node.fixed, [True, True, False, False, True, True])
+        
+    def test_fix_components(self):
+        mesh = mesher.Mesh()
+        node = mesher.Node(mesh, '4')
+        node.set_values([[3, 1], [4, 2], [5, 3]])
+        fixed = [[False, True], [True, True], [False, False]]
+        node.fix(fixed)
+        npt.assert_equal(node.fixed, [False, True, True, True, False, False])
+        
+        
+        
+        
+class TestStdNode(unittest.TestCase):
     """Unit tests for fieldscape interpolants."""
 
     def test_node_init(self):
         mesh = mesher.Mesh()
-        node = mesher.Node(mesh, '4', [0])
+        node = mesher.StdNode(mesh, '4', [0])
         self.assertEqual(node.mesh, mesh)
         self.assertEqual(node.id, '4')
-        #~ npt.assert_equal(node.values, [0.])
+        npt.assert_equal(node.values, [0.])
         
-        node = mesher.Node(mesh, '4', [0.1, 0.2])
+        node = mesher.StdNode(mesh, '4', [0.1, 0.2])
         self.assertEqual(node.mesh, mesh)
         self.assertEqual(node.id, '4')
-        #~ npt.assert_equal(node.values, [0.1, 0.2])
+        npt.assert_equal(node.values, [0.1, 0.2])
         
 
 class TestDepNode(unittest.TestCase):
@@ -83,11 +169,11 @@ class TestDepNode(unittest.TestCase):
 
     def test_node_init(self):
         mesh = mesher.Mesh()
-        node = mesher.Node(mesh, '4', [0])
+        node = mesher.StdNode(mesh, '4', [0])
         self.assertEqual(node.mesh, mesh)
         self.assertEqual(node.id, '4')
         npt.assert_equal(node.values, [0.])
-        node = mesher.Node(mesh, '4', [0.1, 0.2])
+        node = mesher.StdNode(mesh, '4', [0.1, 0.2])
         self.assertEqual(node.mesh, mesh)
         self.assertEqual(node.id, '4')
         npt.assert_equal(node.values, [0.1, 0.2])
@@ -106,8 +192,8 @@ class TestElement(unittest.TestCase):
         
     def test_elem_iter(self):
         mesh = mesher.Mesh()
-        n1 = mesh.add_node(1, [0.1])
-        n2 = mesh.add_node(2, [0.2])
+        n1 = mesh.add_stdnode(1, [0.1])
+        n2 = mesh.add_stdnode(2, [0.2])
         elem = mesher.Element(mesh, 1, ['L1'], [1, 2])
         Nodes = [n1, n2]
         for i, node in enumerate(elem):
@@ -124,15 +210,15 @@ class TestMesh(unittest.TestCase):
     def test_mesh_init(self):
         mesh = mesher.Mesh()
         self.assertEqual(mesh.label, '/')
-        self.assertEqual(isinstance(mesh.nodes, mesher.MeshObjectList),
+        self.assertEqual(isinstance(mesh.nodes, core.ObjectList),
                 True)
         
     def test_add_node(self):
         mesh = mesher.Mesh()
-        node1 = mesh.add_node(1, [0.0])
-        nodeN1 = mesh.add_node(None, [0.1])
-        nodeN2 = mesh.add_node(None, [0.2])
-        noded = mesh.add_node('d', [0.3])
+        node1 = mesh.add_stdnode(1, [0.0])
+        nodeN1 = mesh.add_stdnode(None, [0.1])
+        nodeN2 = mesh.add_stdnode(None, [0.2])
+        noded = mesh.add_stdnode('d', [0.3])
         
         self.assertEqual(node1.id, 1)
         self.assertEqual(node1.values, [0.0])
@@ -160,8 +246,8 @@ class TestMesh(unittest.TestCase):
     
     def test_add_element(self):
         mesh = mesher.Mesh()
-        node1 = mesh.add_node(1, [0.1])
-        node2 = mesh.add_node(2, [0.2])
+        node1 = mesh.add_stdnode(1, [0.1])
+        node2 = mesh.add_stdnode(2, [0.2])
         elem1 = mesh.add_element(1, ['L1'], [1, 2])
         elem0 = mesh.add_element(None, ['L1'], [2, 1])
         
@@ -178,6 +264,34 @@ class TestMesh(unittest.TestCase):
         self.assertEqual(mesh.elements[0].id, 0)
         self.assertEqual(mesh.elements[0].interp, ['L1'])
         self.assertEqual(mesh.elements[0].nodes, [2, 1])
+        
+    def test_node_groups(self):
+        mesh = mesher.Mesh()
+        n1 = mesh.add_stdnode(1, [0.1], group='g1')
+        n2 = mesh.add_stdnode(2, [0.2], group='g1')
+        n3 = mesh.add_stdnode(3, [0.3], group='g2')
+        n4 = mesh.add_stdnode(4, [0.4], group='g1')
+        n5 = mesh.add_stdnode(5, [0.5], group='g3')
+        
+        mesh.nodes.add_to_group(1, 'g3')
+        
+        self.assertEqual(mesh.nodes('g1'), [n1, n2, n4])
+        self.assertEqual(mesh.nodes('g2'), [n3])
+        self.assertEqual(mesh.nodes('g3'), [n5, n1])
+        
+    def test_element_groups(self):
+        mesh = mesher.Mesh()
+        e1 = mesh.add_element(1, ['L1'], [1, 2], group='g1')
+        e2 = mesh.add_element(2, ['L1'], [1, 2], group='g1')
+        e3 = mesh.add_element(3, ['L1'], [1, 2], group='g2')
+        e4 = mesh.add_element(4, ['L1'], [1, 2], group='g1')
+        e5 = mesh.add_element(5, ['L1'], [1, 2], group='g3')
+        
+        mesh.elements.add_to_group(1, 'g3')
+        
+        self.assertEqual(mesh.elements('g1'), [e1, e2, e4])
+        self.assertEqual(mesh.elements('g2'), [e3])
+        self.assertEqual(mesh.elements('g3'), [e5, e1])
         
         
         
