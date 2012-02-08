@@ -53,4 +53,17 @@ if len(sys.argv) > 1:
         pyplot.show()
         filepath = os.path.join(docimagedir, example+'.png')
         pyplot.savefig(filepath)
-    
+
+#~ x = scipy.linspace(0, 2 * scipy.pi, 500)
+#~ y = scipy.sin(x)
+#~ Xd = scipy.array([x, y]).T   
+#~ 
+#~ fit = morphic.Fit()
+#~ Xi = scipy.linspace(0, 1, 24)
+#~ for xi in Xi:
+    #~ fit.bind_element_point(1, [xi], 'sine_data')
+#~ 
+#~ fit.set_data('sine_wave', Xd)
+#~ 
+#~ fit.update_from_mesh(mesh)
+#~ fit.generate_fast_data()
