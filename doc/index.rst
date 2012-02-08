@@ -12,6 +12,7 @@ Contents:
    :maxdepth: 2
    
    introduction
+   installation
    mesher
    fitter
    interpolator
@@ -27,6 +28,7 @@ Contents:
     :members:
     
 .. include introduction.rst
+.. include installation.rst
 .. include mesher.rst
 .. include fitter.rst
 .. include interpolator.rst
