@@ -9,16 +9,16 @@ Features
 --------
 Features to be added in order:
     - PCA nodes
-    - Mapping nodes
     - Translation and Rotation of meshes
+    - Mapping nodes
 
 -----
 Todos
 -----
-License (MIT/GPL)
+Done - License (MIT/GPL)
 
-Commit to GitHub - Meshing complete
-Commit to readthedocs.org
+Done - Commit to GitHub - Meshing complete
+Done - Commit to readthedocs.org
 
 Documentation:
     - Meshing - 40%
@@ -40,7 +40,7 @@ Testing:
     - Core
     - Mesher
     - Fitter
-    - Interpolator
+    - Interpolator - 100%
 
 Examples:
     - Done - 1d linear
@@ -51,7 +51,6 @@ Examples:
     - Fitting for the above
     - 2d elements plus fitting for cos-squared function
     
-    
 Coding:
     - element normals
-    - T33 derivatives
+    - Done - T33 derivatives

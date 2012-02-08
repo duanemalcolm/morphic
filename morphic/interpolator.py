@@ -1,4 +1,5 @@
 import numpy
+import numpy.linalg
 
 def weights(basis, X, deriv=None):
     """
@@ -90,7 +91,7 @@ def _get_basis_functions(basis, deriv):
         'H3': [H3, H3d1],
         'T11': [T11],
         'T22': [T22],
-        'T33': [T33],
+        'T33': [T33, T33d1, T33d2],
         'T44': [T44, T44d1, T44d2]}
     
     # Set the index of the basis function in BFn from the deriv input
@@ -347,7 +348,7 @@ def T11(x): # Linear-Linear
     :param x: points to interpolate 0<=x<=1, x1+x2<=1
     :type x: numpy array (npoints)
     :return: basis weights
-    :rtype: numpy array(npoints, 4)
+    :rtype: numpy array(npoints, 3)
     """
     L1, L2, L3 = 1-x[:, 0]-x[:, 1], x[:, 0], x[:, 1]
     return numpy.array([L1, L2, L3]).T
@@ -360,7 +361,7 @@ def T22(x): # Quadratic-Quadratic
     :param x: points to interpolate 0<=x<=1, x1+x2<=1
     :type x: numpy array (npoints, 2)
     :return: basis weights
-    :rtype: numpy array(npoints, 4)
+    :rtype: numpy array(npoints, 6)
     """
     L1, L2, L3 = 1-x[:, 0]-x[:, 1], x[:, 0], x[:, 1]
     Phi = numpy.array([ \
@@ -376,7 +377,7 @@ def T33(x): # Cubic-Cubic
     :param x: points to interpolate 0<=x<=1, x1+x2<=1
     :type x: numpy array (npoints, 2)
     :return: basis weights
-    :rtype: numpy array(npoints, 4)
+    :rtype: numpy array(npoints, 10)
     """
     L1, L2, L3 = 1-x[:, 0]-x[:, 1], x[:, 0], x[:, 1]
     sc = 9./2.
@@ -386,6 +387,89 @@ def T33(x): # Cubic-Cubic
         sc*L2*L3*(3*L2-1), sc*L1*L3*(3*L3-1), sc*L2*L3*(3*L3-1), \
         0.5*L3*(3*L3-1)*(3*L3-2)])
     return Phi.T
+
+def T33d1(x): # Cubic-Cubic
+    """
+    First derivative in dimension 1 for the cubic lagrange triangle
+    element.
+    
+    :param x: points to interpolate 0<=x<=1, x1+x2<=1
+    :type x: numpy array(npoints, 2)
+    :return: basis weights
+    :rtype: numpy array(npoints, 10)
+    """
+    L1, L2, L3 = 1-x[:, 0]-x[:, 1], x[:, 0], x[:, 1]
+    v0 = [ 0.0, 0.0]
+    v1 = [ 1.0, 0.0]
+    v2 = [ 0.0, 1.0]
+    b = numpy.array( [ v1[1] - v2[1],\
+                 v2[1] - v0[1],\
+                 v0[1] - v1[1] ] )
+    D = 0.5 * numpy.linalg.det( [ [1.0, v0[0], v0[1]],\
+                [1.0, v1[0], v1[1]],\
+                [1.0, v2[0], v2[1]] ] )
+    D2 = 2.0 * D             
+    D16 = 16.0*D**3.0
+    D916 = -9.0 / D16
+    D27 = 27.0 / (8.0*D**3.0)
+    D4 = D * 4.0
+    D38 = -3.0 / (8.0*D**3.0)
+    D98 = -9.0 / (8.0*D**3.0)
+    
+    Phi = numpy.array([  (b[0]*(D2 - 3.0*L1)*(D4 - 3.0*L1) - 3.0*b[0]*L1*(D4 - 3.0*L1) - 3.0*b[0]*L1*(D2 - 3.0*L1) )/ D16,\
+                D916*b[0]*L2*(D2 - 3.0*L1) + D916*b[1]*L1*(D2 - 3.0*L1) + 0.5*D27*b[0]*L1*L2,\
+                D916*b[0]*L2*(D2 - 3.0*L2) + D916*b[1]*L1*(D2 - 3.0*L2) + 0.5*D27*b[1]*L1*L2,\
+               (b[1]*(D2 - 3.0*L2)*(D4 - 3.0*L2) - 3.0*b[1]*L2*(D4 - 3.0*L2) - 3.0*b[1]*L2*(D2 - 3.0*L2) )/ D16,\
+                D916*b[0]*L3*(D2 - 3.0*L1) + D916*b[2]*L1*(D2 - 3.0*L1) + 0.5*D27*b[0]*L1*L3,\
+                D27*( b[0]*L2*L3 + b[1]*L1*L3 + b[2]*L1*L2 ),\
+                D916*b[1]*L3*(D2 - 3.0*L2) + D916*b[2]*L2*(D2 - 3.0*L2) + 0.5*D27*b[1]*L2*L3,\
+                D916*b[0]*L3*(D2 - 3.0*L3) + D916*b[2]*L1*(D2 - 3.0*L3) + 0.5*D27*b[2]*L1*L3,\
+                D916*b[1]*L3*(D2 - 3.0*L3) + D916*b[2]*L2*(D2 - 3.0*L3) + 0.5*D27*b[2]*L2*L3,\
+               (b[2]*(D2 - 3.0*L3)*(D4 - 3.0*L3) - 3.0*b[2]*L3*(D4 - 3.0*L3) - 3.0*b[2]*L3*(D2 - 3.0*L3) )/ D16 ] )
+    
+    return Phi.T
+
+def T33d2(x): # Cubic-Cubic
+    """
+    First derivative in dimension 2 for the cubic lagrange triangle
+    element.
+    
+    :param x: points to interpolate 0<=x<=1, x1+x2<=1
+    :type x: numpy array(npoints, 2)
+    :return: basis weights
+    :rtype: numpy array(npoints, 10)
+    """
+    L1, L2, L3 = 1-x[:, 0]-x[:, 1], x[:, 0], x[:, 1]
+    v0 = [ 0.0, 0.0]
+    v1 = [ 1.0, 0.0]
+    v2 = [ 0.0, 1.0]
+    c = numpy.array( [ v2[0] - v1[0],\
+                 v0[0] - v2[0],\
+                 v1[0] - v0[0] ] )
+    D = 0.5 * numpy.linalg.det( [ [1.0, v0[0], v0[1]],\
+            [1.0, v1[0], v1[1]],\
+            [1.0, v2[0], v2[1]] ] )
+    D2 = 2.0 * D             
+    D16 = 16.0*D**3.0
+    D916 = -9.0 / D16
+    D27 = 27.0 / (8.0*D**3.0)
+    D4 = D * 4.0
+    D38 = -3.0 / (8.0*D**3.0)
+    D98 = -9.0 / (8.0*D**3.0)
+    Phi = numpy.array([  (c[0]*(D2 - 3.0*L1)*(D4 - 3.0*L1) - 3.0*c[0]*L1*(D4 - 3.0*L1) - 3.0*c[0]*L1*(D2 - 3.0*L1) )/ D16,\
+					    D916*c[0]*L2*(D2 - 3.0*L1) + D916*c[1]*L1*(D2 - 3.0*L1) + 0.5*D27*c[0]*L1*L2,\
+					    D916*c[0]*L2*(D2 - 3.0*L2) + D916*c[1]*L1*(D2 - 3.0*L2) + 0.5*D27*c[1]*L1*L2,\
+					   (c[1]*(D2 - 3.0*L2)*(D4 - 3.0*L2) - 3.0*c[1]*L2*(D4 - 3.0*L2) - 3.0*c[1]*L2*(D2 - 3.0*L2) )/ D16,\
+						D916*c[0]*L3*(D2 - 3.0*L1) + D916*c[2]*L1*(D2 - 3.0*L1) + 0.5*D27*c[0]*L1*L3,\
+						D27*( c[0]*L2*L3 + c[1]*L1*L3 + c[2]*L1*L2 ),\
+						D916*c[1]*L3*(D2 - 3.0*L2) + D916*c[2]*L2*(D2 - 3.0*L2) + 0.5*D27*c[1]*L2*L3,\
+						D916*c[0]*L3*(D2 - 3.0*L3) + D916*c[2]*L1*(D2 - 3.0*L3) + 0.5*D27*c[2]*L1*L3,\
+						D916*c[1]*L3*(D2 - 3.0*L3) + D916*c[2]*L2*(D2 - 3.0*L3) + 0.5*D27*c[2]*L2*L3,\
+					   (c[2]*(D2 - 3.0*L3)*(D4 - 3.0*L3) - 3.0*c[2]*L3*(D4 - 3.0*L3) - 3.0*c[2]*L3*(D2 - 3.0*L3) )/ D16 ] )
+
+    return Phi.T
+                 
+                 
 
 def T44(x): # Quartic-Quartic
     """

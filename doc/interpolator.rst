@@ -146,7 +146,7 @@ Quadratic Triangle
 Cubic Triangle
 ++++++++++++++
 .. automodule:: morphic.interpolator
-    :members: T33
+    :members: T33, T33d1, T33d2
 
 Quartic Triangle
 ++++++++++++++++
