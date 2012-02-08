@@ -8,13 +8,13 @@ docimagedir = os.path.join('..', 'doc', 'images')
 
 # sphinx tag start
 import scipy
-from morphic import mesher
+import morphic
 
 x = scipy.linspace(0, 2 * scipy.pi, 5)
 y = scipy.sin(x)
 X = scipy.array([x, y]).T
 
-mesh = mesher.Mesh()
+mesh = morphic.Mesh()
 mesh.add_stdnode(1, X[0,:])
 mesh.add_stdnode(2, X[1,:])
 mesh.add_stdnode(3, X[2,:])

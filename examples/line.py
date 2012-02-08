@@ -1,6 +1,6 @@
-from morphic import mesher
+import morphic
 
-mesh = mesher.Mesh()
+mesh = morphic.Mesh()
 mesh.add_stdnode(1, [0, 0])
 mesh.add_stdnode(2, [0.3, 1.5])
 mesh.add_stdnode(3, [0.6, 1.0])
