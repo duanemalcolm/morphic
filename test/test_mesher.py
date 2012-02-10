@@ -119,6 +119,17 @@ class TestNode(unittest.TestCase):
         npt.assert_almost_equal(node.field_cids,
             [range(4), range(4, 8), range(8, 12)])
             
+    def test_set_value(self):
+        mesh = mesher.Mesh()
+        node = mesher.Node(mesh, '4')
+        node.set_values([[3, 1, 0, 0], [4, 2, 0, 0], [5, 3, 0, 0]])
+        node.set_value(1, 3, 7)
+        npt.assert_almost_equal(node.all_values_flat,
+            [3, 1, 0, 0, 4, 2, 0, 7, 5, 3, 0, 0])
+        node.set_value(0, 2, 9)
+        npt.assert_almost_equal(node.all_values_flat,
+            [3, 1, 9, 0, 4, 2, 0, 7, 5, 3, 0, 0])
+            
     def test_fix_all(self):
         mesh = mesher.Mesh()
         node = mesher.Node(mesh, '4')

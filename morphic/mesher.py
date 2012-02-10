@@ -86,6 +86,10 @@ class Node:
         else:
             raise AttributeError
     
+    def set_value(self, field, component, value):
+        cid = self.cids[field * self.num_components + component]
+        self.mesh._core.update_params([cid], value)
+    
     def set_values(self, values):
         '''
         Sets the values for the node by adding them to core.

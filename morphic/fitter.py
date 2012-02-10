@@ -86,7 +86,7 @@ class BoundNodePoint:
         self.param_weights = scipy.ones(len(self.param_ids))
         self.num_fields = len(self.param_ids)
         if self.param != None:
-            self.param_ids = [self.param_ids[self.param]]
+            self.param_ids = [node.cids[self.param]]
             self.param_weights = scipy.array([1])
             self.num_fields = 1
     
@@ -216,8 +216,11 @@ class Fit:
         self.num_rows = 0
         for point in self.points:
             self.num_rows += point.num_fields
-            param_ids.extend([item for sublist in point.param_ids
-                    for item in sublist])
+            if isinstance(point.param_ids[0], list):
+                param_ids.extend([item for sublist in point.param_ids
+                        for item in sublist])
+            else:
+                param_ids.extend([item for item in point.param_ids])
         
         self.param_ids = [pid for pid in set(param_ids)]
         self.param_ids.sort()
@@ -270,6 +273,7 @@ class Fit:
         self.svd_UT, self.svd_S, self.svd_VT = sparsesvd(self.A, self.A.shape[1])
         self.svd_invA = scipy.dot(\
             scipy.dot(self.svd_VT.T,scipy.linalg.inv(scipy.diag(self.svd_S))),self.svd_UT)
+    
     
     def solve(self, mesh, niter=1, output=False):
         td, ts = 0, 0

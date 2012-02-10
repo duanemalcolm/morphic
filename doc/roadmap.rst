@@ -19,6 +19,7 @@ Done - License (MIT/GPL)
 
 Done - Commit to GitHub - Meshing complete
 Done - Commit to readthedocs.org
+Fix sys.path for docs on readthedocs
 
 Documentation:
     - Meshing - 40%
