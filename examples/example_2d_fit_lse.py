@@ -24,9 +24,9 @@ def plot_mesh_data(label, mesh, Xd, filepath):
     try: S.clear(label)
     except: S = viewer.Scenes(label, bgcolor=(1,1,1))
     
-    S.plotPoints('nodes', Xn, color=(0,1,0), size=0.1)
-    S.plotPoints('data', Xd[::7,:], color=(1,0,0), mode='point')
-    S.plotSurfaces('surface', Xs, Ts, color=(0.2,0.5,1))
+    S.plot_points('nodes', Xn, color=(0,1,0), size=0.1)
+    S.plot_points('data', Xd[::7,:], color=(1,0,0), mode='point')
+    S.plot_surfaces('surface', Xs, Ts, color=(0.2,0.5,1))
     
     S.set_view(view)
     
@@ -182,7 +182,7 @@ from morphic import viewer
 
 S = viewer.Scenes('MyPlot', bgcolor=(1,1,1))
 
-S.plotPoints('nodes', Xn, color=(0,1,0), size=0.1)
-S.plotSurfaces('surface', Xs, Ts, color=(0.2,0.5,1))
-S.plotPoints('data', Xd[::7,:], color=(1,0,0), mode='point')
+S.plot_points('nodes', Xn, color=(0,1,0), size=0.1)
+S.plot_surfaces('surface', Xs, Ts, color=(0.2,0.5,1))
+S.plot_points('data', Xd[::7,:], color=(1,0,0), mode='point')
 # sphinx tag end plotting

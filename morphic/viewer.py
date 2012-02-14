@@ -14,12 +14,12 @@ class Scene:
         self.autoRemove = True
         
     def clear(self):
-        self.removePoints()
-        self.removeSurfaces()
+        self.remove_points()
+        self.remove_surfaces()
 
-    def plotText(self, X, text, color=None, size=None):
+    def plot_text(self, X, text, color=None, size=None):
         
-        if self.autoRemove: self.removeText()
+        if self.autoRemove: self.remove_text()
         
         if isinstance(X, list): X = scipy.asarray(X)
         if len(X.shape)==1: X = scipy.array([X])
@@ -31,15 +31,15 @@ class Scene:
         for i, x in enumerate(X):
             self.text.append(mlab.text3d(x[0], x[1], x[2], text[i], color=color, scale=size))
          
-    def removeText(self):
+    def remove_text(self):
         for t in self.text:
             t.remove()
         self.text = []
         
         
-    def plotPoints(self, X, color=None, size=None, mode=None):
+    def plot_points(self, X, color=None, size=None, mode=None):
         
-        if self.autoRemove: self.removePoints()
+        if self.autoRemove: self.remove_points()
         
         if color==None: color=(1,0,0)
         
@@ -69,15 +69,15 @@ class Scene:
                     if X.shape[0]>0: self.points.append(mlab.points3d(x[:,0], x[:,1], x[:,2], color, scale_factor=size, scale_mode='none', mode=mode))
             
             
-    def removePoints(self):
+    def remove_points(self):
         for p in self.points:
             p.remove()
         self.points = []
         
         
-    def plotLines(self, X, color=None, size=None, scalars=None):
+    def plot_lines(self, X, color=None, size=None, scalars=None):
         
-        if self.autoRemove: self.removeLines()
+        if self.autoRemove: self.remove_lines()
         
         if isinstance(X, list):
             Ndim = 3
@@ -110,16 +110,16 @@ class Scene:
         #~ data.scene.disable_render = False    
         
 
-    def removeLines(self):
+    def remove_lines(self):
         for l in self.lines:
             l.remove()
         self.lines = []
         
         
     
-    def plotSurfaces(self, X, T, scalars=None, color=None, rep='surface'):
+    def plot_surfaces(self, X, T, scalars=None, color=None, rep='surface'):
         
-        if self.autoRemove: self.removeSurfaces()
+        if self.autoRemove: self.remove_surfaces()
         
         if color==None: color=(1,0,0)
         if scalars==None:
@@ -142,7 +142,7 @@ class Scene:
         #~ except: pass
         #~ data.scene.disable_render = False
         
-    def removeSurfaces(self):
+    def remove_surfaces(self):
         for s in self.surfaces:
             s.remove()
         self.surfaces = []
@@ -162,66 +162,66 @@ class Scenes:
                 self.scenes[label].clear()
             
             
-    def getScene(self, label):
+    def get_scene(self, label):
         if label in self.scenes.keys():
             return self.scenes[label]
         else:
             self.scenes[label] = Scene(label)
             return self.scenes[label]
         
-    def plotText(self, label, X, text, color=None, size=None):
+    def plot_text(self, label, X, text, color=None, size=None):
         
-        s = self.getScene(label)
-        s.plotText(X, text, color=color, size=size)
-        
-        return 1
-        
-    def removeText(self, label):
-        
-        s = self.getScene(label)
-        s.removeText()
+        s = self.get_scene(label)
+        s.plot_text(X, text, color=color, size=size)
         
         return 1
         
-    def plotPoints(self, label, X, color=None, size=None, mode=None):
+    def remove_text(self, label):
         
-        s = self.getScene(label)
-        s.plotPoints(X, color=color, size=size, mode=mode)
-        
-        return 1
-        
-    def removePoints(self, label):
-        
-        s = self.getScene(label)
-        s.removePoints()
+        s = self.get_scene(label)
+        s.remove_text()
         
         return 1
         
-    def plotLines(self, label, X, color=None, size=None):
+    def plot_points(self, label, X, color=None, size=None, mode=None):
         
-        s = self.getScene(label)
-        s.plotLines(X, color=color, size=size)
-        
-        return 1
-        
-    def removeLines(self, label):
-        
-        s = self.getScene(label)
-        s.removeLines()
+        s = self.get_scene(label)
+        s.plot_points(X, color=color, size=size, mode=mode)
         
         return 1
         
-    def plotSurfaces(self, label, X, T, scalars=None, color=None, rep='surface'):
+    def remove_points(self, label):
         
-        s = self.getScene(label)
-        s.plotSurfaces(X, T, scalars=scalars, color=color, rep=rep)
+        s = self.get_scene(label)
+        s.remove_points()
         
         return 1
         
-    def removeSurfaces(self, label):
+    def plot_lines(self, label, X, color=None, size=None):
         
-        s = self.getScene(label)
-        s.removeSurfaces()
+        s = self.get_scene(label)
+        s.plot_lines(X, color=color, size=size)
+        
+        return 1
+        
+    def remove_lines(self, label):
+        
+        s = self.get_scene(label)
+        s.remove_lines()
+        
+        return 1
+        
+    def plot_surfaces(self, label, X, T, scalars=None, color=None, rep='surface'):
+        
+        s = self.get_scene(label)
+        s.plot_surfaces(X, T, scalars=scalars, color=color, rep=rep)
+        
+        return 1
+        
+    def remove_surfaces(self, label):
+        
+        s = self.get_scene(label)
+        s.remove_surfaces()
         
         return 1
     
