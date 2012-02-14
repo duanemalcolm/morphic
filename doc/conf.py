@@ -32,7 +32,8 @@ class Mock(object):
         else:
             return Mock()
 
-MOCK_MODULES = ['numpy', 'numpy.linalg', 'scipy']
+MOCK_MODULES = ['numpy', 'numpy.linalg', 'scipy', 'scipy.optimize',
+        'scipy.sparse', 'scipy.spatial']
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = Mock()
     

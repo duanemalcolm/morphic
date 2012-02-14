@@ -388,7 +388,7 @@ def T33(x): # Cubic-Cubic
         0.5*L3*(3*L3-1)*(3*L3-2)])
     return Phi.T
 
-def T33d1(x): # Cubic-Cubic
+def T33d1(x): # Cubic-Cubic - from Ju Zhang
     """
     First derivative in dimension 1 for the cubic lagrange triangle
     element.
@@ -429,7 +429,7 @@ def T33d1(x): # Cubic-Cubic
     
     return Phi.T
 
-def T33d2(x): # Cubic-Cubic
+def T33d2(x): # Cubic-Cubic - from Ju Zhang
     """
     First derivative in dimension 2 for the cubic lagrange triangle
     element.
