@@ -3,7 +3,7 @@ import sys
 
 example = 'example_1d_quartic'
 title = 'Sine Wave using one 1D Quartic Lagrange Element'
-testdatadir = os.path.join('..', 'test', 'data')
+testdatadir = 'data'
 docimagedir = os.path.join('..', 'doc', 'images')
 
 # sphinx tag start

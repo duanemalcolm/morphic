@@ -3,8 +3,6 @@ import pickle
 import sys
 import unittest
 import numpy.testing as npt
-
-sys.path.append('../examples/')
         
 class TestExamples(unittest.TestCase):
     """Unit tests for morphic Node superclass."""
@@ -48,6 +46,17 @@ class TestExamples(unittest.TestCase):
         data = pickle.load(open('data/'+example+'.pkl', 'r'))
         npt.assert_equal(Xn, data['Xn'])
         npt.assert_equal(Xl, data['Xl'])
+    
+    def test_example_2d_fit_lse(self):
+        example = 'example_2d_fit_lse'
+        execfile('../examples/'+example+'.py', globals(), locals())
+        Xn = locals()['mesh'].get_nodes()
+        Xs, Ts = locals()['mesh'].get_surfaces()
+        
+        data = pickle.load(open('data/'+example+'.pkl', 'r'))
+        npt.assert_equal(Xn, data['Xn'])
+        npt.assert_equal(Xs, data['Xs'])
+        npt.assert_equal(Ts, data['Ts'])
         
 
 

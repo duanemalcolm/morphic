@@ -3,7 +3,7 @@ import sys
 
 example = 'example_1d_linear'
 title = 'Sine Wave using four 1D Linear Lagrange Element'
-testdatadir = os.path.join('..', 'test', 'data')
+testdatadir = 'data'
 docimagedir = os.path.join('..', 'doc', 'images')
 
 # sphinx tag start

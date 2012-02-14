@@ -1,9 +1,14 @@
 import os
 import sys
 
+action = None
+if len(sys.argv) > 1:
+    action = sys.argv[1]
+
+
 example = 'example_2d_fit_lse'
 title = 'Fit 2D cubic-Hermite elements to sin^2'
-testdatadir = os.path.join('..', 'test', 'data')
+testdatadir = 'data'
 docimagedir = os.path.join('..', 'doc', 'images')
 
 
@@ -89,8 +94,9 @@ Xd[:, 2] = (scipy.cos(Xd[:, 0])+1) * (scipy.cos(Xd[:, 1])+1)
 # sphinx tag end generate data
 
 # Plottin'
-filepath = os.path.join(docimagedir, example+'_mesh.png')
-plot1 = plot_mesh_data('Mesh_and_Data', mesh, Xd, filepath)
+if action in ['update', 'plot']:
+    filepath = os.path.join(docimagedir, example+'_mesh.png')
+    plot1 = plot_mesh_data('Mesh_and_Data', mesh, Xd, filepath)
 
 
 
@@ -111,13 +117,14 @@ fit.update_from_mesh(mesh)
 fit.set_data('datacloud', Xd)
 fit.generate_fast_data()
 
-# Fit
+# Invert and fit the mesh to the data
 fit.invert_matrix()
 mesh = fit.solve(mesh, niter=100, output=True)
 
-### PLOTTIN' ###
-filepath = os.path.join(docimagedir, example+'_fit1.png')
-plot2 = plot_mesh_data('Initial_Fit', mesh, Xd, filepath)
+# Plot fit part 1
+if action in ['update', 'plot']:
+    filepath = os.path.join(docimagedir, example+'_fit1.png')
+    plot2 = plot_mesh_data('Initial_Fit', mesh, Xd, filepath)
 
 
 
@@ -157,32 +164,37 @@ fit.bind_node_value(9, 2, 3, 'zero', weight=weight2)
 
 fit.update_from_mesh(mesh)
 
-# Add data to fit
+# Add data to fit part 2
 fit.set_data('pi', scipy.pi)
 fit.set_data('-pi', -scipy.pi)
 fit.set_data('zero', 0)
 fit.set_data('four', 4.)
 fit.generate_fast_data()
 
-# Fit
+# Fit part 2
 fit.invert_matrix()
 mesh = fit.solve(mesh, niter=100, output=True)
 
-# Plottin'
-filepath = os.path.join(docimagedir, example+'_fit2.png')
-plot3 = plot_mesh_data('Final_Fit', mesh, Xd, filepath)
+
+
+# Plottin' part 2
+if action in ['update', 'plot']:
+    filepath = os.path.join(docimagedir, example+'_fit2.png')
+    plot3 = plot_mesh_data('Final_Fit', mesh, Xd, filepath)
 
 
 # sphinx start get node values and surface
 Xn = mesh.get_nodes()
 Xs,Ts = mesh.get_surfaces(res=24)
+# sphinx end get node values and surface
 
-# sphinx start plotting
-from morphic import viewer
 
-S = viewer.Scenes('MyPlot', bgcolor=(1,1,1))
-
-S.plot_points('nodes', Xn, color=(0,1,0), size=0.1)
-S.plot_surfaces('surface', Xs, Ts, color=(0.2,0.5,1))
-S.plot_points('data', Xd[::7,:], color=(1,0,0), mode='point')
-# sphinx tag end plotting
+if action == 'update':
+    import pickle
+    
+    Xn = mesh.get_nodes()
+    Xs, Ts = mesh.get_surfaces()
+    
+    data = {'Xn': Xn, 'Xs': Xs, 'Ts': Ts}
+    filepath = os.path.join(testdatadir, example+'.pkl')
+    pickle.dump(data, open(filepath, 'w'))
