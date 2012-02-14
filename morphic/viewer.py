@@ -152,8 +152,8 @@ class Scene:
         
 class Scenes:
     
-    def __init__(self, figure='Default'):
-        self.figure = mlab.figure(figure)
+    def __init__(self, figure='Default', bgcolor=(.9,.9,.9)):
+        self.figure = mlab.figure(figure, bgcolor=bgcolor)
         self.scenes = {}
         
     def clear(self, label=None):
@@ -224,4 +224,11 @@ class Scenes:
         s.removeSurfaces()
         
         return 1
+    
+    def get_view(self):
+        return mlab.view()
+    
+    def set_view(self, view):
+        mlab.view(view[0], view[1], view[2], view[3])
+        
     

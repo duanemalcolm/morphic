@@ -51,62 +51,58 @@ class BoundElementPoint:
         
         
 
-class BoundNodePoint:
+class BoundNodeValue:
     
-    def __init__(self, node_id, data_label, data_index=None, weight=1,
-            param=None):
+    def __init__(self, node_id, field_id, comp_id, data_label, index=None, weight=1):
         self._class_ = 'node'
         self.nid = node_id
-        self.param = param
+        self.field_id = field_id
+        self.comp_id = comp_id
         self.data = data_label
-        self.data_index = data_index
+        self.data_index = index
         self.bind_weight = weight
         
         self.param_ids = None
-        self.param_weights = None
-        self.num_fields = 0
+        self.param_weights = 1
+        self.num_fields = 1
         
     def get_field_id(self, field):
-        if self.param != None:
-            return self.param
-        return field
+        return self.field_id
         
     def get_bind_weight(self):
         return self.bind_weight
         
     def get_param_ids(self, field):
-        return self.param_ids[field]
+        return [self.param_ids]
         
     def get_param_weights(self, field):
-        return self.param_weights * self.bind_weight
+        return [self.param_weights * self.bind_weight]
         
     def update_from_mesh(self, mesh):
         node = mesh.nodes[self.nid]
-        self.param_ids = node._get_param_indicies()
-        self.param_weights = scipy.ones(len(self.param_ids))
-        self.num_fields = len(self.param_ids)
-        if self.param != None:
-            self.param_ids = [node.cids[self.param]]
-            self.param_weights = scipy.array([1])
-            self.num_fields = 1
+        self.param_ids = node._get_param_indicies()[self.field_id][self.comp_id]
     
     def get_data(self, data, field, mesh):
         if self.data_index == None:
             x = mesh.nodes[self.nid].values[0]
             xc = data[self.data].find_closest(x, 1)
-            return xc[field]
+            if isinstance(xc, scipy.ndarray):
+                return xc[field]
+            else:
+                return xc
         else:
             return data[self.data].values[self.data_index, field]
         
-           
 
 class Data:
     
     def __init__(self, label, values):
         self.id = label
         self.values = values
-        self.tree = cKDTree(self.values)
-        
+        self.tree = None
+        if isinstance(self.values, scipy.ndarray):
+            self.tree = cKDTree(self.values)
+            
         self.row_ind = 0
         self.Phi = None
         self.ii = None
@@ -133,10 +129,11 @@ class Data:
         return self.xc[ind]
     
     def find_closest(self, x, num=1):
-        r, ii = self.tree.query(list(x))
-        #~ print ii, x, self.values[ii]
-        return self.values[ii]
-        
+        if self.tree:
+            r, ii = self.tree.query(list(x))
+            return self.values[ii]
+        else:
+            return self.values
         
 
 class Fit:
@@ -178,25 +175,16 @@ class Fit:
         self.points.add(BoundElementPoint(element_id, xi, data_label,
                 data_index=data_index, weight=weight))
     
-    def bind_node_point(self, node_id, data_label, data_index=None,
-            weight=1, param=None):
-        self.points.add(BoundNodePoint(
-                node_id, data_label, data_index=data_index,
-                weight=weight, param=param))
+    def bind_node_value(self, node_id, field_id, comp_id,
+            data, index=None, weight=1):
+        self.points.add(BoundNodeValue(
+                node_id, field_id, comp_id, data, index=index,
+                weight=weight))
     
     def set_data(self, label, values):
         self.data.add(Data(label, values))
     
     def get_data(self, mesh):
-        #~ # Find bind points that require searching for the closest data
-        #~ # point
-        #~ find_closest = {}
-        #~ for ind, dm in enumerate(self.data_map):
-            #~ # if the data_index of the point is None then we must search
-            #~ # for the data point.
-            #~ pt = self.points[dm[0]]
-            #~ if pt.data_index == None:
-                
         Xd = scipy.zeros(self.num_rows)
         for ind, dm in enumerate(self.data_map):
             Xd[ind] = self.points[dm[0]].get_data(self.data, dm[1], mesh)
@@ -209,14 +197,15 @@ class Fit:
         for point in self.points:
             point.update_from_mesh(mesh)
         self.generate_matrix()
-        # self.generate_fast_data()
     
     def generate_matrix(self):
         param_ids = []
         self.num_rows = 0
         for point in self.points:
             self.num_rows += point.num_fields
-            if isinstance(point.param_ids[0], list):
+            if isinstance(point.param_ids, int):
+                param_ids.extend([point.param_ids])
+            elif isinstance(point.param_ids[0], list):
                 param_ids.extend([item for sublist in point.param_ids
                         for item in sublist])
             else:
