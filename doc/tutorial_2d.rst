@@ -118,12 +118,12 @@ points on the mesh, ``x`` are the mesh parameters, and ``b`` are the
 data point that the mesh points are fitted to. See **TODO: add link**
 
 There are two demonstrations of the fitting process, first we fit
-without contraining mesh node parameters and second we fit with
-contraints on the node values and derivatives.
+without constraining mesh node parameters and second we fit with
+constraints on the node values and derivatives.
 
--------------------------
-Fit Part 1: No Contraints
--------------------------
+--------------------------
+Fit Part 1: No Constraints
+--------------------------
 
 Ok, let's get started. First we create a new fitting instance:
 
@@ -167,7 +167,7 @@ current mesh and then fitting the mesh to the closest data points.
 The plot of the resultant fit shows a fairly good fit except the 
 boundaries are not straight and also we expect the middle node to be at
 the peak of the data cloud. This can be achieved in the fit by
-contraining the appropriate node parameters. This is described in the
+constraining the appropriate node parameters. This is described in the
 next section.
 
 .. figure::  ./images/example_2d_fit_lse_fit1.png
@@ -179,7 +179,7 @@ next section.
 Fit Part 2: With Constraints
 ----------------------------
 
-In this section we are going to contrain appropriate node values and 
+In this section we are going to constrain appropriate node values and 
 derivatives to get straight boundaries and a more symmetric mesh. We
 define constrains on nodes values using the following command:
 
@@ -189,7 +189,7 @@ define constrains on nodes values using the following command:
 
 where the ``weight`` defines the weighting of the constraint. The default
 is 1, which is what the binding for the element points is set to. The
-higher this number the closer the resultant fit will met its contraint.
+higher this number the closer the resultant fit will met its constraint.
 
 .. warning::
     
@@ -201,11 +201,11 @@ higher this number the closer the resultant fit will met its contraint.
     The indexing of the ``field_num`` and ``component_num`` starts at zero.
 
 Just like how we added the data cloud, the data values we would like to
-contrain the node parameters to are defined using a data label. First we
+constrain the node parameters to are defined using a data label. First we
 define an array of data labels indicating which how each node is
-contrained. The rows in the array represent the node and the columns
+constrained. The rows in the array represent the node and the columns
 represent x, y and z values. This allows a easy programatic way of setting
-the constraints. First, the node values are contrained, then the derivatives.
+the constraints. First, the node values are constrained, then the derivatives.
 
 .. literalinclude:: ../examples/example_2d_fit_lse.py
     :start-after: # Fix node values [x, y, z, dz/dxi1, dz/dxi2]
