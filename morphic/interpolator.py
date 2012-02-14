@@ -1,5 +1,5 @@
-import numpy
-import numpy.linalg
+#~ import numpy
+#~ import numpy.linalg
 
 def weights(basis, X, deriv=None):
     """
