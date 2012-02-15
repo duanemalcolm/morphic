@@ -1,5 +1,18 @@
-from mayavi import mlab
 import scipy
+
+# Some systems have the mayavi2 module referenced by diffrent names.
+try:
+    from mayavi import mlab
+    mlab_loaded = True
+except:
+    mlab_loaded = False
+
+if not mlab_loaded :
+    try:
+        from enthought.mayavi import mlab
+    except ImportError:
+        print 'Enthought Mayavi mlab module not found'
+        raise
 
 class Scene:
     

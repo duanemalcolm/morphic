@@ -56,6 +56,9 @@ Elements
 .. automethod:: morphic.mesher.Mesh.add_element
 
 
+.. automethod:: morphic.mesher.Element.normal
+
+
 ----------------
 Analysing a Mesh
 ----------------

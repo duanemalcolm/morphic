@@ -1,3 +1,4 @@
+import sys
 import unittest
 import doctest
 
@@ -5,6 +6,7 @@ import numpy
 from numpy import array
 import numpy.testing
 
+sys.path.append('..')
 from morphic import interpolator
 
 class Test(unittest.TestCase):
@@ -294,6 +296,10 @@ class Test(unittest.TestCase):
                 [-0.38133333, -4.288     ,  5.952     , -1.51466667,  0.232     ],
                 [-1.85866667, -1.57866667,  5.088     , -2.00533333,  0.35466667]]))
         
+        #~ W = interpolator.weights(['L1', 'L1'], Xi2, deriv=[1, 0])
+        #~ W = interpolator.weights(['L1', 'L1'], Xi2, deriv=[0, 1])
+        #~ W = interpolator.weights(['L1', 'L1'], Xi2, deriv=[1, 1])
+        
         W = interpolator.weights(['L3', 'L3'], Xi2, deriv=[1, 0])
         numpy.testing.assert_almost_equal(W, numpy.array([
                [ -8.59040000e-01,   1.09872000e+00,  -2.92320000e-01,
@@ -354,8 +360,8 @@ class TestBasisFunction(unittest.TestCase):
     def test_L1d1(self):
         x = numpy.array([0.13, 0.77])
         numpy.testing.assert_almost_equal(interpolator.L1d1(x),
-            array([[-1.,  1.],
-                   [-1.,  1.]]))
+            array([[[-1.,  1.],
+                   [-1.,  1.]]]))
     
     def test_L1d1d1(self):
         x = numpy.array([0.13, 0.77])

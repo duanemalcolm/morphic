@@ -182,7 +182,7 @@ def L1d1(x):
     """
     W = numpy.ones((x.shape[0], 2))
     W[:, 0] -= 2
-    return W
+    return numpy.array([W])
 
 def L1d1d1(x):
     """

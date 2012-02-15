@@ -1,3 +1,4 @@
+import sys
 import unittest
 import doctest
 
@@ -5,6 +6,7 @@ import numpy
 from numpy import array
 import numpy.testing as npt
 
+sys.path.append('..')
 from morphic import core
 from morphic import mesher
 
@@ -209,7 +211,18 @@ class TestElement(unittest.TestCase):
         Nodes = [n1, n2]
         for i, node in enumerate(elem):
             self.assertEqual(node, Nodes[i])
-        
+    
+    def test_element_normal(self):
+        m = mesher.Mesh()
+        m.add_stdnode(1, [0, 0, 0])
+        m.add_stdnode(2, [1, 0, 1])
+        m.add_stdnode(3, [0, 1, 0])
+        m.add_stdnode(4, [1, 1, 1])
+        m.add_element(1, ['L1', 'L1'], [1, 2, 3, 4])
+        m.generate()
+        Xi = numpy.array([[0.1, 0.1], [0.3, 0.1], [0.7, 0.3]])
+        dn = m.elements[1].normal(Xi)
+        npt.assert_almost_equal(dn, [[-1, 0, 1], [-1, 0, 1], [-1, 0, 1]])
         
 class TestMesh(unittest.TestCase):
     """Unit tests for morphic interpolants."""
