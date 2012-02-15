@@ -222,7 +222,11 @@ class Element:
         locations and ``n`` is the number of element dimensions.
         
         For example,
-        Xi = numpy.array([[0.1, 0.1], [0.3, 0.2], [0.7, 0.2]])
+        
+        .. code-block::
+        
+            Xi = numpy.array([[0.1, 0.1], [0.3, 0.2], [0.7, 0.2]])
+        
         '''
         dx1 = self.mesh._core.interpolate(self.cid, Xi, deriv=[1, 0])
         dx2 = self.mesh._core.interpolate(self.cid, Xi, deriv=[0, 1])
