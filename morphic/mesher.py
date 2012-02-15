@@ -223,7 +223,7 @@ class Element:
         
         For example,
         
-        .. code-block::
+        .. code-block:: python
         
             Xi = numpy.array([[0.1, 0.1], [0.3, 0.2], [0.7, 0.2]])
         
