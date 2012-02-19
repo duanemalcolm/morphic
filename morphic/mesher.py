@@ -31,6 +31,7 @@ import numpy
 import scipy
 
 import core
+import discretizer
 
 #~ class NodeValues:
     #~ 
