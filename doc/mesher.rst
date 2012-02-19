@@ -39,6 +39,9 @@ Elements
 
 
 
+.. automethod:: morphic.mesher.Element.normal
+
+
 ================
 Analysing a Mesh
 ================

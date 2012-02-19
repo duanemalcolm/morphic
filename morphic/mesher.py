@@ -229,6 +229,24 @@ class Element:
     def interpolate(self, xi, deriv=None):
         return self.mesh._core.interpolate(self.cid, xi, deriv=deriv)
     
+    def normal(self, Xi):
+        '''
+        Calculates the surface normals at xi locations on an element.
+        
+        Xi is an ``mxn`` ndarray where ``m`` is the number of element
+        locations and ``n`` is the number of element dimensions.
+        
+        For example,
+        
+        .. code-block:: python
+        
+            Xi = numpy.array([[0.1, 0.1], [0.3, 0.2], [0.7, 0.2]])
+        
+        '''
+        dx1 = self.mesh._core.interpolate(self.cid, Xi, deriv=[1, 0])
+        dx2 = self.mesh._core.interpolate(self.cid, Xi, deriv=[0, 1])
+        return scipy.cross(dx1, dx2)
+    
     def _project_objfn(self, xi, x, args):
         xe = self.interpolate(scipy.array([xi]))
         dx = xe - x

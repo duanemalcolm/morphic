@@ -1,9 +1,11 @@
+import sys
 import unittest
 import doctest
 
 import numpy
 import numpy.testing as npt
 
+sys.path.append('..')
 from morphic import fitter
 from morphic import mesher
 
