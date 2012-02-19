@@ -4,11 +4,41 @@ import doctest
 import numpy
 from numpy import array
 import numpy.testing as npt
+#~ sys.path.insert(0, os.path.abspath('..'))
 
 from morphic import core
 from morphic import mesher
 
+#~ class TestNodeValues(unittest.TestCase):
+    #~ """Unit tests for morphic NodeValues class."""
+    #~ 
+    #~ def test_nodevalues_init(self):
+        #~ mesh = mesher.Mesh()
+        #~ node = mesher.Node(mesh, '4')
+        #~ values = mesher.NodeValues(node)
+        #~ self.assertEqual(values.parent_node, node)
+    #~ 
+    #~ def test_nodevalues_set_get_values(self):
+        #~ mesh = mesher.Mesh()
+        #~ node = mesher.Node(mesh, '4')
+        #~ node.x = numpy.array([[1,2,3], [4,5,6]])
+        #~ npt.assert_almost_equal(node.x, [[1,2,3], [4,5,6]])
+        #~ 
+    #~ def test_nodevalues_slices(self):
+        #~ mesh = mesher.Mesh()
+        #~ node = mesher.Node(mesh, '4')
+        #~ node.x = numpy.array([[1,2,3], [4,5,6]])
+        #~ npt.assert_almost_equal(node.x[:,0], [1, 4])
+        #~ npt.assert_almost_equal(node.x[:,0:2], [[1,2],[4,5]])
+        #~ npt.assert_almost_equal(node.x[1,0:2], [4,5])
+        #~ 
+        #~ node.x[:,0] = numpy.array([7,8])
+        #~ npt.assert_almost_equal(node.x, [[7,2,3], [8,5,6]])
+        #~ 
+        #~ node.x[1,:] = numpy.array([8,7,6])
+        #~ npt.assert_almost_equal(node.x, [[7,2,3], [8,7,6]])
         
+    
 class TestNode(unittest.TestCase):
     """Unit tests for morphic Node superclass."""
 
@@ -25,6 +55,7 @@ class TestNode(unittest.TestCase):
         self.assertEqual(node._added, False)
         self.assertEqual(node.mesh._regenerate, True)
         self.assertEqual(node.mesh._reupdate, True)
+        
         
     def test_one_field_no_components(self):
         mesh = mesher.Mesh()

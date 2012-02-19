@@ -17,6 +17,9 @@ class ObjectList:
         self.groups = {}
         
     def size(self):
+        '''
+        Returns the number of objects in the list.
+        '''
         return len(self._objects)
     
     def add(self, obj, group=None):
@@ -26,7 +29,6 @@ class ObjectList:
         If a group is specified then the object will be added to the
         group.
         '''
-        
         self._objects.append(obj)
         if hasattr(obj, 'id'):
             oid = obj.id
@@ -38,6 +40,21 @@ class ObjectList:
         return oid
         
     def set_counter(self, value):
+        '''
+        Sets the counter value for finding unique ids.
+        
+        Typically, this function would be used if you wanted to start
+        the counter at 1 instead of 0. In which case, the numbering of
+        objects, like nodes or elements, will start at 1.
+        
+        This function can be used to reset the counter to zero, for
+        example, so that unused object ids can be reused. Unused object
+        ids might occur when objects are deleted from the list.
+        
+        :param value: value to reset the counter to
+        :type X: int
+        :return: None
+        '''
         self._id_counter = value
         
     def get_unique_id(self):

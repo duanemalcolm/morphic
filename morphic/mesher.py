@@ -25,12 +25,22 @@ interpolation.
 
 
 '''
-
+import os
+import sys
 import numpy
 import scipy
 
 import core
-import discretizer
+
+#~ class NodeValues:
+    #~ 
+    #~ def __init__(self, parent_node):
+        #~ self.parent_node = parent_node
+        #~ self.values = None
+        #~ 
+    #~ def __getitem__(self, name):
+        #~ return self.values[name]
+
 
 class Node:
     '''
@@ -72,8 +82,13 @@ class Node:
         self.mesh._regenerate = True
         self.mesh._reupdate = True
         
+        #~ self._values = NodeValues(self)
+    
+    
     def __getattr__(self, name):
-        if name == 'values':
+        if name == 'x':
+            return self._values.values
+        elif name == 'values':
             return self.mesh._core.P[self.cids][0:self.num_values:
                                                 self.num_components]
         elif name == 'all_values':
