@@ -3,6 +3,7 @@ import time
 import scipy
 import scipy.optimize
 import scipy.sparse
+import scipy.sparse.linalg
 from scipy.spatial import cKDTree
 
 from morphic import core
