@@ -58,6 +58,38 @@ class TestNode(unittest.TestCase):
         self.assertEqual(node.mesh._regenerate, True)
         self.assertEqual(node.mesh._reupdate, True)
         
+    def test_save(self):
+        mesh = mesher.Mesh()
+        node = mesher.Node(mesh, '4')
+        ns = node._save_dict()
+        self.assertEqual(ns['id'], '4')
+        self.assertEqual(ns['fixed'], None)
+        self.assertEqual(ns['cids'], None)
+        self.assertEqual(ns['num_values'], 0)
+        self.assertEqual(ns['num_fields'], 0)
+        self.assertEqual(ns['num_components'], 0)
+        self.assertEqual(len(ns.keys()), 6) 
+        
+    def test_load(self):
+        mesh = mesher.Mesh()
+        node = mesher.Node(mesh, '4')
+        node.cids = [3, 4]
+        node.fixed = [True, False]
+        node.num_values = 4
+        node.num_fields = 2
+        node.num_components = 3
+        node_dict = node._save_dict()
+        
+        mesh2 = mesher.Mesh()
+        node2 = mesher.Node(mesh2, '4')
+        node2._load_dict(node_dict)
+        self.assertEqual(node2.id, '4')
+        self.assertEqual(node2.cids, [3, 4])
+        self.assertEqual(node2.fixed, [True, False])
+        self.assertEqual(node2.num_values, 4)
+        self.assertEqual(node2.num_fields, 2)
+        self.assertEqual(node2.num_components, 3)
+        
         
     def test_one_field_no_components(self):
         mesh = mesher.Mesh()
@@ -207,22 +239,69 @@ class TestStdNode(unittest.TestCase):
         self.assertEqual(node.id, '4')
         npt.assert_equal(node.values, [0.1, 0.2])
         
-
+    def test_save(self):
+        mesh = mesher.Mesh()
+        node = mesher.StdNode(mesh, '4', [[0.1, 0.2], [0.3, 0.4]])
+        ns = node._save_dict()
+        self.assertEqual(ns['type'], 'standard')
+        self.assertEqual(ns['id'], '4')
+        self.assertEqual(ns['fixed'], None)
+        self.assertEqual(ns['cids'], [0, 1, 2, 3])
+        self.assertEqual(ns['num_values'], 4)
+        self.assertEqual(ns['num_fields'], 2)
+        self.assertEqual(ns['num_components'], 2)
+        self.assertEqual(len(ns.keys()), 7) 
+        
+    def test_load(self):
+        mesh = mesher.Mesh()
+        node = mesher.StdNode(mesh, '4', None)
+        node_dict = node._save_dict()
+        
+        mesh2 = mesher.Mesh()
+        node2 = mesher.StdNode(mesh2, '4', None)
+        node2._load_dict(node_dict)
+        self.assertEqual(node2.id, '4')
+        self.assertEqual(node2._type,'standard')
+        
 class TestDepNode(unittest.TestCase):
     """Unit tests for morphic interpolants."""
 
     def test_node_init(self):
         mesh = mesher.Mesh()
-        node = mesher.StdNode(mesh, '4', [0])
+        node = mesher.DepNode(mesh, 7, 2, '4')
         self.assertEqual(node.mesh, mesh)
-        self.assertEqual(node.id, '4')
-        npt.assert_equal(node.values, [0.])
-        node = mesher.StdNode(mesh, '4', [0.1, 0.2])
-        self.assertEqual(node.mesh, mesh)
-        self.assertEqual(node.id, '4')
-        npt.assert_equal(node.values, [0.1, 0.2])
+        self.assertEqual(node.id, 7)
+        npt.assert_equal(node.element, 2)
+        npt.assert_equal(node.node, '4')
         
-
+    def test_save(self):
+        mesh = mesher.Mesh()
+        node = mesher.DepNode(mesh, '4', '7', '2')
+        ns = node._save_dict()
+        self.assertEqual(ns['type'], 'dependent')
+        self.assertEqual(ns['id'], '4')
+        self.assertEqual(ns['fixed'], None)
+        self.assertEqual(ns['cids'], None)
+        self.assertEqual(ns['num_values'], 0)
+        self.assertEqual(ns['num_fields'], 0)
+        self.assertEqual(ns['num_components'], 0)
+        self.assertEqual(ns['element'], '7')
+        self.assertEqual(ns['node'], '2')
+        self.assertEqual(len(ns.keys()), 9) 
+     
+    def test_load(self):
+        mesh = mesher.Mesh()
+        node = mesher.DepNode(mesh, '4', 3, 77)
+        node_dict = node._save_dict()
+        
+        mesh2 = mesher.Mesh()
+        node2 = mesher.DepNode(mesh2, '4', None, None)
+        node2._load_dict(node_dict)
+        self.assertEqual(node2.id, '4')
+        self.assertEqual(node2._type, 'dependent')   
+        self.assertEqual(node2.element, 3)   
+        self.assertEqual(node2.node, 77)
+        
 class TestElement(unittest.TestCase):
     """Unit tests for morphic interpolants."""
 
@@ -233,6 +312,54 @@ class TestElement(unittest.TestCase):
         self.assertEqual(elem.id, 1)
         self.assertEqual(elem.interp, ['L1'])
         self.assertEqual(elem.nodes, [1, 2])
+        
+    def test_save_1d(self):
+        mesh = mesher.Mesh()
+        elem = mesher.Element(mesh, 1, ['L1'], [1, 2])
+        es = elem._save_dict()
+        self.assertEqual(es['id'], 1)
+        self.assertEqual(es['interp'], ['L1'])
+        self.assertEqual(es['nodes'], [1, 2])
+        self.assertEqual(es['shape'], 'line')
+        self.assertEqual(len(es.keys()), 4)
+        
+    def test_save_2d(self):
+        mesh = mesher.Mesh()
+        elem = mesher.Element(mesh, 1, ['L1', 'L1'], [1, 2, 3, 4])
+        es = elem._save_dict()
+        self.assertEqual(es['id'], 1)
+        self.assertEqual(es['interp'], ['L1', 'L1'])
+        self.assertEqual(es['nodes'], [1, 2, 3, 4])
+        self.assertEqual(es['shape'], 'quad')
+        self.assertEqual(len(es.keys()), 4)
+        
+    def test_load(self):
+        mesh = mesher.Mesh()
+        elem = mesher.Element(mesh, 1, ['L1', 'L1'], [1, 2, 3, 4])
+        elem_dict = elem._save_dict()
+        
+        mesh2 = mesher.Mesh()
+        elem2 = mesher.Element(mesh, 1, None, None)
+        elem2._load_dict(elem_dict)
+        self.assertEqual(elem2.id, 1)
+        self.assertEqual(elem2.interp, ['L1', 'L1'])
+        self.assertEqual(elem2.nodes, [1, 2, 3, 4])
+        self.assertEqual(elem2.shape, 'quad')
+    
+    def test_set_shape_line(self):
+        mesh = mesher.Mesh()
+        elem = mesher.Element(mesh, 1, ['L2'], [1, 2, 3])
+        self.assertEqual(elem.shape, 'line')
+        
+    def test_set_shape_quad(self):
+        mesh = mesher.Mesh()
+        elem = mesher.Element(mesh, 1, ['L1', 'L1'], [1, 2, 3, 4])
+        self.assertEqual(elem.shape, 'quad')
+        
+    def test_set_shape_tri(self):
+        mesh = mesher.Mesh()
+        elem = mesher.Element(mesh, 1, ['T11'], [1, 2, 3])
+        self.assertEqual(elem.shape, 'tri')
         
     def test_elem_iter(self):
         mesh = mesher.Mesh()
@@ -267,6 +394,39 @@ class TestMesh(unittest.TestCase):
         self.assertEqual(mesh.label, '/')
         self.assertEqual(isinstance(mesh.nodes, core.ObjectList),
                 True)
+    
+    def test_save(self):
+        mesh = mesher.Mesh(label='cube', units='mm')
+        mesh.add_stdnode(0, [0.5])
+        mesh.add_stdnode(1, [0.0, 0.3])
+        mesh.add_stdnode(2, [1.0, 0.5])
+        mesh.add_depnode(3, 1, 0)
+        mesh.add_element(1, ['L1'], [1, 2])
+        mesh.generate()
+        md = mesh._save_dict()
+        self.assertEqual(len(md), 7)
+        self.assertEqual(md['_version'], mesh._version)
+        self.assertTrue(md.has_key('_datetime'))
+        self.assertEqual(md['label'], 'cube')
+        self.assertEqual(md['units'], 'mm')
+        self.assertEqual(len(md['nodes']), 4)
+        self.assertEqual(len(md['elements']), 1)
+        self.assertEqual(md['values'].shape[0], 7)
+        npt.assert_almost_equal(md['values'], 
+                [0.5, 0.0, 0.3, 1.0, 0.5, 0.5, 0.4])
+        mesh.save('data/test_save.mesh')
+    
+    def test_load(self):
+        mesh = mesher.Mesh('data/test_save.mesh')
+        self.assertEqual(mesh.label, 'cube')
+        self.assertEqual(mesh.units, 'mm')
+        self.assertEqual(mesh.nodes.size(), 4)
+        self.assertEqual(mesh.nodes[0].cids, [0])
+        self.assertEqual(mesh.nodes[1].cids, [1, 2])
+        self.assertEqual(mesh.nodes[2].cids, [3, 4])
+        self.assertEqual(mesh.nodes[3].cids, [5, 6])
+        npt.assert_almost_equal(mesh._core.P, 
+                [0.5, 0.0, 0.3, 1.0, 0.5, 0.5, 0.4])
         
     def test_add_node(self):
         mesh = mesher.Mesh()

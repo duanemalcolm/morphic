@@ -102,7 +102,8 @@ class Data:
         self.values = values
         self.tree = None
         if isinstance(self.values, scipy.ndarray):
-            self.tree = cKDTree(self.values)
+            if len(values.shape) == 2 and values.shape[0] > 1:
+                self.tree = cKDTree(self.values)
             
         self.row_ind = 0
         self.Phi = None

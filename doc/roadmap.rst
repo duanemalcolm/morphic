@@ -11,15 +11,13 @@ Features to be added in order:
     - PCA nodes
     - Translation and Rotation of meshes
     - Mapping nodes
+    - saving/loading meshes
+    - saving/loading fits
+    - bind_element_value 
 
 -----
 Todos
 -----
-Done - License (MIT/GPL)
-
-Done - Commit to GitHub - Meshing complete
-Done - Commit to readthedocs.org
-Fix sys.path for docs on readthedocs
 
 Documentation:
     - Meshing - 40%
@@ -53,5 +51,4 @@ Examples:
     - 2d elements plus fitting for cos-squared function
     
 Coding:
-    - element normals
     - Done - T33 derivatives

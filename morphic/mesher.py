@@ -85,7 +85,26 @@ class Node:
         
         #~ self._values = NodeValues(self)
     
-    
+    def _save_dict(self):
+        node_dict = {}
+        node_dict['id'] = self.id
+        node_dict['fixed'] = self.fixed
+        node_dict['cids'] = self.cids
+        node_dict['num_values'] = self.num_values
+        node_dict['num_fields'] = self.num_fields
+        node_dict['num_components'] = self.num_components
+        return node_dict
+        
+    def _load_dict(self, node_dict):
+        if node_dict['id'] != self.id:
+            raise 'Ids do not match'
+        self.fixed = node_dict['fixed']
+        self.cids = node_dict['cids'] 
+        self.num_values = node_dict['num_values']
+        self.num_fields = node_dict['num_fields']
+        self.num_components = node_dict['num_components']
+        self._added = True
+        
     def __getattr__(self, name):
         if name == 'x':
             return self._values.values
@@ -170,13 +189,25 @@ class Node:
         
     
 class StdNode(Node):
+    '''
+    .. autoclass:: morphic.mesher.Node
+    '''
     
     def __init__(self, mesh, uid, values):
         Node.__init__(self, mesh, uid)
         self._type = 'standard'
-        self.set_values(values)
+        if values:
+            self.set_values(values)
         
-    
+    def _save_dict(self):
+        node_dict = Node._save_dict(self)
+        node_dict['type'] = self._type
+        return node_dict
+        
+    def _load_dict(self, node_dict):
+        Node._load_dict(self, node_dict)
+        
+        
 class DepNode(Node):
 
     def __init__(self, mesh, uid, element, node):
@@ -184,8 +215,20 @@ class DepNode(Node):
         self._type = 'dependent'
         self.element = element
         self.node = node
-        
-        
+     
+    def _save_dict(self):
+        node_dict = Node._save_dict(self)
+        node_dict['type'] = self._type   
+        node_dict['element'] = self.element   
+        node_dict['node'] = self.node
+        return node_dict
+    
+    def _load_dict(self, node_dict):
+        Node._load_dict(self, node_dict)
+        self.element = node_dict['element']
+        self.node = node_dict['node'] 
+    
+    
 class Element:
 
     def __init__(self, mesh, uid, interp, nodes):
@@ -193,15 +236,37 @@ class Element:
         self.interp = interp 
         self.id = uid
         self.nodes = nodes
-        
-        self.shape = 'quad'
-        if self.interp[0][0] == 'T':
-            self.shape = 'tri'
-        
         self.cid = None
+        
+        self._set_shape()
         
         self.mesh._regenerate = True
         self.mesh._reupdate = True
+    
+    def _set_shape(self):
+        if self.interp:
+            if len(self.interp) == 1:
+                self.shape = 'line'
+            else:
+                self.shape = 'quad'
+            if self.interp[0][0] == 'T':
+                self.shape = 'tri'
+    
+    def _save_dict(self):
+        elem_dict = {}
+        elem_dict['id'] = self.id
+        elem_dict['interp'] = self.interp
+        elem_dict['nodes'] = self.nodes
+        elem_dict['shape'] = self.shape
+        return elem_dict
+     
+    def _load_dict(self, elem_dict):
+        if elem_dict['id'] != self.id:
+            raise 'Ids do not match'
+        self.interp = elem_dict['interp']
+        self.nodes = elem_dict['nodes'] 
+        self.shape = elem_dict['shape']
+        self._set_shape()
         
     def _get_param_indicies(self):
         PI = None
@@ -266,33 +331,110 @@ class Element:
     
 class Mesh():
     '''
-    This is the top level object for a mesh which allows the:
+    This is the top level object for a mesh which allows:
     
-    * generation of a mesh, i.e., add `Generating a Mesh`_
-    * extraction details about the mesh for analysis or rendering
-      (`Analysing a Mesh`_)
-    * saving and loading meshes (`Saving and Loading`_).
+        * building a mesh
+        * analysis or rendering of a mesh
+        * saving and loading meshes.
     
-    To create the simplist of elements, a linear 1D element, and
-    interpolate values along the element:
+    A mesh consists of nodes and elements. There are two types of nodes
+    that can be added to a mesh:
+    
+        * standard nodes, which is stores fields values, for example, 
+          x, y, and z coordinates.
+        
+        * dependent nodes, which are embedded in an element. A hanging 
+          node can be added to a mesh using a dependent node.
+        
+    There are many interpolation schemes that can be used to
+    create an element:
+        * 1D and 2D lagrange basis up to 4th order
+        * 1D and 2D Hermite basis (cubic only)
+        * 2D triangular elements up to 4th order.
+    
+    .. note::
+    
+        Higher order interpolants (3D) will be added in the future.
+    
+    
+    **Building a 1D Mesh**
+    
+    Here is an example of a simple 1D mesh which consists of two 1D
+    linear element. First, we initialise a mesh,
     
     >>> mesh = Mesh()
+    
+    Add a few nodes,
+    
     >>> n = mesh.add_stdnode(1, [0, 0])
     >>> n = mesh.add_stdnode(2, [1, 0.5])
+    >>> n = mesh.add_stdnode(3, [2, 0.3])
+    
+    Add two linear elements,
+    
     >>> e = mesh.add_element(1, ['L1'], [1, 2])
+    >>> e = mesh.add_element(2, ['L1'], [2, 3])
+    
     >>> xi = [0, 0.25, 0.5, 0.75, 1.0]
-    >>> mesh.interpolate(1, xi)
+    >>> X = mesh.interpolate(1, xi)
+    >>> X
     array([[ 0.   ,  0.   ],
            [ 0.25 ,  0.125],
            [ 0.5  ,  0.25 ],
            [ 0.75 ,  0.375],
            [ 1.   ,  0.5  ]])
     
-    These interpolated values can be used for analysis or for plotting.
+    
+    **Building a 2D Mesh**
+    
+    Here is an example of a 2D mesh which consists of two quadratic-linear
+    elements. First, we initialise a mesh,
+    
+    >>> mesh = Mesh()
+    
+    Add ten nodes,
+    
+    >>> n = mesh.add_stdnode(1, [0, 0, 0])
+    >>> n = mesh.add_stdnode(2, [1, 0, 0.5])
+    >>> n = mesh.add_stdnode(3, [2, 0, 0.3])
+    >>> n = mesh.add_stdnode(4, [3, 0, 0.2])
+    >>> n = mesh.add_stdnode(5, [4, 0, -0.1])
+    >>> n = mesh.add_stdnode(6, [0, 1.2, 0])
+    >>> n = mesh.add_stdnode(7, [1, 1.2, 0.5])
+    >>> n = mesh.add_stdnode(8, [2, 1.2, 0.3])
+    >>> n = mesh.add_stdnode(9, [3, 1.2, 0.2])
+    >>> n = mesh.add_stdnode(10, [4, 1.2, -0.1])
+    
+    
+    Add two quadratic-linear lagrange elements,
+    
+    >>> e = mesh.add_element(1, ['L2', 'L1'], [1, 2, 3, 6, 7, 8])
+    >>> e = mesh.add_element(2, ['L2', 'L1'], [3, 4, 5, 8, 9, 10])
+    
+    >>> # Analyse (interpolate, calculate derivatives and normals)
+    >>> xi = [[0.3, 0.5]]
+    
+    Interpolate coordinates at xi=[0.3, 0.5] on element 1,
+    
+    >>> X = mesh.interpolate(1, xi)
+    
+    Calculate derivatives at xi = [0.3, 0.5] on element 2,
+    
+    >>> dx1 = mesh.interpolate(2, xi, deriv=[1, 0]) # dx/dxi1
+    >>> dx2 = mesh.interpolate(2, xi, deriv=[0, 1]) # dx/dxi2
+    >>> dx12 = mesh.interpolate(2, xi, deriv=[1, 1]) # d2x/dxi1.dxi2
+    
+    Calculate the element normal vector at xi=[0.3, 0.5] on element 1,
+    
+    >>> dn = mesh.normal(1, xi) # normal vector
+    
+    
     '''
     
-    def __init__(self, filename=None, label='/', units='m'):
+    def __init__(self, filepath=None, label='/', units='m'):
+        self._version = '0.1'
         self.label = label
+        self.units = units
         self.nodes = core.ObjectList()
         self.elements = core.ObjectList()
         
@@ -300,8 +442,8 @@ class Mesh():
         self._regenerate = True
         self._reupdate = True
         
-        #~ if filename:
-            #~ self.load(filename)
+        if filepath:
+            self.load(filepath)
         
     def add_stdnode(self, uid, values, group='_default'):
         '''
@@ -385,18 +527,68 @@ class Mesh():
         elem = Element(self, uid, interp, node_ids)
         self.elements.add(elem, group=group)
         return elem
+        
+    def _save_dict(self):
+        import datetime
+        mesh_dict = {}
+        mesh_dict['_version'] = self._version
+        mesh_dict['_datetime'] = datetime.datetime.now()
+        mesh_dict['label'] = self.label
+        mesh_dict['units'] = self.units
+        mesh_dict['nodes'] = []
+        mesh_dict['elements'] = []
+        for node in self.nodes:
+            mesh_dict['nodes'].append(node._save_dict())
+        for elem in self.elements:
+            mesh_dict['elements'].append(elem._save_dict())
+        mesh_dict['values'] = self._core.P
+        return mesh_dict
+        
+    def save(self, filepath):
+        '''
+        Saves a mesh.
+        
+        >>> mesh = Mesh()
+        >>> mesh.save('data/cube.mesh')
+        
+        '''
+        import pickle
+        mesh_dict = self._save_dict()
+        pickle.dump(mesh_dict, open(filepath, "w"))
+        
+    def _load_dict(self, mesh_dict):
+        self.label = mesh_dict['label']
+        self.units = mesh_dict['units']
+        for node_dict in mesh_dict['nodes']:
+            if node_dict['type'] == 'standard':
+                node = self.add_stdnode(node_dict['id'], None)
+            elif node_dict['type'] == 'dependent':
+                node = self.add_depnode(node_dict['id'], None, None)
+            #~ else:
+                #~ raise InputError()
+            node._load_dict(node_dict)
+        for elem_dict in mesh_dict['elements']:
+            elem = self.add_element(elem_dict['id'], None, None)
+            elem._load_dict(elem_dict)
+        self._core.P = mesh_dict['values']
+        
     
-    def save(self, filename):
+    def load(self, filepath):
         '''
-        TODO
+        Loads a mesh.
+        
+        >>> mesh = Mesh('data/cube.mesh')
+        
+        or
+        
+        >>> mesh = Mesh()
+        >>> mesh.load('data/cube.mesh')
+        
         '''
-        pass
-    
-    def load(self, filename):
-        '''
-        TODO
-        '''
-        pass
+        import pickle
+        self._load_dict(pickle.load(open(filepath, "r")))
+        self.generate(True)
+        
     
     def generate(self, force=False):
         '''
@@ -469,6 +661,32 @@ class Mesh():
             
         return X
     
+    def normal(self, element_ids, xi):
+        self.generate()
+        if isinstance(xi, list):
+            xi = scipy.array(xi)
+            if len(xi.shape) == 1:
+                xi = scipy.array([xi]).T
+        else:
+            if len(xi.shape) == 1:
+                xi = scipy.array([xi]).T
+                
+        if not isinstance(element_ids, list):
+            element_ids = [element_ids]
+        
+        node0 = self.nodes[self.elements[element_ids[0]].nodes[0]]
+        num_fields = node0.num_fields
+        num_elements = len(element_ids)
+        num_xi = xi.shape[0]
+        X = scipy.zeros((num_xi * num_elements, num_fields))
+        
+        ind = 0
+        for element in self.elements[element_ids]:
+            X[ind:ind+num_xi, :] = element.normal(xi)
+            ind += num_xi
+            
+        return X
+    
     def get_nodes(self, nodes=None, group='_default'):
         self.generate()
         if nodes:
@@ -522,3 +740,7 @@ class Mesh():
                 nt += NTQ
                 
         return X, T
+        
+        
+        
+        
