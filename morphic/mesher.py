@@ -196,7 +196,7 @@ class StdNode(Node):
     def __init__(self, mesh, uid, values):
         Node.__init__(self, mesh, uid)
         self._type = 'standard'
-        if values:
+        if values != None:
             self.set_values(values)
         
     def _save_dict(self):
