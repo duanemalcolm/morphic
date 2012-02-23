@@ -8,13 +8,13 @@ Roadmap
 Features
 --------
 Features to be added in order:
+    - rms error
     - PCA nodes
     - Translation and Rotation of meshes
+    - bind element values
     - Mapping nodes
-    - saving/loading meshes
     - saving/loading fits
-    - bind_element_value 
-
+    
 -----
 Todos
 -----

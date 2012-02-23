@@ -5,14 +5,53 @@ Meshing
 .. toctree::
    :maxdepth: 2
 
+===============
+The Mesh Object
+===============
+
+A mesh uses nodes and elements in order to describe a field, such as
+geometric fields that represent a surface.
+
+--------
+New Mesh
+--------
+
+.. code-block:: python
+    
+    mesh = Mesh()
 
 
-A mesh describes fields, such as a surface, using nodes and elements.
+---------
+Load Mesh
+---------
 
-The typical process for building a mesh is to define a bunch of nodes
-and then elements that use the nodes. First we will show you how to
-create, view and analyse a simple 2D mesh and then go into the details
-of nodes, elements and the analysis of a mesh.
+.. automethod:: morphic.mesher.Mesh.load
+
+
+---------
+Save Mesh
+---------
+
+.. automethod:: morphic.mesher.Mesh.save
+
+
+------
+Export
+------
+
+.. note::
+    
+    TODO: Export to cm files, cmgui files, fieldml
+
+
+------------------------
+Retrieving Mesh Entities
+------------------------
+
+
+=====
+Nodes
+=====
 
 There are two types of nodes that can be added to a mesh:
 
@@ -24,97 +63,131 @@ There are two types of nodes that can be added to a mesh:
     Describes a node that depends on other parts of a mesh, typically,
     a node embedded in an element.
 
+A standard node can be added to the mesh by,
 
-====
-Mesh
-====
+.. code-block:: python
+    
+    node = mesh.add_stdnode(id, values)
+    
+where ``id`` is the unique identified for nodes, and ``values`` are the
+field values for the node. This command will return a node object.
 
-.. autoclass:: morphic.mesher.Mesh
+The ``id`` variable can be defined by user as integer, string or
+``None``.  If set to ``None`` a unique integer id will be assigned.
+
+The ``value`` variable can be a one or two dimensional list or numpy
+array of field values. In the case of a one-dimensional array, e.g.,
+``values = [0.2, 1.5, -0.4]``, each value is assumed to be a field
+value. In the case of a two-dimensional array, e.g.,
+``values = [[0.2, 1, 0, 0], [1.5, 0, 1, 0], [-0.4, 0, 0, 0]]``, the rows
+represent the fields and the columns represents the field components.
+Examples of field components are field derivative or mode vectors for a
+PCA model.
+
+---------------
+Accessing Nodes
+---------------
+
+Nodes are stored in a mesh as a list of node objects which can be
+accessed through a list or by direct reference by node id.
+
+.. code-block:: python
+    
+    list_of_nodes = mesh.nodes
+    node = mesh.nodes[5]
+    node = mesh.nodes['dd']
+    
+.. note::
+    
+    TODO
+
+-----------
+Node Values
+-----------
+
+A standard node can be added to the mesh by,
+
+.. code-block:: python
+    
+    field_values = node.get_values()
+    
+    node.set_values(values)
+    
+.. note::
+    
+    TODO
 
 
--------------------------
-Saving and Loading a Mesh
--------------------------
-
-.. automethod:: morphic.mesher.Mesh.save
-
-.. automethod:: morphic.mesher.Mesh.load
-
-
-
-==============
-Standard Nodes
-==============
-
-.. autoclass:: morphic.mesher.StdNode
-
-
-----------
-Attributes
-----------
-
-
--------
-Methods
--------
-
-.. automethod:: morphic.mesher.StdNode.set_values
-
-.. automethod:: morphic.mesher.StdNode.set_value
-
-.. automethod:: morphic.mesher.StdNode.fix
 
 
 ========
 Elements
 ========
 
-----------
-Attributes
-----------
-
-
--------
-Methods
--------
-
-.. automethod:: morphic.mesher.Element.normal
-
-============
-DESIGN IDEAS
-============
-
-The following is the ideal meshing design:
-
-Creating a mesh:
+An element can be added to a mesh by,
 
 .. code-block:: python
     
-    mesh = Mesh()
+    elem = mesh.add_element(id, interp, nodes)
 
-Adding standard nodes and dependent nodes:
+where ``id`` is the unique identified for elements, ``interp`` is the 
+interpolation functions in each dimension, and ``nodes`` are the node
+ids for the element. This command will return a element object.
 
-.. code-block:: python
+The ``id`` variable can be defined by user as integer, string or
+``None``.  If set to ``None`` a unique integer id will be assigned.
+
+The ``interp`` variable is a list of strings each representing the 
+interpolation scheme in each dimension, for example,
+``interp = ['L1', 'H3'] for a linear-cubic-Hermite two-dimensional
+element.
+
+Interpolation schemes include:
+    - L1 - linear lagrange
+    - L2 - quadratic lagrange
+    - L3 - cubic lagrange
+    - L4 - quartic lagrange
+    - H3 - cubic-Hermite
+    - T11 - linear 2d-simplex
+    - T22 - quadratic 2d-simplex
+    - T33 - cubic 2d-simplex
+    - T44 - quartic 2d-simplex
+        
+Some examples of interpolation schemes:
+    - ['L1', 'L1'] = bilinear (2d)
+    - ['L3', 'L2'] = cubic-quadratic (2d)
+    - ['H3', 'L1', 'L1'] = cubic-Hermite-bilinear (3d) - note warning below.
+    - ['T22'] = biquadratic simplex (2d triangle)
+    - ['T11', 'L1'] = a linear prism (3d) - note warning below.
+
+.. warning::
     
-    mesh.add_stdnode(id, values)
-    mesh.add_depnode(id, element_id, xi_location)
+    Morphic only supports one and two dimensional elements. Morphic can
+    can support higher order elements but this is not fully implemented
+    or throughly tested.
 
-Adding elements:
-
-.. code-block:: python
+------------------
+Accessing Elements
+------------------
+.. note::
     
-    mesh.add_element(id, basis, nodes)
+    TODO
 
-========
-Elements
-========
-
-Adding elements:
-
-.. code-block:: python
+------------------
+Element Properties 
+------------------
+.. note::
     
-    mesh.add_element(id, basis, nodes)
+    TODO: interpolating values, derivatives, normals, neighbours, etc...
 
-where ``id`` is the unique identifier for elements, 
+-----------------
+Dividing Elements
+-----------------
+
+-------------------
+Converting Elements
+-------------------
+
+
 
 

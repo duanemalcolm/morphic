@@ -442,6 +442,8 @@ class Mesh():
         self._regenerate = True
         self._reupdate = True
         
+        #: tester
+        self.filepath = filepath
         if filepath:
             self.load(filepath)
         
@@ -689,7 +691,7 @@ class Mesh():
     
     def get_nodes(self, nodes=None, group='_default'):
         self.generate()
-        if nodes:
+        if nodes != None:
             if not isinstance(nodes, list):
                 nodes = [nodes]
             nodes = self.nodes[nodes]

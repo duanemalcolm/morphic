@@ -108,6 +108,8 @@ class Data:
         self.row_ind = 0
         self.Phi = None
         self.ii = None
+        self.err_sqr_sum = None
+        self.num_err = None
     
     def init_phi(self, M, N):
         self.row_ind = 0
@@ -126,6 +128,8 @@ class Data:
             xd = self.Phi.dot(params)
             rr, ii = self.tree.query(xd.reshape((xd.size/self.values.shape[1], self.values.shape[1])))
             self.xc = self.values[ii, :].reshape(xd.size)
+            self.num_err = rr.shape[0]
+            self.err_sqr_sum = (rr*rr).sum()
     
     def get_data(self, ind):
         return self.xc[ind]
@@ -266,12 +270,19 @@ class Fit:
             scipy.dot(self.svd_VT.T,scipy.linalg.inv(scipy.diag(self.svd_S))),self.svd_UT)
     
     
-    def solve(self, mesh, niter=1, output=False):
+    def solve(self, mesh, max_iterations=1000, drms=1e-9, output=False):
         td, ts = 0, 0
-        for iter in range(niter):
-            
-            for data in self.data:
-                data.update_point_data(mesh._core.P[self.param_ids])
+        
+        for data in self.data:
+            data.update_point_data(mesh._core.P[self.param_ids])
+        
+        rms_err0 = self.compute_rms_err()
+        
+        drms_iter = 1e6
+        
+        niter = 0
+        while drms_iter > drms and niter < max_iterations:
+            niter += 1
             
             t0 = time.time()
             Xd = self.get_data(mesh) * self.W
@@ -284,16 +295,38 @@ class Fit:
                 solved_x = scipy.dot(self.svd_invA, Xd)
                 
             mesh.update_parameters(self.param_ids, solved_x)
-                
             t2 = time.time()
             
-            td += t1 - t0
+            for data in self.data:
+                data.update_point_data(mesh._core.P[self.param_ids])
+            
+            rms_err1 = self.compute_rms_err()
+            drms_iter = rms_err0 - rms_err1
+            rms_err0 = rms_err1
+            
+            t3 = time.time()
+            
+            td += (t1 - t0) + (t3 - t2)
             ts += t2 - t1
             
         if output:
             print 'Solve time: %4.2fs, (%4.2fs, %4.2fs)' % (ts+td, ts, td)
+            if rms_err0 < 1e-2:
+                print 'RMS err: %4.3e (iterations = %d)' % (rms_err0, niter)
+            else:
+                print 'RMS err: %4.3f (iterations = %d)' % (rms_err0, niter)
         
-        return mesh
+        return mesh, rms_err0
+    
+    def compute_rms_err(self):
+        err_sqr_sum = 0
+        num_err = 0
+        for data in self.data:
+            if data.err_sqr_sum != None and data.num_err != None:
+                err_sqr_sum += data.err_sqr_sum
+                num_err += data.num_err
+            
+        return scipy.sqrt(err_sqr_sum/num_err)
             
             
     def optimize(self, mesh, Xd, ftol=1e-9, xtol=1e-9, output=True):
