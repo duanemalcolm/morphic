@@ -11,10 +11,11 @@ from morphic import core
 class BoundElementPoint:
     
     def __init__(self, element_id, xi, data_label, data_index=None,
-            weight=1):
+            fields=None, weight=1):
         self._class_ = 'elem'
         self.eid = element_id
         self.xi = xi
+        self.fields = fields
         self.data = data_label
         self.data_index = data_index
         self.bind_weight = weight
@@ -22,15 +23,17 @@ class BoundElementPoint:
         self.param_ids = None
         self.param_weights = None
         self.num_fields = 0
+        self.num_elem_fields = 0
+        self.data_ids = None
     
-    def get_field_id(self, field):
-        return field
+    def get_field_id(self, field_index):
+        return self.fields[field_index]
         
     def get_bind_weight(self):
         return self.bind_weight
         
-    def get_param_ids(self, field):
-        return self.param_ids[field]
+    def get_param_ids(self, field_index):
+        return self.param_ids[self.fields[field_index]]
         
     def get_param_weights(self, field):
         return self.param_weights * self.bind_weight
@@ -40,15 +43,19 @@ class BoundElementPoint:
         self.param_ids = element._get_param_indicies()
         self.param_weights = element.weights(self.xi)[0]
         self.num_fields = len(self.param_ids)
+        self.num_elem_fields = len(self.param_ids)
+        
+        if self.fields == None:
+            self.fields = range(self.num_fields)
+        else:
+            self.num_fields = len(self.fields)
         
     def get_data(self, data, field, mesh):
         if self.data_index == None:
-            #~ x = mesh.interpolate(self.eid, self.xi)[0]
-            #~ xc = data[self.data].find_closest(x, 1)
-            #~ return xc[field]
             return data[self.data].get_data(self.data_ids)[field]
         else:
-            return data[self.data].values[self.data_index, field]
+            return data[self.data].values[self.data_index, 
+                    self.fields[field]]
         
         
 
@@ -66,6 +73,7 @@ class BoundNodeValue:
         self.param_ids = None
         self.param_weights = 1
         self.num_fields = 1
+        self.data_ids = None
         
     def get_field_id(self, field):
         return self.field_id
@@ -104,6 +112,10 @@ class Data:
         if isinstance(self.values, scipy.ndarray):
             if len(values.shape) == 2 and values.shape[0] > 1:
                 self.tree = cKDTree(self.values)
+        else:
+            self.values = self.values * scipy.ones((10)) ### HACK ####
+            self.xc = self.values * scipy.ones((10)) ### HACK ####
+                
             
         self.row_ind = 0
         self.Phi = None
@@ -116,7 +128,7 @@ class Data:
         self.Phi = scipy.sparse.lil_matrix((M, N))
     
     def add_point(self, point):
-        if point._class_ == 'elem':
+        if point._class_ == 'elem' and self.tree != None:
             point.data_ids = []
             for pids in point.param_ids:
                 self.Phi[self.row_ind, pids] = point.param_weights
@@ -124,7 +136,7 @@ class Data:
                 self.row_ind += 1
                 
     def update_point_data(self, params):
-        if self.Phi != None:
+        if self.Phi != None and self.tree != None:
             xd = self.Phi.dot(params)
             rr, ii = self.tree.query(xd.reshape((xd.size/self.values.shape[1], self.values.shape[1])))
             self.xc = self.values[ii, :].reshape(xd.size)
@@ -132,6 +144,8 @@ class Data:
             self.err_sqr_sum = (rr*rr).sum()
     
     def get_data(self, ind):
+        if ind == None:
+            return self.xc
         return self.xc[ind]
     
     def find_closest(self, x, num=1):
@@ -177,9 +191,9 @@ class Fit:
         self.num_rows = 0
         
     def bind_element_point(self, element_id, xi, data_label,
-            data_index=None, weight=1):
+            data_index=None, fields=None, weight=1):
         self.points.add(BoundElementPoint(element_id, xi, data_label,
-                data_index=data_index, weight=weight))
+                data_index=data_index, fields=fields, weight=weight))
     
     def bind_node_value(self, node_id, field_id, comp_id,
             data, index=None, weight=1):
@@ -253,7 +267,7 @@ class Fit:
                 if point.data_index == None:
                     if point.data not in num_rows.keys():
                         num_rows[point.data] = 0
-                    num_rows[point.data] += point.num_fields
+                    num_rows[point.data] += point.num_elem_fields
                     
         for key in num_rows.keys():
             self.data[key].init_phi(num_rows[key], self.num_dof)
@@ -278,7 +292,7 @@ class Fit:
         
         rms_err0 = self.compute_rms_err()
         
-        drms_iter = 1e6
+        drms_iter = 1e99
         
         niter = 0
         while drms_iter > drms and niter < max_iterations:
@@ -301,7 +315,7 @@ class Fit:
                 data.update_point_data(mesh._core.P[self.param_ids])
             
             rms_err1 = self.compute_rms_err()
-            drms_iter = rms_err0 - rms_err1
+            drms_iter = scipy.absolute(rms_err0 - rms_err1)
             rms_err0 = rms_err1
             
             t3 = time.time()
@@ -325,8 +339,10 @@ class Fit:
             if data.err_sqr_sum != None and data.num_err != None:
                 err_sqr_sum += data.err_sqr_sum
                 num_err += data.num_err
-            
-        return scipy.sqrt(err_sqr_sum/num_err)
+        if num_err > 0:
+            return scipy.sqrt(err_sqr_sum/num_err)
+        else:
+            return scipy.sqrt(err_sqr_sum)
             
             
     def optimize(self, mesh, Xd, ftol=1e-9, xtol=1e-9, output=True):

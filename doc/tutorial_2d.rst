@@ -156,9 +156,12 @@ searching of the closest data points.
     :end-before: # Invert and fit the mesh to the data
 
 Now we invert the A matrix in order to speed up the fitting process and
-if the mesh to the datacloud. Currently we run the fit for a 100 iterations
+if the mesh to the datacloud. Currently we run the fit iteratively
 where each iteration involves finding the closest data points for the
-current mesh and then fitting the mesh to the closest data points.
+current mesh and then fitting the mesh to the closest data points. When
+the RMS error between the mesh and datacloud stops reducing or 1000
+iterations are reached, then the fit will stop. These stopping criteria
+can be changed, see the details on the solve method.
 
 .. literalinclude:: ../examples/example_2d_fit_lse.py
     :start-after: # Invert and fit the mesh to the data

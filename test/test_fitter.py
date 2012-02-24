@@ -36,6 +36,7 @@ class TestBoundElementPoint(unittest.TestCase):
         self.assertEqual(pt.param_ids, [[0, 3], [1, 4], [2, 5]])
         npt.assert_almost_equal(pt.param_weights, [0.7, 0.3])
         self.assertEqual(pt.num_fields, 3)
+    
         
         
 class TestBoundNodeValue(unittest.TestCase):
@@ -78,6 +79,7 @@ class TestData(unittest.TestCase):
         d = fit.data['mydata']
         self.assertEqual(d.id, 'mydata')
         npt.assert_almost_equal(d.values, Xd)
+        
         
         
 class TestFitter(unittest.TestCase):
@@ -194,8 +196,55 @@ class TestFitter(unittest.TestCase):
         fit.update_from_mesh(self.mesh)
         Xd = numpy.array([[0.3, 0.15], [0.8, 0.4]])
         fit.set_data('datacloud', Xd)
-        mesh = fit.solve(self.mesh)
+        mesh, err = fit.solve(self.mesh)
         npt.assert_almost_equal(mesh.get_nodes(), [[ 0, 0], [1.0, 0.5]])
+        
+    def test_bind_subset_of_fields(self):
+        mesh = mesher.Mesh()
+        mesh.add_stdnode(1, [0, 0, 0])
+        mesh.add_stdnode(2, [2, 0.9, 2.4])
+        mesh.add_element('el1', ['L1'], [1, 2])
+        mesh.generate()
+        
+        
+        fit = fitter.Fit()
+        fit.bind_element_point('el1', [0.3], 'x3', weight=2,
+                fields=[0])
+        fit.bind_element_point('el1', [0.3], 'datacloud', weight=2,
+                fields=[1, 2])
+        fit.bind_element_point('el1', [0.8], 'datacloud', weight=2,
+                fields=[2, 1])
+        fit.bind_element_point('el1', [0.9], 'x9', weight=2,
+                fields=[0])
+        fit.update_from_mesh(mesh)
+        
+        npt.assert_almost_equal(fit.A.toarray(), [
+                [1.4,  0.,   0.,   0.6,  0.,   0. ],
+                [0.,   1.4,  0.,   0.,   0.6,  0. ],
+                [0.,   0.,   1.4,  0.,   0.,   0.6],
+                [0.,   0.,   0.4,  0.,   0.,   1.6],
+                [0.,   0.4,  0.,   0.,   1.6,  0. ],
+                [0.2,  0.,   0.,   1.8,  0.,   0. ]])
+        
+        Xd = numpy.array([
+                [0, 0, 0],
+                [0.5, 0.3, 1.1],
+                [1.7, 0.8, 2.1],
+                [1, 0.5, 1.5]])
+        fit.set_data('datacloud', Xd)
+        fit.set_data('x3', 0.6)
+        fit.set_data('x9', 1.8)
+        fit.generate_fast_data()
+        
+        for data in fit.data:
+            data.update_point_data(mesh._core.P[fit.param_ids])
+        
+        b = fit.get_data(mesh)
+        npt.assert_almost_equal(b, [0.6, 0.3, 1.1, 2.1, 0.8,1.8])
+        
+        mesh, err = fit.solve(mesh)
+        npt.assert_almost_equal(mesh.get_nodes(),
+                [[ 0, 0, 0.5], [2.0, 1.0, 2.5]])
         
         
     

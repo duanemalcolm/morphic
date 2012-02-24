@@ -119,7 +119,7 @@ fit.generate_fast_data()
 
 # Invert and fit the mesh to the data
 fit.invert_matrix()
-mesh = fit.solve(mesh, niter=100, output=True)
+mesh, rms_err1 = fit.solve(mesh, output=True)
 
 # Plot fit part 1
 if action in ['update', 'plot']:
@@ -173,9 +173,7 @@ fit.generate_fast_data()
 
 # Fit part 2
 fit.invert_matrix()
-mesh = fit.solve(mesh, niter=100, output=True)
-
-
+mesh, rms_err2 = fit.solve(mesh, output=True)
 
 # Plottin' part 2
 if action in ['update', 'plot']:
