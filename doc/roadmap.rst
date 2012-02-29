@@ -8,10 +8,8 @@ Roadmap
 Features
 --------
 Features to be added in order:
-    - rms error
     - PCA nodes
     - Translation and Rotation of meshes
-    - bind element values
     - Mapping nodes
     - saving/loading fits
     
@@ -20,18 +18,18 @@ Todos
 -----
 
 Documentation:
-    - Meshing - 40%
-        - 1D - 90%
-        - 2D - 0%
-    - Fitting
-        - Least-squares
-        - Iterative
-    - Interpolation - 90%
+    - Meshing - 60%
+        - Nodes
+        - Elements
     - 1D tutorial - 80%
     - 2D tutorial - 0%
+    - Fitting
+        - Linear
+        - Non-linear
+    - Interpolation - 90%
     - PCA tutorial
-    - Combining Elements tutorial
     - Examples
+    - API
     
 Testing:
     - Done - Setup testing examples
@@ -42,13 +40,5 @@ Testing:
     - Interpolator - 100%
 
 Examples:
-    - Done - 1d linear
-    - Done - 1d quadradtic
-    - Done - 1d cubic
-    - Done - 1d quartic
-    - Done - 1d cubic-Hermite
-    - Fitting for the above
-    - 2d elements plus fitting for cos-squared function
     
 Coding:
-    - Done - T33 derivatives

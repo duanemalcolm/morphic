@@ -210,6 +210,9 @@ class Fit:
             Xd[ind] = self.points[dm[0]].get_data(self.data, dm[1], mesh)
         return Xd
     
+    def delete_all_data(self):
+        self.data.reset_object_list()
+    
     def get_column_index(self, param_ids):
         return [self.param_ids.index(pid) for pid in param_ids]
     

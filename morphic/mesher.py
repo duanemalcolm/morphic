@@ -33,17 +33,37 @@ import scipy
 import core
 import discretizer
 
-#~ class NodeValues:
-    #~ 
-    #~ def __init__(self, parent_node):
-        #~ self.parent_node = parent_node
-        #~ self.values = None
-        #~ 
-    #~ def __getitem__(self, name):
-        #~ return self.values[name]
+class Values(numpy.ndarray):
+    '''
+    This is a temporary object passed to the user when setting node
+    values.
+    '''
+    def __new__(cls, input_array, node, cids):
+        obj = numpy.asarray(input_array).view(cls)
+        obj.node = node
+        obj.cids = cids
+        return obj
+
+    def __setitem__(self, name, values):
+        flat_cids = numpy.array(self.cids).reshape(self.shape)[name].flatten()
+        self.node._set_values(flat_cids, values)
 
 
-class Node:
+class NodeValues(object):
+    
+    def __get__(self, instance, owner):
+        x = instance.mesh._core.P[instance.cids].reshape(instance.shape)
+        return Values(x, instance, instance.cids)
+    
+    def __set__(self, instance, values):
+        if values.shape != instance.shape:
+            raise IndexError('Cannot set values with a different shaped'
+                    + ' array. User node.set_values(values) instead') 
+        instance.mesh._core.P[instance.cids] = values.reshape(-1)
+        
+
+
+class Node(object):
     '''
     Node is the super-class for StdNode, DepNode, PCANode, and MapNode.
     
@@ -62,14 +82,17 @@ class Node:
     >>> mesh = Mesh()
     >>> node = Node(mesh, 1)
     >>> node.set_values([[1, 2], [4, 6]])
-    >>> print node.values
-    [ 1.  4.]
-    >>> print node.all_values
+    >>> print node.values   # all values
     [[ 1.  2.]
      [ 4.  6.]]
-    >>> print node.all_values_flat
+    >>> print node.values[:,0] # field values
+    [ 1.  4.]
+    >>> print node.values.flatten()
     [ 1.  2.  4.  6.]
     '''
+    
+    values = NodeValues()
+    
     def __init__(self, mesh, uid):
         self._type = 'standard'
         self.mesh = mesh 
@@ -79,11 +102,31 @@ class Node:
         self.num_values = 0
         self.num_fields = 0
         self.num_components = 0
+        self.shape = (0, 0)
         self._added = False
         self.mesh._regenerate = True
         self.mesh._reupdate = True
         
-        #~ self._values = NodeValues(self)
+        
+     #~ def __getattr__(self, name):
+        #~ if name == 'x':
+            #~ return self._values.values
+        #~ elif name == 'values':
+            #~ return self.mesh._core.P[self.cids][0:self.num_values:
+                                                #~ self.num_components]
+        #~ elif name == 'all_values':
+            #~ return self.mesh._core.P[self.cids].reshape(
+                    #~ (self.num_fields, self.num_components))
+        #~ elif name == 'all_values_flat':
+            #~ return self.mesh._core.P[self.cids]
+        #~ elif name == 'field_cids':
+            #~ return self._get_param_indicies()
+        #~ else:
+            #~ raise AttributeError
+    
+    @property
+    def field_cids(self):
+        return self._get_param_indicies()
     
     def _save_dict(self):
         node_dict = {}
@@ -93,6 +136,7 @@ class Node:
         node_dict['num_values'] = self.num_values
         node_dict['num_fields'] = self.num_fields
         node_dict['num_components'] = self.num_components
+        node_dict['shape'] = self.shape
         return node_dict
         
     def _load_dict(self, node_dict):
@@ -103,28 +147,15 @@ class Node:
         self.num_values = node_dict['num_values']
         self.num_fields = node_dict['num_fields']
         self.num_components = node_dict['num_components']
+        if 'shape' in node_dict.keys():
+            self.shape = node_dict['shape']
+        else:
+            self.shape = (self.num_fields, self.num_components)
         self._added = True
         
-    def __getattr__(self, name):
-        if name == 'x':
-            return self._values.values
-        elif name == 'values':
-            return self.mesh._core.P[self.cids][0:self.num_values:
-                                                self.num_components]
-        elif name == 'all_values':
-            return self.mesh._core.P[self.cids].reshape(
-                    (self.num_fields, self.num_components))
-        elif name == 'all_values_flat':
-            return self.mesh._core.P[self.cids]
-        elif name == 'field_cids':
-            return self._get_param_indicies()
-        else:
-            raise AttributeError
-    
-    def set_value(self, field, component, value):
-        cid = self.cids[field * self.num_components + component]
-        self.mesh._core.update_params([cid], value)
-    
+    def _set_values(self, pids, values):
+        self.mesh._core.P[pids] = values
+        
     def set_values(self, values):
         '''
         Sets the values for the node by adding them to core.
@@ -141,6 +172,7 @@ class Node:
         self.num_values = values.size
         self.num_fields = values.shape[0]
         self.num_components = 1
+        self.shape = values.shape
         
         if len(values.shape) == 2:
             self.num_components = values.shape[1]
@@ -155,6 +187,11 @@ class Node:
         self._added = True
         self.mesh._regenerate = True
         self.mesh._reupdate = True
+        
+    def get_values(self, index=None):
+        if index == None:
+            return self.mesh._core.P[self.cids].reshape(
+                    (self.num_fields, self.num_components))
     
     def fix(self, fix):
         '''
@@ -697,7 +734,13 @@ class Mesh():
             nodes = self.nodes[nodes]
         else:
             nodes = self.nodes(group)
-        return scipy.array([n.values for n in nodes])
+        Xn = []
+        for node in nodes:
+            if len(node.shape) == 1:
+                Xn.append(node.values)
+            else:
+                Xn.append(node.values[:, 0])
+        return scipy.array([xn for xn in Xn])
     
     def get_lines(self, res=8, group='_default'):
         self.generate()

@@ -11,36 +11,7 @@ sys.path.append('..')
 from morphic import core
 from morphic import mesher
 
-#~ class TestNodeValues(unittest.TestCase):
-    #~ """Unit tests for morphic NodeValues class."""
-    #~ 
-    #~ def test_nodevalues_init(self):
-        #~ mesh = mesher.Mesh()
-        #~ node = mesher.Node(mesh, '4')
-        #~ values = mesher.NodeValues(node)
-        #~ self.assertEqual(values.parent_node, node)
-    #~ 
-    #~ def test_nodevalues_set_get_values(self):
-        #~ mesh = mesher.Mesh()
-        #~ node = mesher.Node(mesh, '4')
-        #~ node.x = numpy.array([[1,2,3], [4,5,6]])
-        #~ npt.assert_almost_equal(node.x, [[1,2,3], [4,5,6]])
-        #~ 
-    #~ def test_nodevalues_slices(self):
-        #~ mesh = mesher.Mesh()
-        #~ node = mesher.Node(mesh, '4')
-        #~ node.x = numpy.array([[1,2,3], [4,5,6]])
-        #~ npt.assert_almost_equal(node.x[:,0], [1, 4])
-        #~ npt.assert_almost_equal(node.x[:,0:2], [[1,2],[4,5]])
-        #~ npt.assert_almost_equal(node.x[1,0:2], [4,5])
-        #~ 
-        #~ node.x[:,0] = numpy.array([7,8])
-        #~ npt.assert_almost_equal(node.x, [[7,2,3], [8,5,6]])
-        #~ 
-        #~ node.x[1,:] = numpy.array([8,7,6])
-        #~ npt.assert_almost_equal(node.x, [[7,2,3], [8,7,6]])
-        
-    
+ 
 class TestNode(unittest.TestCase):
     """Unit tests for morphic Node superclass."""
 
@@ -68,7 +39,8 @@ class TestNode(unittest.TestCase):
         self.assertEqual(ns['num_values'], 0)
         self.assertEqual(ns['num_fields'], 0)
         self.assertEqual(ns['num_components'], 0)
-        self.assertEqual(len(ns.keys()), 6) 
+        self.assertEqual(ns['shape'], (0, 0))
+        self.assertEqual(len(ns.keys()), 7) 
         
     def test_load(self):
         mesh = mesher.Mesh()
@@ -89,6 +61,15 @@ class TestNode(unittest.TestCase):
         self.assertEqual(node2.num_values, 4)
         self.assertEqual(node2.num_fields, 2)
         self.assertEqual(node2.num_components, 3)
+    
+    
+    def test_get_values(self):
+        mesh = mesher.Mesh()
+        Xn = numpy.array([[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]])
+        node = mesh.add_stdnode(1, Xn)
+        npt.assert_almost_equal(node.get_values(), Xn)
+        npt.assert_almost_equal(node.get_values()[:,:], Xn)
+        npt.assert_almost_equal(node.get_values()[:,0], Xn[:,0])
         
         
     def test_one_field_no_components(self):
@@ -104,8 +85,7 @@ class TestNode(unittest.TestCase):
         self.assertEqual(node.mesh._reupdate, True)
         
         npt.assert_almost_equal(node.values, [3])
-        npt.assert_almost_equal(node.all_values, [[3]])
-        npt.assert_almost_equal(node.all_values_flat, [3])
+        npt.assert_almost_equal(node.values.flatten(), [3])
         npt.assert_almost_equal(node.cids, [0])
         npt.assert_almost_equal(node.field_cids, [[0]])
         
@@ -122,8 +102,7 @@ class TestNode(unittest.TestCase):
         self.assertEqual(node.mesh._reupdate, True)
         
         npt.assert_almost_equal(node.values, [3, 4, 6])
-        npt.assert_almost_equal(node.all_values, [[3], [4], [6]])
-        npt.assert_almost_equal(node.all_values_flat, [3, 4, 6])
+        npt.assert_almost_equal(node.values.flatten(), [3, 4, 6])
         npt.assert_almost_equal(node.cids, [0, 1, 2])
         npt.assert_almost_equal(node.field_cids, [[0], [1], [2]])
         
@@ -139,9 +118,9 @@ class TestNode(unittest.TestCase):
         self.assertEqual(node.mesh._regenerate, True)
         self.assertEqual(node.mesh._reupdate, True)
         
-        npt.assert_almost_equal(node.values, [3, 4, 6])
-        npt.assert_almost_equal(node.all_values, [[3], [4], [6]])
-        npt.assert_almost_equal(node.all_values_flat, [3, 4, 6])
+        npt.assert_almost_equal(node.values[:, 0], [3, 4, 6])
+        npt.assert_almost_equal(node.values, [[3], [4], [6]])
+        npt.assert_almost_equal(node.values.flatten(), [3, 4, 6])
         npt.assert_almost_equal(node.cids, [0, 1, 2])
         npt.assert_almost_equal(node.field_cids, [[0], [1], [2]])
         
@@ -157,9 +136,9 @@ class TestNode(unittest.TestCase):
         self.assertEqual(node.mesh._regenerate, True)
         self.assertEqual(node.mesh._reupdate, True)
         
-        npt.assert_almost_equal(node.values, [3])
-        npt.assert_almost_equal(node.all_values, [[3, 1, 0, 0]])
-        npt.assert_almost_equal(node.all_values_flat, [3, 1, 0, 0])
+        npt.assert_almost_equal(node.values[0, 0], [3])
+        npt.assert_almost_equal(node.values, [[3, 1, 0, 0]])
+        npt.assert_almost_equal(node.values.flatten(), [3, 1, 0, 0])
         npt.assert_almost_equal(node.cids, [0, 1, 2, 3])
         npt.assert_almost_equal(node.field_cids, [[0, 1, 2, 3]])
         
@@ -175,10 +154,10 @@ class TestNode(unittest.TestCase):
         self.assertEqual(node.mesh._regenerate, True)
         self.assertEqual(node.mesh._reupdate, True)
         
-        npt.assert_almost_equal(node.values, [3, 4, 5])
-        npt.assert_almost_equal(node.all_values,
+        npt.assert_almost_equal(node.values[:, 0], [3, 4, 5])
+        npt.assert_almost_equal(node.values,
             [[3, 1, 0, 0], [4, 2, 0, 0], [5, 3, 0, 0]])
-        npt.assert_almost_equal(node.all_values_flat,
+        npt.assert_almost_equal(node.values.flatten(),
             [3, 1, 0, 0, 4, 2, 0, 0, 5, 3, 0, 0])
         npt.assert_almost_equal(node.cids, range(12))
         npt.assert_almost_equal(node.field_cids,
@@ -188,11 +167,11 @@ class TestNode(unittest.TestCase):
         mesh = mesher.Mesh()
         node = mesher.Node(mesh, '4')
         node.set_values([[3, 1, 0, 0], [4, 2, 0, 0], [5, 3, 0, 0]])
-        node.set_value(1, 3, 7)
-        npt.assert_almost_equal(node.all_values_flat,
+        node.values[1, 3] = 7
+        npt.assert_almost_equal(node.values.flatten(),
             [3, 1, 0, 0, 4, 2, 0, 7, 5, 3, 0, 0])
-        node.set_value(0, 2, 9)
-        npt.assert_almost_equal(node.all_values_flat,
+        node.values[0, 2] = 9
+        npt.assert_almost_equal(node.values.flatten(),
             [3, 1, 9, 0, 4, 2, 0, 7, 5, 3, 0, 0])
             
     def test_fix_all(self):
@@ -250,7 +229,8 @@ class TestStdNode(unittest.TestCase):
         self.assertEqual(ns['num_values'], 4)
         self.assertEqual(ns['num_fields'], 2)
         self.assertEqual(ns['num_components'], 2)
-        self.assertEqual(len(ns.keys()), 7) 
+        self.assertEqual(ns['shape'], (2, 2))
+        self.assertEqual(len(ns.keys()), 8) 
         
     def test_load(self):
         mesh = mesher.Mesh()
@@ -285,9 +265,10 @@ class TestDepNode(unittest.TestCase):
         self.assertEqual(ns['num_values'], 0)
         self.assertEqual(ns['num_fields'], 0)
         self.assertEqual(ns['num_components'], 0)
+        self.assertEqual(ns['shape'], (0, 0))
         self.assertEqual(ns['element'], '7')
         self.assertEqual(ns['node'], '2')
-        self.assertEqual(len(ns.keys()), 9) 
+        self.assertEqual(len(ns.keys()), 10) 
      
     def test_load(self):
         mesh = mesher.Mesh()

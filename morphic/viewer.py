@@ -54,7 +54,8 @@ class Scene:
         
         if self.autoRemove: self.remove_points()
         
-        if color==None: color=(1,0,0)
+        if color==None:
+            color=(1,0,0)
         
         if size==None and mode==None:
             size = 1

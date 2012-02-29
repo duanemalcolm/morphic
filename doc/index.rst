@@ -14,15 +14,18 @@ Contents:
    introduction
    installation
    mesher
-   fitter
-   interpolator
-   tutorial_1d
    tutorial_2d
-   tutorial_pca
-   tutorial_combi_elems
-   examples
-   roadmap
-   api
+    
+.. comment these out
+    fitter
+    interpolator
+    tutorial_1d
+    tutorial_2d
+    tutorial_pca
+    tutorial_combi_elems
+    examples
+    roadmap
+    api
 
 .. automodule:: morphic
     :members:
@@ -30,15 +33,17 @@ Contents:
 .. include introduction.rst
 .. include installation.rst
 .. include mesher.rst
-.. include fitter.rst
-.. include interpolator.rst
-.. include tutorial_1d.rst
 .. include tutorial_2d.rst
-.. include tutorial_pca.rst
-.. include tutorial_combi_elems.rst
-.. include examples.rst
-.. include roadmap.rst
-.. include api.rst
+
+.. comment this block out
+    .. include fitter.rst
+    .. include interpolator.rst
+    .. include tutorial_1d.rst
+    .. include tutorial_pca.rst
+    .. include tutorial_combi_elems.rst
+    .. include examples.rst
+    .. include roadmap.rst
+    .. include api.rst
     
    
 Indices and tables

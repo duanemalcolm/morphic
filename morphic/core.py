@@ -75,6 +75,12 @@ class ObjectList:
             if obj not in self.groups[group]:
                 self.groups[group].append(obj)
     
+    def reset_object_list(self):
+        self._objects = []
+        self._object_ids = {}
+        self._id_counter = 0
+        self.groups = {}
+    
     def _get_group(self, group):
         if group in self.groups.keys():
             return self.groups[group]

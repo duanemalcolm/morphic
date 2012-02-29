@@ -5,48 +5,164 @@ Meshing
 .. toctree::
    :maxdepth: 2
 
+A mesh is a convinient way to describe field values over a domain.
+Examples of fields include temperature fields, velocity fields, strain
+fields, and geometric fields such as the the line path a string might
+take or the surface or volume of an object.
+
+A mesh typically consists of field values, a topography over which they
+they are sampled and the basis functions used to interpolate the fields
+over the topography. In morphic nodes define field values and elements
+define the topography and basis functions.
+
+In this section, we will introduce:
+    - creating mesh
+    - plotting a mesh
+    - saving and loading a mesh
+    - nodes
+    - elements
+    
+We will do this through examples, more details on the mesh, nodes and 
+elements can be found in the API (**LINK**).
+
+.. warning::
+    
+    Morphic has been developed for 1D and 2D meshes. Support for higher
+    order meshes are intended however it is not complete.
+
+
 ===============
-The Mesh Object
+Creating a Mesh
 ===============
 
-A mesh uses nodes and elements in order to describe a field, such as
-geometric fields that represent a surface.
-
---------
-New Mesh
---------
+Before we can create a mesh we need to import the Morphic module:
 
 .. code-block:: python
     
-    mesh = Mesh()
+    import morphic
 
+Now we can create a mesh by:
 
----------
-Load Mesh
----------
+.. literalinclude:: ../examples/create_mesh.py
+    :start-after: # Create mesh
+    :end-before: # Add nodes
 
-.. automethod:: morphic.mesher.Mesh.load
+The mesh is created from two biquadratic elements which joined along one
+edge. For this we add 15 nodes in a regular 5x3 grid where the z-value
+of the middle node of elements 1 and 2 are set to 1 and -1.
 
+The command to add a standard node is:
 
----------
-Save Mesh
----------
-
-.. automethod:: morphic.mesher.Mesh.save
-
-
-------
-Export
-------
-
-.. note::
+.. code-block:: python
     
-    TODO: Export to cm files, cmgui files, fieldml
+    mesh.add_stdnode(id, field_values)
+
+Here we add the 15 nodes each with an ``id`` and and ``x, y, z``
+coordinate,
+
+.. literalinclude:: ../examples/create_mesh.py
+    :start-after: # Add nodes
+    :end-before: # Add elements
+
+Now we add the two elements. The command for adding elements is:
+
+.. code-block:: python
+    
+    mesh.add_element(id, basis_functions, node_ids)
+
+which requires an element id, the basis function used to interpolate
+fields over the element, and the node ids for creating the elements.
+Therefore, we add elements to the mesh by,
+
+.. literalinclude:: ../examples/create_mesh.py
+    :start-after: # Add elements
+    :end-before: # Generate the mesh
+
+Finally, we need to generate the mesh,
+
+.. literalinclude:: ../examples/create_mesh.py
+    :start-after: # Generate the mesh
+    :end-before: # Plotting
+
+This creates an efficient store of the mesh in order to
+compute properties of the mesh quickly.
+
+The resultant plot of the mesh is shown below.
+
+.. figure::  ./images/create_mesh_mesh.png
+    :align:   center
+    :width: 600px
 
 
-------------------------
-Retrieving Mesh Entities
-------------------------
+========
+Plotting
+========
+
+Morphic has a ```viewer`` module for plotting meshes, which we import
+by,
+
+.. code-block:: python
+    
+    import morphic.viewer
+    
+Then we create a scene to plot into,
+
+.. code-block:: python
+    
+    S = morphic.viewer.Scenes('my_scene', bgcolor=(1,1,1))
+
+The first variable is the label to assign to the scene and ``bgcolor``
+are the RBG values for the background colour of the scene.
+
+We would like to plot the nodes and surface of the mesh which can be
+done by,
+
+.. code-block:: python
+    
+    Xn = mesh.get_nodes()
+    Xs, Ts = mesh.get_surfaces(res=32)
+    
+The variable ``res=32`` defines the discretization of each element. The
+return variable from ``mesh.get_nodes`` is an array ``x, y, z``
+coordinates (Xn) of nodes in the mesh. The variables returned from
+``mesh.get_surfaces`` are the ``x, y, z`` coordinates (Xs) and
+connectivity (Ts) of the triangulated surface of the elements.
+
+Now we can render the nodes and surface,
+
+.. code-block:: python
+    
+    S.plot_points('nodes', Xn, color=(1,0,1), size=0.1)
+    S.plot_surfaces('surface', Xs, Ts, scalars=Xs[:,2])
+    
+The first variable in each command is the label given to the rendering
+of the nodes and surfaces,  ``color`` is the RGB colour to render the
+nodes, ``size`` is the size of the nodes, and ``scalars`` is the colour
+field rendered on the mesh surface, which in this case, is the ``z``
+value of the coordinates field.
+
+==================
+Saving and Loading
+==================
+
+Saving a mesh is simply,
+
+.. code-block:: python
+    
+    mesh.save('path/to/meshes/funky.mesh')
+
+A mesh can be loaded two ways,
+
+.. code-block:: python
+    
+    mesh = morphic.Mesh('path/to/meshes/funky.mesh')
+    
+    # OR
+    
+    mesh = morphic.Mesh()
+    mesh.load('path/to/meshes/funky.mesh')
+
+
 
 
 =====
@@ -180,13 +296,6 @@ Element Properties
     
     TODO: interpolating values, derivatives, normals, neighbours, etc...
 
------------------
-Dividing Elements
------------------
-
--------------------
-Converting Elements
--------------------
 
 
 
