@@ -674,7 +674,7 @@ class Mesh(object):
         if not isinstance(element_ids, list):
             element_ids = [element_ids]
         
-        node0 = self.nodes[self.elements[element_ids[0]].nodes[0]]
+        node0 = self.elements[element_ids[0]].nodes[0]
         num_fields = node0.num_fields
         num_elements = len(element_ids)
         num_xi = xi.shape[0]
@@ -700,7 +700,7 @@ class Mesh(object):
         if not isinstance(element_ids, list):
             element_ids = [element_ids]
         
-        node0 = self.nodes[self.elements[element_ids[0]].nodes[0]]
+        node0 = self.elements[element_ids[0]].nodes[0]
         num_fields = node0.num_fields
         num_elements = len(element_ids)
         num_xi = xi.shape[0]
