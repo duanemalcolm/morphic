@@ -1,5 +1,6 @@
 import os
 import sys
+import numpy
 
 action = None
 if len(sys.argv) > 1:
@@ -20,7 +21,7 @@ def plot_mesh_data(label, mesh, Xd, filepath):
     view = (45.000000000000085,
              54.735610317245204,
              14.341069369356839,
-             array([ 0.58479455,  0.56426392,  0.8258849 ]))
+             numpy.array([ 0.58479455,  0.56426392,  0.8258849 ]))
     
     # Plotting
     from morphic import viewer

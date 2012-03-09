@@ -115,6 +115,12 @@ class Test(unittest.TestCase):
         self.assertEqual([0], basisfn[0][1])
         
         basisfn, dim = interpolator._get_basis_functions(
+            ['H3'], deriv=[2])
+        self.assertEqual(1, len(basisfn))
+        self.assertEqual('H3d1d1', basisfn[0][0].__name__)
+        self.assertEqual([0], basisfn[0][1])
+        
+        basisfn, dim = interpolator._get_basis_functions(
             ['T11', 'T22', 'T33', 'T44'],
             deriv=[0, 0, 0, 0, 0, 0, 0, 0])
         self.assertEqual(4, len(basisfn))
@@ -416,6 +422,12 @@ class TestBasisFunction(unittest.TestCase):
         numpy.testing.assert_almost_equal(interpolator.H3d1(x),
             array([[-0.6786,  0.5307,  0.6786, -0.2093],
                    [-1.0626, -0.3013,  1.0626,  0.2387]]))
+        
+    def test_H3d1d1(self):
+        x = numpy.array([0.13, 0.77])
+        numpy.testing.assert_almost_equal(interpolator.H3d1d1(x),
+            array([[-4.44, -3.22,  4.44, -1.22],
+                   [ 3.24,  0.62, -3.24,  2.62]]))
         
     def test_T11(self):
         x = numpy.array([[0.13, 0.23], [0.77, 0.06]])

@@ -65,30 +65,14 @@ class NodeValues(object):
 
 class Node(object):
     '''
-    Node is the super-class for StdNode, DepNode, PCANode, and MapNode.
+    This is the super-class for StdNode and DepNode.
     
-    Node.values
-        Returns only the first component the fields, i.e., the field
-        values only. For example, if the field values are set as
-        [[1, 2], [4, 6]], Node.values will return [1, 4]
-    
-    Node.all_values
-        Returns all fields including components, e.g., [[1, 2], [4, 6]]
-    
-    Node.all_values_flat
-        Returns all fields including components but in a flat structure,
-        e.g., [1, 2, 4, 6]
-        
     >>> mesh = Mesh()
     >>> node = Node(mesh, 1)
-    >>> node.set_values([[1, 2], [4, 6]])
-    >>> print node.values   # all values
+    >>> node.values = [[1, 2], [4, 6]]
+    >>> print node.values
     [[ 1.  2.]
      [ 4.  6.]]
-    >>> print node.values[:,0] # field values
-    [ 1.  4.]
-    >>> print node.values.flatten()
-    [ 1.  2.  4.  6.]
     '''
     
     values = NodeValues()
@@ -107,23 +91,6 @@ class Node(object):
         self.mesh._regenerate = True
         self.mesh._reupdate = True
         
-        
-     #~ def __getattr__(self, name):
-        #~ if name == 'x':
-            #~ return self._values.values
-        #~ elif name == 'values':
-            #~ return self.mesh._core.P[self.cids][0:self.num_values:
-                                                #~ self.num_components]
-        #~ elif name == 'all_values':
-            #~ return self.mesh._core.P[self.cids].reshape(
-                    #~ (self.num_fields, self.num_components))
-        #~ elif name == 'all_values_flat':
-            #~ return self.mesh._core.P[self.cids]
-        #~ elif name == 'field_cids':
-            #~ return self._get_param_indicies()
-        #~ else:
-            #~ raise AttributeError
-    
     @property
     def field_cids(self):
         return self._get_param_indicies()
@@ -266,19 +233,27 @@ class DepNode(Node):
         self.node = node_dict['node'] 
     
     
-class Element:
+class Element(object):
 
-    def __init__(self, mesh, uid, interp, nodes):
+    def __init__(self, mesh, uid, interp, node_ids):
         self.mesh = mesh 
         self.interp = interp 
         self.id = uid
-        self.nodes = nodes
+        self.node_ids = node_ids
         self.cid = None
         
         self._set_shape()
         
         self.mesh._regenerate = True
         self.mesh._reupdate = True
+    
+    @property
+    def nodes(self):
+        return self.mesh.nodes[self.node_ids]
+        
+    @nodes.setter
+    def nodes(self, nodes):
+        self.node_ids = [node.id for node in nodes]
     
     def _set_shape(self):
         if self.interp:
@@ -293,7 +268,7 @@ class Element:
         elem_dict = {}
         elem_dict['id'] = self.id
         elem_dict['interp'] = self.interp
-        elem_dict['nodes'] = self.nodes
+        elem_dict['nodes'] = self.node_ids
         elem_dict['shape'] = self.shape
         return elem_dict
      
@@ -301,7 +276,7 @@ class Element:
         if elem_dict['id'] != self.id:
             raise 'Ids do not match'
         self.interp = elem_dict['interp']
-        self.nodes = elem_dict['nodes'] 
+        self.node_ids = elem_dict['nodes'] 
         self.shape = elem_dict['shape']
         self._set_shape()
         
@@ -330,7 +305,15 @@ class Element:
         return self.mesh._core.weights(self.cid, xi, deriv=deriv)
         
     def interpolate(self, xi, deriv=None):
-        return self.mesh._core.interpolate(self.cid, xi, deriv=deriv)
+        xi = numpy.asarray(xi)
+        xi_dims = len(xi.shape)
+        if xi_dims == 1:
+            xi = numpy.array([xi])
+            return self.mesh._core.interpolate(
+                    self.cid, xi, deriv=deriv)[0]
+        else:
+            return self.mesh._core.interpolate(
+                    self.cid, xi, deriv=deriv)
     
     def normal(self, Xi):
         '''
@@ -350,23 +333,28 @@ class Element:
         dx2 = self.mesh._core.interpolate(self.cid, Xi, deriv=[0, 1])
         return scipy.cross(dx1, dx2)
     
-    def _project_objfn(self, xi, x, args):
-        xe = self.interpolate(scipy.array([xi]))
+    def _project_objfn(self, xi, *args):
+        x = args[0]
+        xe = self.interpolate(xi)
         dx = xe - x
         return scipy.sum(dx * dx)
     
-    def project(self, x, xi=None):
+    def project(self, x, xi=None, xtol=1e-4, ftol=1e-4):
         from scipy.optimize import fmin
         if xi == None:
-            xi = 0.5
-        xi_opt = fmin(self._project_objfn, xi, (x), disp=False)
+            if self.shape == 'line':
+                xi = 0.5
+            else:
+                xi = [0.5, 0.5]
+        xi_opt = fmin(self._project_objfn, xi, args=(x),
+                xtol=xtol, ftol=ftol, disp=False)
         return xi_opt
         
     def __iter__(self):
-        return [self.mesh.nodes[i] for i in self.nodes].__iter__()
+        return self.nodes.__iter__()
         
     
-class Mesh():
+class Mesh(object):
     '''
     This is the top level object for a mesh which allows:
     
@@ -469,7 +457,7 @@ class Mesh():
     '''
     
     def __init__(self, filepath=None, label='/', units='m'):
-        self._version = '0.1'
+        self._version = 1
         self.label = label
         self.units = units
         self.nodes = core.ObjectList()
@@ -479,9 +467,8 @@ class Mesh():
         self._regenerate = True
         self._reupdate = True
         
-        #: tester
         self.filepath = filepath
-        if filepath:
+        if filepath != None:
             self.load(filepath)
         
     def add_stdnode(self, uid, values, group='_default'):
@@ -700,7 +687,7 @@ class Mesh():
             
         return X
     
-    def normal(self, element_ids, xi):
+    def normal(self, element_ids, xi, normalise=False):
         self.generate()
         if isinstance(xi, list):
             xi = scipy.array(xi)
@@ -723,9 +710,18 @@ class Mesh():
         for element in self.elements[element_ids]:
             X[ind:ind+num_xi, :] = element.normal(xi)
             ind += num_xi
+        
+        if normalise:
+            R = scipy.sqrt(scipy.sum(X * X, axis=1))
+            for axis in range(X.shape[1]):
+                X[:,axis] /= R
             
         return X
     
+    def grid(self, res=[8, 8], shape='quad'):
+        return discretizer.xi_grid(
+                shape=shape, res=res, units='div')[0]
+                
     def get_nodes(self, nodes=None, group='_default'):
         self.generate()
         if nodes != None:

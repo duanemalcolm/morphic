@@ -292,7 +292,7 @@ class TestElement(unittest.TestCase):
         self.assertEqual(elem.mesh, mesh)
         self.assertEqual(elem.id, 1)
         self.assertEqual(elem.interp, ['L1'])
-        self.assertEqual(elem.nodes, [1, 2])
+        self.assertEqual(elem.node_ids, [1, 2])
         
     def test_save_1d(self):
         mesh = mesher.Mesh()
@@ -324,7 +324,7 @@ class TestElement(unittest.TestCase):
         elem2._load_dict(elem_dict)
         self.assertEqual(elem2.id, 1)
         self.assertEqual(elem2.interp, ['L1', 'L1'])
-        self.assertEqual(elem2.nodes, [1, 2, 3, 4])
+        self.assertEqual(elem2.node_ids, [1, 2, 3, 4])
         self.assertEqual(elem2.shape, 'quad')
     
     def test_set_shape_line(self):
@@ -351,6 +351,89 @@ class TestElement(unittest.TestCase):
         for i, node in enumerate(elem):
             self.assertEqual(node, Nodes[i])
     
+    def test_element_interpolate_1d_list_1pt(self):
+        m = mesher.Mesh()
+        m.add_stdnode(1, [0, 0.5, 1])
+        m.add_stdnode(2, [1, 0.5, 0.5])
+        m.add_element(1, ['L1'], [1, 2])
+        m.generate()
+        x = m.elements[1].interpolate([0.2])
+        npt.assert_almost_equal(x, [0.2, 0.5, 0.9])
+    
+    def test_element_interpolate_1d_list_2pts(self):
+        m = mesher.Mesh()
+        m.add_stdnode(1, [0, 0.5, 1])
+        m.add_stdnode(2, [1, 0.5, 0.5])
+        m.add_element(1, ['L1'], [1, 2])
+        m.generate()
+        x = m.elements[1].interpolate([[0.2], [0.6]])
+        npt.assert_almost_equal(x, 
+            [[0.2, 0.5, 0.9], [0.6, 0.5, 0.7]])
+        
+    def test_element_interpolate_1d_array_1pt(self):
+        m = mesher.Mesh()
+        m.add_stdnode(1, [0, 0.5, 1])
+        m.add_stdnode(2, [1, 0.5, 0.5])
+        m.add_element(1, ['L1'], [1, 2])
+        m.generate()
+        x = m.elements[1].interpolate(numpy.array([0.2]))
+        npt.assert_almost_equal(x, [0.2, 0.5, 0.9])
+    
+    def test_element_interpolate_1d_array_2pts(self):
+        m = mesher.Mesh()
+        m.add_stdnode(1, [0, 0.5, 1])
+        m.add_stdnode(2, [1, 0.5, 0.5])
+        m.add_element(1, ['L1'], [1, 2])
+        m.generate()
+        x = m.elements[1].interpolate(numpy.array([[0.2], [0.6]]))
+        npt.assert_almost_equal(x, 
+            [[0.2, 0.5, 0.9], [0.6, 0.5, 0.7]])
+        
+    def test_element_interpolate_2d_list_1pt(self):
+        m = mesher.Mesh()
+        m.add_stdnode(1, [0, 0, 0])
+        m.add_stdnode(2, [1, 0, 1])
+        m.add_stdnode(3, [0, 1, 0])
+        m.add_stdnode(4, [1, 1, 1])
+        m.add_element(1, ['L1', 'L1'], [1, 2, 3, 4])
+        m.generate()  
+        x = m.elements[1].interpolate([0.2, 0.3])
+        npt.assert_almost_equal(x, [0.2, 0.3, 0.2])
+    
+    def test_element_interpolate_2d_list_2pts(self):
+        m = mesher.Mesh()
+        m.add_stdnode(1, [0, 0, 0])
+        m.add_stdnode(2, [1, 0, 1])
+        m.add_stdnode(3, [0, 1, 0])
+        m.add_stdnode(4, [1, 1, 1])
+        m.add_element(1, ['L1', 'L1'], [1, 2, 3, 4])
+        m.generate()  
+        x = m.elements[1].interpolate([[0.2, 0.3], [0.5, 0.6]])
+        npt.assert_almost_equal(x, [[0.2, 0.3, 0.2], [0.5, 0.6, 0.5]])
+    
+    def test_element_interpolate_2d_array_1pt(self):
+        m = mesher.Mesh()
+        m.add_stdnode(1, [0, 0, 0])
+        m.add_stdnode(2, [1, 0, 1])
+        m.add_stdnode(3, [0, 1, 0])
+        m.add_stdnode(4, [1, 1, 1])
+        m.add_element(1, ['L1', 'L1'], [1, 2, 3, 4])
+        m.generate()  
+        x = m.elements[1].interpolate(numpy.array([0.2, 0.3]))
+        npt.assert_almost_equal(x, [0.2, 0.3, 0.2])
+    
+    def test_element_interpolate_2d_array_2pts(self):
+        m = mesher.Mesh()
+        m.add_stdnode(1, [0, 0, 0])
+        m.add_stdnode(2, [1, 0, 1])
+        m.add_stdnode(3, [0, 1, 0])
+        m.add_stdnode(4, [1, 1, 1])
+        m.add_element(1, ['L1', 'L1'], [1, 2, 3, 4])
+        m.generate()  
+        x = m.elements[1].interpolate(
+                numpy.array([[0.2, 0.3], [0.5, 0.6]]))
+        npt.assert_almost_equal(x, [[0.2, 0.3, 0.2], [0.5, 0.6, 0.5]])
+    
     def test_element_normal(self):
         m = mesher.Mesh()
         m.add_stdnode(1, [0, 0, 0])
@@ -362,6 +445,8 @@ class TestElement(unittest.TestCase):
         Xi = numpy.array([[0.1, 0.1], [0.3, 0.1], [0.7, 0.3]])
         dn = m.elements[1].normal(Xi)
         npt.assert_almost_equal(dn, [[-1, 0, 1], [-1, 0, 1], [-1, 0, 1]])
+        
+    
         
 class TestMesh(unittest.TestCase):
     """Unit tests for morphic interpolants."""
@@ -449,17 +534,17 @@ class TestMesh(unittest.TestCase):
         
         self.assertEqual(elem1.id, 1)
         self.assertEqual(elem1.interp, ['L1'])
-        self.assertEqual(elem1.nodes, [1, 2])
+        self.assertEqual(elem1.node_ids, [1, 2])
         self.assertEqual(mesh.elements[1].id, 1)
         self.assertEqual(mesh.elements[1].interp, ['L1'])
-        self.assertEqual(mesh.elements[1].nodes, [1, 2])
+        self.assertEqual(mesh.elements[1].node_ids, [1, 2])
         
         self.assertEqual(elem0.id, 0)
         self.assertEqual(elem0.interp, ['L1'])
-        self.assertEqual(elem0.nodes, [2, 1])
+        self.assertEqual(elem0.node_ids, [2, 1])
         self.assertEqual(mesh.elements[0].id, 0)
         self.assertEqual(mesh.elements[0].interp, ['L1'])
-        self.assertEqual(mesh.elements[0].nodes, [2, 1])
+        self.assertEqual(mesh.elements[0].node_ids, [2, 1])
         
     def test_node_groups(self):
         mesh = mesher.Mesh()

@@ -88,7 +88,7 @@ def _get_basis_functions(basis, deriv):
         'L2': [L2, L2d1],
         'L3': [L3, L3d1],
         'L4': [L4, L4d1],
-        'H3': [H3, H3d1],
+        'H3': [H3, H3d1, H3d1d1],
         'T11': [T11],
         'T22': [T22],
         'T33': [T33, T33d1, T33d2],
@@ -337,6 +337,22 @@ def H3d1(x):
         3*x2-4*x+1,
         6*x*(1-x),
         x*(3*x-2)])
+    return Phi.T
+    
+def H3d1d1(x):
+    """
+    First derivative of the cubic-Hermite basis function.
+    
+    :param x: points to interpolate
+    :type x: numpy array (npoints)
+    :return: basis weights
+    :rtype: numpy array(npoints, 4)
+    """
+    Phi = numpy.array([ \
+        12*x-6,
+        6*x-4,
+        6-12*x,
+        6*x-2])
     return Phi.T
     
     

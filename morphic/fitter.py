@@ -54,8 +54,10 @@ class BoundElementPoint:
         if self.data_index == None:
             return data[self.data].get_data(self.data_ids)[field]
         else:
-            return data[self.data].values[self.data_index, 
-                    self.fields[field]]
+            #~ print data[self.data].values.shape
+            #~ print self.data_index, self.fields, field
+            #~ print data[self.data].values[self.data_index, field]
+            return data[self.data].values[self.data_index, field]
         
         
 
@@ -112,6 +114,8 @@ class Data:
         if isinstance(self.values, scipy.ndarray):
             if len(values.shape) == 2 and values.shape[0] > 1:
                 self.tree = cKDTree(self.values)
+            else:
+                self.xc = values
         else:
             self.values = self.values * scipy.ones((10)) ### HACK ####
             self.xc = self.values * scipy.ones((10)) ### HACK ####
@@ -197,6 +201,14 @@ class Fit:
     
     def bind_node_value(self, node_id, field_id, comp_id,
             data, index=None, weight=1):
+        
+        if not isinstance(data, str):
+            data_label = '_' + str(node_id) + '_' + str(field_id) + \
+                    '_' + str(comp_id) + '_' + \
+                    str(int(1000000 * scipy.rand()))
+            self.set_data(data_label, data)
+            data = data_label
+        
         self.points.add(BoundNodeValue(
                 node_id, field_id, comp_id, data, index=index,
                 weight=weight))
@@ -277,7 +289,8 @@ class Fit:
         
         for point in self.points:
             if point._class_ == 'elem':
-                self.data[point.data].add_point(point)
+                if point.data_index == None:
+                    self.data[point.data].add_point(point)
         
         
     def invert_matrix(self):

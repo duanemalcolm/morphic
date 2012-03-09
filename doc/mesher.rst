@@ -211,7 +211,7 @@ accessed through a list or by direct reference by node id.
     
     list_of_nodes = mesh.nodes
     node = mesh.nodes[5]
-    node = mesh.nodes['dd']
+    node = mesh.nodes['my_node']
     
 .. note::
     
