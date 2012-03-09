@@ -293,6 +293,14 @@ class TestElement(unittest.TestCase):
         self.assertEqual(elem.id, 1)
         self.assertEqual(elem.interp, ['L1'])
         self.assertEqual(elem.node_ids, [1, 2])
+    
+    def test_elem_nodes_access(self):
+        mesh = mesher.Mesh()
+        n1 = mesh.add_stdnode(2, [1, 2])
+        n2 = mesh.add_stdnode(6, [2, 4])
+        elem = mesh.add_element(1, ['L1'], [2, 6])
+        self.assertEqual(elem.node_ids, [2, 6])
+        self.assertEqual(elem.nodes, [n1, n2])
         
     def test_save_1d(self):
         mesh = mesher.Mesh()
