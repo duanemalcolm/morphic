@@ -21,6 +21,9 @@ class ObjectList:
         Returns the number of objects in the list.
         '''
         return len(self._objects)
+        
+    def keys(self):
+        return self._object_ids.keys()
     
     def add(self, obj, group=None):
         '''

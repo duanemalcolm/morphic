@@ -550,6 +550,8 @@ class Mesh(object):
         '''
         if uid==None:
             uid = self.elements.get_unique_id()
+        if isinstance(node_ids, numpy.ndarray):
+            node_ids = node_ids.tolist()
         elem = Element(self, uid, interp, node_ids)
         self.elements.add(elem, group=group)
         return elem
@@ -746,10 +748,13 @@ class Mesh(object):
             Xl.append(self._core.interpolate(elem.cid, xi))
         return Xl
         
-    def get_surfaces(self, res=8):
+    def get_surfaces(self, res=8, elements=None, groups=None):
         self.generate()
         
-        Elements = self.elements
+        if elements == None:
+            Elements = self.elements
+        else:
+            Elements = self.elements[elements]
         
         XiT, TT = discretizer.xi_grid(shape='tri', res=res)
         XiQ, TQ = discretizer.xi_grid(shape='quad', res=res)

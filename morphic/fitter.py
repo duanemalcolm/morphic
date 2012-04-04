@@ -194,9 +194,21 @@ class Fit:
         self.num_dof = 0
         self.num_rows = 0
         
-    def bind_element_point(self, element_id, xi, data_label,
+    def bind_element_point(self, element_id, xi, data,
             data_index=None, fields=None, weight=1):
-        self.points.add(BoundElementPoint(element_id, xi, data_label,
+        
+        if not isinstance(data, str):
+            label_not_in_data = True
+            while label_not_in_data:
+                data_label = '_' + str(element_id) + '_' + \
+                        str(int(1000000 + 1000000 * scipy.rand()))
+                if data_label not in self.data.keys():
+                    label_not_in_data = False
+                    
+            self.set_data(data_label, data)
+            data = data_label
+        
+        self.points.add(BoundElementPoint(element_id, xi, data,
                 data_index=data_index, fields=fields, weight=weight))
     
     def bind_node_value(self, node_id, field_id, comp_id,
@@ -208,10 +220,15 @@ class Fit:
                     str(int(1000000 * scipy.rand()))
             self.set_data(data_label, data)
             data = data_label
-        
-        self.points.add(BoundNodeValue(
-                node_id, field_id, comp_id, data, index=index,
-                weight=weight))
+        if isinstance(node_id, list):
+            for nid in node_id:
+                self.points.add(BoundNodeValue(
+                        nid, field_id, comp_id, data, index=index,
+                        weight=weight))
+        else:
+            self.points.add(BoundNodeValue(
+                    node_id, field_id, comp_id, data, index=index,
+                    weight=weight))
     
     def set_data(self, label, values):
         self.data.add(Data(label, values))
@@ -333,7 +350,6 @@ class Fit:
             rms_err1 = self.compute_rms_err()
             drms_iter = scipy.absolute(rms_err0 - rms_err1)
             rms_err0 = rms_err1
-            
             t3 = time.time()
             
             td += (t1 - t0) + (t3 - t2)
