@@ -210,30 +210,26 @@ accessed through a list or by direct reference by node id.
 .. code-block:: python
     
     list_of_nodes = mesh.nodes
-    node = mesh.nodes[5]
-    node = mesh.nodes['my_node']
+    node = mesh.nodes[5] # if the id is an integer
+    node = mesh.nodes['my_node'] # if the id is a string
     
-.. note::
     
-    TODO
-
 -----------
 Node Values
 -----------
 
-A standard node can be added to the mesh by,
+You can get or set values for a standard node by,
 
 .. code-block:: python
     
-    field_values = node.get_values()
+    # Get or set values by
+    all_values = node.values
+    node.values = [[1, 1, 0, 0.2], [2, 0, 1, 0.1]]
     
-    node.set_values(values)
-    
-.. note::
-    
-    TODO
-
-
+    # Can also get slices by,
+    field_values = node.values[:, 0]
+    field_deriv1 = node.values[:, 1]
+    y_field_values = node.values[1, :]
 
 
 ========
@@ -285,17 +281,50 @@ Some examples of interpolation schemes:
 ------------------
 Accessing Elements
 ------------------
-.. note::
-    
-    TODO
 
+Elements are stored in a mesh as a list of element objects which can be
+accessed through a list or by direct reference by element id.
+
+.. code-block:: python
+    
+    list_of_elements = mesh.elements
+    element = mesh.elements[1] # if the id is an integer
+    element = mesh.elements['my_element'] # if the id is a string
+    
 ------------------
 Element Properties 
 ------------------
-.. note::
-    
-    TODO: interpolating values, derivatives, normals, neighbours, etc...
 
+Element objects have a number of useful properties:
+
+``element.id`` returns the element id.
+
+``element.basis`` returns a list of the element basis functions.
+
+``element.shape`` returns a string identifying the shape of the element,
+for example, ``line``, ``tri``, or ``quad`` for a lines, triangle or
+quadralateral element.
+
+``element.nodes`` returns a list of node objects.
+
+``element.node_ids`` returns a list of node ids.
+
+---------------------
+Element Interpolation 
+---------------------
+
+One can interpolate the node values at any point on the element. The
+general expression is
+    ``element.interpolate(Xi, deriv=None)``
+where ``Xi`` is a list or numpy
+array of material locations and ``deriv`` is the definition of the
+derivative interpolation. The default is ``None`` which interpolates the
+field values.
+
+Examples for derivative definitions are:
+    - ``deriv=[1,0]`` returns the first derivative in direction 1
+    - ``deriv=[1,1]`` returns the cross-derivative (d2u/dx1 dx2) :math:`a^2 + b^2 = c^2`.
+    - ``deriv=[0,2]`` returns the second derivative in direction 2
 
 
 

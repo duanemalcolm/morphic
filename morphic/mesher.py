@@ -86,7 +86,8 @@ class Node(object):
         self.num_values = 0
         self.num_fields = 0
         self.num_components = 0
-        self.shape = (0, 0)
+        self.num_modes = 0
+        self.shape = (0, 0, 0)
         self._added = False
         self.mesh._regenerate = True
         self.mesh._reupdate = True
@@ -232,12 +233,33 @@ class DepNode(Node):
         self.element = node_dict['element']
         self.node = node_dict['node'] 
     
+#~ class PCANode(Node):
+#~ 
+    #~ def __init__(self, mesh, uid, values, weights, variance):
+        #~ Node.__init__(self, mesh, uid)
+        #~ self._type = 'pca'
+        #~ self.element = element
+        #~ self.node = node
+     #~ 
+    #~ def _save_dict(self):
+        #~ node_dict = Node._save_dict(self)
+        #~ node_dict['type'] = self._type   
+        #~ node_dict['element'] = self.element   
+        #~ node_dict['node'] = self.node
+        #~ return node_dict
+    #~ 
+    #~ def _load_dict(self, node_dict):
+        #~ Node._load_dict(self, node_dict)
+        #~ self.element = node_dict['element']
+        #~ self.node = node_dict['node'] 
+    
     
 class Element(object):
 
     def __init__(self, mesh, uid, interp, node_ids):
         self.mesh = mesh 
         self.interp = interp 
+        self.basis = interp 
         self.id = uid
         self.node_ids = node_ids
         self.cid = None

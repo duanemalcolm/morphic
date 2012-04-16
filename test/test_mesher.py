@@ -25,6 +25,8 @@ class TestNode(unittest.TestCase):
         self.assertEqual(node.num_values, 0)
         self.assertEqual(node.num_fields, 0)
         self.assertEqual(node.num_components, 0)
+        self.assertEqual(node.num_modes, 0)
+        self.assertEqual(node.shape, (0, 0, 0))
         self.assertEqual(node._added, False)
         self.assertEqual(node.mesh._regenerate, True)
         self.assertEqual(node.mesh._reupdate, True)
@@ -39,7 +41,7 @@ class TestNode(unittest.TestCase):
         self.assertEqual(ns['num_values'], 0)
         self.assertEqual(ns['num_fields'], 0)
         self.assertEqual(ns['num_components'], 0)
-        self.assertEqual(ns['shape'], (0, 0))
+        self.assertEqual(ns['shape'], (0, 0, 0))
         self.assertEqual(len(ns.keys()), 7) 
         
     def test_load(self):
@@ -163,6 +165,12 @@ class TestNode(unittest.TestCase):
         npt.assert_almost_equal(node.field_cids,
             [range(4), range(4, 8), range(8, 12)])
             
+    def test_2fields_2comps_3modes(self):
+        mesh = mesher.Mesh()
+        xn = numpy.array([
+                [[0, 0.2, 0.1], [0.5, 0.11, 0.07]],
+                [[1, 0.22, 0.11], [0.5, 0.11, 0.07]]])
+            
     def test_set_value(self):
         mesh = mesher.Mesh()
         node = mesher.Node(mesh, '4')
@@ -265,7 +273,7 @@ class TestDepNode(unittest.TestCase):
         self.assertEqual(ns['num_values'], 0)
         self.assertEqual(ns['num_fields'], 0)
         self.assertEqual(ns['num_components'], 0)
-        self.assertEqual(ns['shape'], (0, 0))
+        self.assertEqual(ns['shape'], (0, 0, 0))
         self.assertEqual(ns['element'], '7')
         self.assertEqual(ns['node'], '2')
         self.assertEqual(len(ns.keys()), 10) 
@@ -282,6 +290,47 @@ class TestDepNode(unittest.TestCase):
         self.assertEqual(node2._type, 'dependent')   
         self.assertEqual(node2.element, 3)   
         self.assertEqual(node2.node, 77)
+
+#~ class TestPCANode(unittest.TestCase):
+    #~ """Unit tests for morphic interpolants."""
+#~ 
+    #~ def test_node_init(self):
+        #~ mesh = mesher.Mesh()
+        #~ node = mesher.PCANode(mesh, 5, [[[1, 0.2, 0.1], [1, 0.2, 0.1]]],
+                #~ 'weights', 'variance')
+        #~ self.assertEqual(node.mesh, mesh)
+        #~ self.assertEqual(node.id, 5)
+        #~ npt.assert_equal(node.weights, 'weights')
+        #~ npt.assert_equal(node.variance, 'variance')
+        
+    #~ def test_save(self):
+        #~ mesh = mesher.Mesh()
+        #~ node = mesher.DepNode(mesh, '4', '7', '2')
+        #~ ns = node._save_dict()
+        #~ self.assertEqual(ns['type'], 'dependent')
+        #~ self.assertEqual(ns['id'], '4')
+        #~ self.assertEqual(ns['fixed'], None)
+        #~ self.assertEqual(ns['cids'], None)
+        #~ self.assertEqual(ns['num_values'], 0)
+        #~ self.assertEqual(ns['num_fields'], 0)
+        #~ self.assertEqual(ns['num_components'], 0)
+        #~ self.assertEqual(ns['shape'], (0, 0, 0))
+        #~ self.assertEqual(ns['element'], '7')
+        #~ self.assertEqual(ns['node'], '2')
+        #~ self.assertEqual(len(ns.keys()), 10) 
+     #~ 
+    #~ def test_load(self):
+        #~ mesh = mesher.Mesh()
+        #~ node = mesher.DepNode(mesh, '4', 3, 77)
+        #~ node_dict = node._save_dict()
+        #~ 
+        #~ mesh2 = mesher.Mesh()
+        #~ node2 = mesher.DepNode(mesh2, '4', None, None)
+        #~ node2._load_dict(node_dict)
+        #~ self.assertEqual(node2.id, '4')
+        #~ self.assertEqual(node2._type, 'dependent')   
+        #~ self.assertEqual(node2.element, 3)   
+        #~ self.assertEqual(node2.node, 77)
         
 class TestElement(unittest.TestCase):
     """Unit tests for morphic interpolants."""
