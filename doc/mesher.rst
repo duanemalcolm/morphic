@@ -313,18 +313,27 @@ quadralateral element.
 Element Interpolation 
 ---------------------
 
-One can interpolate the node values at any point on the element. The
+One can interpolate the field values at any point on the element. The
 general expression is
     ``element.interpolate(Xi, deriv=None)``
-where ``Xi`` is a list or numpy
-array of material locations and ``deriv`` is the definition of the
-derivative interpolation. The default is ``None`` which interpolates the
-field values.
+where ``Xi`` is a list or numpy array of element locations and ``deriv``
+is the definition of the derivative interpolation.
+The default is ``None`` which interpolates the field values.
 
 Examples for derivative definitions are:
     - ``deriv=[1,0]`` returns the first derivative in direction 1
-    - ``deriv=[1,1]`` returns the cross-derivative (d2u/dx1 dx2) :math:`a^2 + b^2 = c^2`.
+    - ``deriv=[1,1]`` returns the cross-derivative (:math:`d^2u/dx_1 dx_2`)
     - ``deriv=[0,2]`` returns the second derivative in direction 2
+
+
+----------------------
+Element Surface Normal 
+----------------------
+
+One can also compute the normal at any point on a 2D element. The
+general expression is
+    ``element.normal(Xi)``
+where ``Xi`` is a list or numpy array of element location.
 
 
 
