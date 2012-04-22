@@ -1,4 +1,4 @@
-import scipy
+import numpy
 
 def xi_grid(shape='quad', res=[8, 8], units='div', method='fit'):
     
@@ -11,17 +11,17 @@ def xi_grid(shape='quad', res=[8, 8], units='div', method='fit'):
         raise TypeError('Unimplemented units')
     
     nx = divs[0]+1
-    xi = scipy.linspace(0,1,divs[0]+1)
+    xi = numpy.linspace(0,1,divs[0]+1)
     
     if shape == 'quad':
         NPQ = int(nx*nx)
         NTQ = int(2*(divs[0]*divs[0]))
         
-        xi1,xi2 = scipy.meshgrid(xi, xi)
+        xi1,xi2 = numpy.meshgrid(xi, xi)
         xi1 = xi1.reshape([xi1.size])
         xi2 = xi2.reshape([xi2.size])
-        XiQ = scipy.array([xi1, xi2]).T
-        TQ = scipy.zeros((NTQ, 3), dtype='uint32')
+        XiQ = numpy.array([xi1, xi2]).T
+        TQ = numpy.zeros((NTQ, 3), dtype='uint32')
         np = 0
         for row in range(divs[0]):
             for col in range(divs[0]):
@@ -37,8 +37,8 @@ def xi_grid(shape='quad', res=[8, 8], units='div', method='fit'):
         NPT = int(0.5*nx*(nx-1)+nx)
         NTT = int(divs[0]*divs[0])
         
-        XiT = scipy.zeros([NPT,2])
-        TT = scipy.zeros((NTT, 3), dtype='uint32')
+        XiT = numpy.zeros([NPT,2])
+        TT = numpy.zeros((NTT, 3), dtype='uint32')
         NodesPerLine = range(divs[0], 0, -1)
         np = 0
         for row in range(nx):

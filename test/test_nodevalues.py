@@ -78,7 +78,29 @@ class TestNodeValues(unittest.TestCase):
         Xn1[0, -2:], P[[1, 2]], node1.values[0, -2:] = x, x, x
         npt.assert_equal(mesh._core.P, P)
         npt.assert_equal(node1.values, Xn1)
+    
+    def test_3d_node_data(self):
+        mesh = mesher.Mesh()
+        Xn = numpy.array([
+                [[1, 0.2, 0.1], [2, 0.55, 0.11]],
+                [[2.1, 0.02, 0.01], [2.3, 0.15, 0.06]]])
+        Xn2 = numpy.array([
+                [[2, 0.2, 0.1], [2, 0.55, 0.11]],
+                [[4.2, 0.02, 0.01], [2.3, 0.15, 0.06]]])
+        node = mesh.add_stdnode(1, Xn)
+
+        npt.assert_equal(node.num_fields, 2)
+        npt.assert_equal(node.num_components, 2)
+        npt.assert_equal(node.num_modes, 3)
+        npt.assert_equal(node.shape, (2, 2, 3))
+        npt.assert_equal(node.values, Xn)
         
+        npt.assert_equal(node.values[:, 0, 0], Xn[:, 0, 0])
+        npt.assert_equal(node.values[1, :, 0], Xn[1, :, 0])
+        npt.assert_equal(node.values[1, :, :], Xn[1, :, :])
+        
+        node.values[:, 0, 0] *= 2
+        npt.assert_equal(node.values, Xn2)
         
         
 if __name__ == "__main__":

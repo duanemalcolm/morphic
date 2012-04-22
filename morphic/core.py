@@ -2,7 +2,8 @@
 This module manages the low level parameters describing the mesh.
 '''
 import interpolator
-import scipy
+import numpy
+import numpy
 
 class ObjectList:
     '''
@@ -90,6 +91,10 @@ class ObjectList:
         else:
             return []
     
+    def __contains__(self, item):
+        return item in self._object_ids.keys()
+            
+            
     def __getitem__(self, keys):
         if isinstance(keys, list):
             return [self._object_ids[key] for key in keys]
@@ -106,17 +111,18 @@ class ObjectList:
 class Core():
     
     def __init__(self):
-        self.P = scipy.array([])
+        self.P = numpy.array([])
         self.EFn = []
         self.EMap = []
         self.DNMap = []
-        self.fixed = scipy.array([])
+        self.PCAMap = []
+        self.fixed = numpy.array([])
         self.idx_unfixed = []
     
     def add_params(self, params):
         i0 = self.P.size
-        self.P = scipy.append(self.P, params)
-        self.fixed = scipy.append(self.fixed, [False for p in params])
+        self.P = numpy.append(self.P, params)
+        self.fixed = numpy.append(self.fixed, [False for p in params])
         return range(i0, self.P.size)
     
     def update_params(self, cids, params):
@@ -127,7 +133,7 @@ class Core():
         self.fixed[cids] = fixed
     
     def generate_fixed_index(self):
-        self.idx_unfixed = scipy.array([i 
+        self.idx_unfixed = numpy.array([i 
                 for i, f in  enumerate(self.fixed) if f == False])
     
     def get_variables(self):
@@ -162,20 +168,33 @@ class Core():
             dn_cids = dn[2]
             num_fields = len(self.EMap[cid])
             if num_fields == 1:
-                xi = scipy.array([self.P[xi_cids]]).T
+                xi = numpy.array([self.P[xi_cids]]).T
             else:
-                xi = scipy.array([self.P[xi_cids]])
+                xi = numpy.array([self.P[xi_cids]])
             Phi = interpolator.weights(self.EFn[cid], xi)
             for i in range(num_fields):
-                self.P[dn_cids[i]] = scipy.dot(Phi, self.P[self.EMap[cid][i]])
+                self.P[dn_cids[i]] = numpy.dot(Phi, self.P[self.EMap[cid][i]])
+    
+    def add_pca_node(self, pca_node):
+        self.PCAMap.append([
+            pca_node.cids,
+            pca_node.node.shape, pca_node.node.cids,
+            pca_node.weights.cids, pca_node.variance.cids])
+        return len(self.PCAMap) - 1
+    
+    def update_pca_nodes(self):
+        for pcamap in self.PCAMap:
+            self.P[pcamap[0]] = numpy.dot(
+                self.P[pcamap[2]].reshape(pcamap[1]),
+                self.P[pcamap[3]] * self.P[pcamap[4]])
     
     def weights(self, cid, xi, deriv=None):
         return interpolator.weights(self.EFn[cid], xi, deriv=deriv)
     
     def interpolate(self, cid, xi, deriv=None):
         num_fields = len(self.EMap[cid])
-        X = scipy.zeros((xi.shape[0], num_fields))
+        X = numpy.zeros((xi.shape[0], num_fields))
         Phi = interpolator.weights(self.EFn[cid], xi, deriv=deriv)
         for i in range(num_fields):
-            X[:, i] = scipy.dot(Phi, self.P[self.EMap[cid][i]])
+            X[:, i] = numpy.dot(Phi, self.P[self.EMap[cid][i]])
         return X

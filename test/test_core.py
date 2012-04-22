@@ -91,6 +91,24 @@ class TestObjectList(unittest.TestCase):
         self.assertEqual(mol._get_group('dependent_nodes'), [node2])
         self.assertEqual(mol._get_group('standard_nodes'),
             [node1, node3, node4])
+    
+    def test_contains(self):
+        mesh = mesher.Mesh()
+        node1 = mesher.StdNode(mesh, 1, [0.1])
+        node2 = mesher.DepNode(mesh, 2, 1, 1)
+        node3 = mesher.StdNode(mesh, 3, [0.3])
+        nodea = mesher.StdNode(mesh, 'a', [0.3])
+        mol = core.ObjectList()
+        mol.add(node1)
+        mol.add(node2)
+        mol.add(node3)
+        mol.add(nodea)
+        self.assertTrue(1 in mol)
+        self.assertTrue(2 in mol)
+        self.assertTrue(3 in mol)
+        self.assertTrue('a' in mol)
+        self.assertFalse(5 in mol)
+        self.assertFalse('b' in mol)
          
 
 class TestCore(unittest.TestCase):

@@ -28,7 +28,6 @@ interpolation.
 import os
 import sys
 import numpy
-import scipy
 
 import core
 import discretizer
@@ -66,13 +65,6 @@ class NodeValues(object):
 class Node(object):
     '''
     This is the super-class for StdNode and DepNode.
-    
-    >>> mesh = Mesh()
-    >>> node = Node(mesh, 1)
-    >>> node.values = [[1, 2], [4, 6]]
-    >>> print node.values
-    [[ 1.  2.]
-     [ 4.  6.]]
     '''
     
     values = NodeValues()
@@ -89,6 +81,7 @@ class Node(object):
         self.num_modes = 0
         self.shape = (0, 0, 0)
         self._added = False
+        self._uptodate = False
         self.mesh._regenerate = True
         self.mesh._reupdate = True
         
@@ -142,8 +135,11 @@ class Node(object):
         self.num_components = 1
         self.shape = values.shape
         
-        if len(values.shape) == 2:
+        if len(values.shape) >= 2:
             self.num_components = values.shape[1]
+        
+        if len(values.shape) >= 3:
+            self.num_modes = values.shape[2]
         
         # Updates the values in core if they exist otherwise adds them.
         params = values.reshape(self.num_values) 
@@ -173,7 +169,7 @@ class Node(object):
         
         '''
         if isinstance(fix, bool):
-            self.fixed = fix * scipy.ones(self.num_values, dtype=bool)
+            self.fixed = fix * numpy.ones(self.num_values, dtype=bool)
         elif isinstance(fix, list):
             fixed = []
             for f1 in fix:
@@ -233,14 +229,49 @@ class DepNode(Node):
         self.element = node_dict['element']
         self.node = node_dict['node'] 
     
-#~ class PCANode(Node):
-#~ 
-    #~ def __init__(self, mesh, uid, values, weights, variance):
-        #~ Node.__init__(self, mesh, uid)
-        #~ self._type = 'pca'
-        #~ self.element = element
-        #~ self.node = node
-     #~ 
+class PCANode(Node):
+
+    def __init__(self, mesh, uid, node_id, weights_id, variance_id):
+        Node.__init__(self, mesh, uid)
+        self._type = 'pca'
+        self.node_id = node_id
+        self.weights_id = weights_id
+        self.variance_id = variance_id
+        
+        OK = True
+        if OK and node_id in self.mesh.nodes:
+            self.node = self.mesh.nodes[self.node_id]
+        else:
+            print 'Warning: PCA node not initialised'
+            OK = False
+        
+        if OK and weights_id in self.mesh.nodes:
+            self.weights = self.mesh.nodes[self.weights_id]
+        else:
+            print 'Warning: PCA node not initialised'
+            OK = False
+        
+        if OK and variance_id in self.mesh.nodes:
+            self.variance = self.mesh.nodes[self.variance_id]
+        else:
+            print 'Warning: PCA node not initialised'
+            OK = False
+        
+        if OK:
+            self.set_values(self.node.values[:,:,0])
+            self._pca_id = self.mesh._core.add_pca_node(self)
+            self._added = self._pca_id > -1
+        
+        #~ if self._added:
+            #~ self._uptodate = self.mesh._core.update_pca_node(self._pca_id)
+    
+    #~ @property
+    #~ def values(self):
+        #~ Xn = self.mesh.nodes[self.node_id].values
+        #~ W = self.mesh.nodes[self.weights_id].values
+        #~ V = self.mesh.nodes[self.variance_id].values
+        #~ return numpy.dot(Xn, W*V)
+     
     #~ def _save_dict(self):
         #~ node_dict = Node._save_dict(self)
         #~ node_dict['type'] = self._type   
@@ -353,13 +384,13 @@ class Element(object):
         '''
         dx1 = self.mesh._core.interpolate(self.cid, Xi, deriv=[1, 0])
         dx2 = self.mesh._core.interpolate(self.cid, Xi, deriv=[0, 1])
-        return scipy.cross(dx1, dx2)
+        return numpy.cross(dx1, dx2)
     
     def _project_objfn(self, xi, *args):
         x = args[0]
         xe = self.interpolate(xi)
         dx = xe - x
-        return scipy.sum(dx * dx)
+        return numpy.sum(dx * dx)
     
     def project(self, x, xi=None, xtol=1e-4, ftol=1e-4):
         from scipy.optimize import fmin
@@ -567,7 +598,7 @@ class Mesh(object):
         >>> n1 = mesh.add_stdnode(1, [0.1])
         >>> n2 = mesh.add_stdnode(2, [0.2])
         >>> elem = mesh.add_element(1, ['L1'], [1, 2])
-        >>> print elem.id, elem.interp, elem.nodes
+        >>> print elem.id, elem.interp, elem.node_ids
         1 ['L1'] [1, 2]
         '''
         if uid==None:
@@ -673,8 +704,10 @@ class Mesh(object):
                 elem = self.elements[node.element]
                 for enode in elem:
                     if enode.num_values > 0:
-                        node.set_values(scipy.zeros(enode.num_values))
+                        node.set_values(numpy.zeros(enode.num_values))
                         break
+    def update_pca_nodes(self):
+        self._core.update_pca_nodes()
     
     def get_variables(self):
         return self._core.get_variables()
@@ -688,12 +721,12 @@ class Mesh(object):
     def interpolate(self, element_ids, xi, deriv=None):
         self.generate()
         if isinstance(xi, list):
-            xi = scipy.array(xi)
+            xi = numpy.array(xi)
             if len(xi.shape) == 1:
-                xi = scipy.array([xi]).T
+                xi = numpy.array([xi]).T
         else:
             if len(xi.shape) == 1:
-                xi = scipy.array([xi]).T
+                xi = numpy.array([xi]).T
                 
         if not isinstance(element_ids, list):
             element_ids = [element_ids]
@@ -702,7 +735,7 @@ class Mesh(object):
         num_fields = node0.num_fields
         num_elements = len(element_ids)
         num_xi = xi.shape[0]
-        X = scipy.zeros((num_xi * num_elements, num_fields))
+        X = numpy.zeros((num_xi * num_elements, num_fields))
         
         ind = 0
         for element in self.elements[element_ids]:
@@ -714,12 +747,12 @@ class Mesh(object):
     def normal(self, element_ids, xi, normalise=False):
         self.generate()
         if isinstance(xi, list):
-            xi = scipy.array(xi)
+            xi = numpy.array(xi)
             if len(xi.shape) == 1:
-                xi = scipy.array([xi]).T
+                xi = numpy.array([xi]).T
         else:
             if len(xi.shape) == 1:
-                xi = scipy.array([xi]).T
+                xi = numpy.array([xi]).T
                 
         if not isinstance(element_ids, list):
             element_ids = [element_ids]
@@ -728,7 +761,7 @@ class Mesh(object):
         num_fields = node0.num_fields
         num_elements = len(element_ids)
         num_xi = xi.shape[0]
-        X = scipy.zeros((num_xi * num_elements, num_fields))
+        X = numpy.zeros((num_xi * num_elements, num_fields))
         
         ind = 0
         for element in self.elements[element_ids]:
@@ -736,7 +769,7 @@ class Mesh(object):
             ind += num_xi
         
         if normalise:
-            R = scipy.sqrt(scipy.sum(X * X, axis=1))
+            R = numpy.sqrt(numpy.sum(X * X, axis=1))
             for axis in range(X.shape[1]):
                 X[:,axis] /= R
             
@@ -760,12 +793,12 @@ class Mesh(object):
                 Xn.append(node.values)
             else:
                 Xn.append(node.values[:, 0])
-        return scipy.array([xn for xn in Xn])
+        return numpy.array([xn for xn in Xn])
     
     def get_lines(self, res=8, group='_default'):
         self.generate()
         Xl = []
-        xi = scipy.array([scipy.linspace(0, 1, res)]).T
+        xi = numpy.array([numpy.linspace(0, 1, res)]).T
         for i, elem in enumerate(self.elements(group)):
             Xl.append(self._core.interpolate(elem.cid, xi))
         return Xl
@@ -792,8 +825,8 @@ class Mesh(object):
                 NP += NPQ
                 NT += NTQ
                 
-        X = scipy.zeros((NP, 3))
-        T = scipy.zeros((NT, 3), dtype='uint32')
+        X = numpy.zeros((NP, 3))
+        T = numpy.zeros((NT, 3), dtype='uint32')
         np, nt = 0, 0
         for elem in Elements:
             if elem.shape == 'tri':

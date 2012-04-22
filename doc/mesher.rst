@@ -169,7 +169,7 @@ A mesh can be loaded two ways,
 Nodes
 =====
 
-There are two types of nodes that can be added to a mesh:
+There are three types of nodes that can be added to a mesh:
 
   **Standard Nodes**
     Stores field values. The fields can include components, for example,
@@ -178,6 +178,10 @@ There are two types of nodes that can be added to a mesh:
   **Dependent Nodes**
     Describes a node that depends on other parts of a mesh, typically,
     a node embedded in an element.
+    
+  **PCA Nodes**
+    Describes a nodes whose values depend on the weighted sum of PCA
+    modes. 
 
 A standard node can be added to the mesh by,
 
@@ -232,6 +236,32 @@ You can get or set values for a standard node by,
     y_field_values = node.values[1, :]
 
 
+---------
+PCA Nodes
+---------
+
+A PCA node describes a node whose values depend on the weighted sum of
+PCA modes. The definition to create a PCA node is,
+
+.. code-block:: python
+    
+    node = mesh.add_pcanode(id, values_nid, weights_nid, variance_nid)
+
+where the ``values_nid``, ``weights_nid``, and ``variance_nid`` are
+standard nodes that stores the pca mode values, the weights for the modes
+and the variance associated with the modes. The equation for the final
+values for the pca node is given by:
+
+:math:`\mathbf{X) = \mathbf{X}_{pca} \cdot (\mathbf(W) . \mathbf(V))`
+
+.. note::
+
+    After the values of the weights (or variance) are changed,
+    ``mesh.update_pca_nodes()`` must be called to update/re-compute the
+    values of PCA nodes.
+
+        
+
 ========
 Elements
 ========
@@ -275,7 +305,7 @@ Some examples of interpolation schemes:
 .. warning::
     
     Morphic only supports one and two dimensional elements. Morphic can
-    can support higher order elements but this is not fully implemented
+    support some higher order elements but this is not fully implemented
     or throughly tested.
 
 ------------------

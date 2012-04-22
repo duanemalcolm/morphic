@@ -15,8 +15,13 @@ Requirements
 ============
     - numpy
     - scipy
-    - optional: matplotlib for ploting 2D graphs
-    - optional: mayavi2 for ploting 2D meshes
+    
+--------
+Optional
+--------
+    - sparsesvd for fitting
+    - matplotlib 2D plotting
+    - mayavi2 for 2D and 3D plotting
 
 ============
 From Git Hub

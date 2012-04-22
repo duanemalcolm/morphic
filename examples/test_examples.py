@@ -18,8 +18,8 @@ class TestExamples(unittest.TestCase):
         Xl = locals()['mesh'].get_lines()
         
         data = pickle.load(open('data/'+example+'.pkl', 'r'))
-        npt.assert_equal(Xn, data['Xn'])
-        npt.assert_equal(Xl, data['Xl'])
+        npt.assert_almost_equal(Xn, data['Xn'])
+        npt.assert_almost_equal(Xl, data['Xl'])
         
     def test_example_1d_quadratic(self):
         example = 'example_1d_quadratic'
@@ -28,8 +28,8 @@ class TestExamples(unittest.TestCase):
         Xl = locals()['mesh'].get_lines()
         
         data = pickle.load(open('data/'+example+'.pkl', 'r'))
-        npt.assert_equal(Xn, data['Xn'])
-        npt.assert_equal(Xl, data['Xl'])
+        npt.assert_almost_equal(Xn, data['Xn'])
+        npt.assert_almost_equal(Xl, data['Xl'])
         
     def test_example_1d_cubic(self):
         example = 'example_1d_cubic'
@@ -38,8 +38,8 @@ class TestExamples(unittest.TestCase):
         Xl = locals()['mesh'].get_lines()
         
         data = pickle.load(open('data/'+example+'.pkl', 'r'))
-        npt.assert_equal(Xn, data['Xn'])
-        npt.assert_equal(Xl, data['Xl'])
+        npt.assert_almost_equal(Xn, data['Xn'])
+        npt.assert_almost_equal(Xl, data['Xl'])
         
     def test_example_1d_quartic(self):
         example = 'example_1d_quartic'
@@ -48,8 +48,8 @@ class TestExamples(unittest.TestCase):
         Xl = locals()['mesh'].get_lines()
         
         data = pickle.load(open('data/'+example+'.pkl', 'r'))
-        npt.assert_equal(Xn, data['Xn'])
-        npt.assert_equal(Xl, data['Xl'])
+        npt.assert_almost_equal(Xn, data['Xn'])
+        npt.assert_almost_equal(Xl, data['Xl'])
     
     def test_create_mesh(self):
         example = 'create_mesh'
@@ -58,9 +58,9 @@ class TestExamples(unittest.TestCase):
         Xs, Ts = locals()['mesh'].get_surfaces()
         
         data = pickle.load(open('data/'+example+'.pkl', 'r'))
-        npt.assert_equal(Xn, data['Xn'])
-        npt.assert_equal(Xs, data['Xs'])
-        npt.assert_equal(Ts, data['Ts'])
+        npt.assert_almost_equal(Xn, data['Xn'])
+        npt.assert_almost_equal(Xs, data['Xs'])
+        npt.assert_almost_equal(Ts, data['Ts'])
     
     def test_load_mesh1(self):
         example = 'create_mesh'
@@ -69,9 +69,9 @@ class TestExamples(unittest.TestCase):
         Xs, Ts = mesh.get_surfaces()
         
         data = pickle.load(open('data/'+example+'.pkl', 'r'))
-        npt.assert_equal(Xn, data['Xn'])
-        npt.assert_equal(Xs, data['Xs'])
-        npt.assert_equal(Ts, data['Ts'])
+        npt.assert_almost_equal(Xn, data['Xn'])
+        npt.assert_almost_equal(Xs, data['Xs'])
+        npt.assert_almost_equal(Ts, data['Ts'])
         
     def test_load_mesh2(self):
         example = 'create_mesh'
@@ -81,9 +81,9 @@ class TestExamples(unittest.TestCase):
         Xs, Ts = mesh.get_surfaces()
         
         data = pickle.load(open('data/'+example+'.pkl', 'r'))
-        npt.assert_equal(Xn, data['Xn'])
-        npt.assert_equal(Xs, data['Xs'])
-        npt.assert_equal(Ts, data['Ts'])
+        npt.assert_almost_equal(Xn, data['Xn'])
+        npt.assert_almost_equal(Xs, data['Xs'])
+        npt.assert_almost_equal(Ts, data['Ts'])
         
     def test_example_2d_fit_lse(self):
         example = 'example_2d_fit_lse'
@@ -92,9 +92,9 @@ class TestExamples(unittest.TestCase):
         Xs, Ts = locals()['mesh'].get_surfaces()
         
         data = pickle.load(open('data/'+example+'.pkl', 'r'))
-        npt.assert_equal(Xn, data['Xn'])
-        npt.assert_equal(Xs, data['Xs'])
-        npt.assert_equal(Ts, data['Ts'])
+        npt.assert_almost_equal(Xn, data['Xn'])
+        npt.assert_almost_equal(Xs, data['Xs'])
+        npt.assert_almost_equal(Ts, data['Ts'])
         
 
 
