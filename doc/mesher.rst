@@ -252,7 +252,7 @@ standard nodes that stores the pca mode values, the weights for the modes
 and the variance associated with the modes. The equation for the final
 values for the pca node is given by:
 
-:math:`\mathbf{X) = \mathbf{X}_{pca} \cdot (\mathbf(W) . \mathbf(V))`
+:math:`\mathbf{X} = \mathbf{X}_{pca} \cdot (\mathbf{W} . \mathbf{V})`
 
 .. note::
 
