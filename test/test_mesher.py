@@ -464,45 +464,45 @@ class TestElement(unittest.TestCase):
         for i, node in enumerate(elem):
             self.assertEqual(node, Nodes[i])
     
-    def test_element_interpolate_1d_list_1pt(self):
+    def test_element_evaluate_1d_list_1pt(self):
         m = mesher.Mesh()
         m.add_stdnode(1, [0, 0.5, 1])
         m.add_stdnode(2, [1, 0.5, 0.5])
         m.add_element(1, ['L1'], [1, 2])
         m.generate()
-        x = m.elements[1].interpolate([0.2])
+        x = m.elements[1].evaluate([0.2])
         npt.assert_almost_equal(x, [0.2, 0.5, 0.9])
     
-    def test_element_interpolate_1d_list_2pts(self):
+    def test_element_evaluate_1d_list_2pts(self):
         m = mesher.Mesh()
         m.add_stdnode(1, [0, 0.5, 1])
         m.add_stdnode(2, [1, 0.5, 0.5])
         m.add_element(1, ['L1'], [1, 2])
         m.generate()
-        x = m.elements[1].interpolate([[0.2], [0.6]])
+        x = m.elements[1].evaluate([[0.2], [0.6]])
         npt.assert_almost_equal(x, 
             [[0.2, 0.5, 0.9], [0.6, 0.5, 0.7]])
         
-    def test_element_interpolate_1d_array_1pt(self):
+    def test_element_evaluate_1d_array_1pt(self):
         m = mesher.Mesh()
         m.add_stdnode(1, [0, 0.5, 1])
         m.add_stdnode(2, [1, 0.5, 0.5])
         m.add_element(1, ['L1'], [1, 2])
         m.generate()
-        x = m.elements[1].interpolate(numpy.array([0.2]))
+        x = m.elements[1].evaluate(numpy.array([0.2]))
         npt.assert_almost_equal(x, [0.2, 0.5, 0.9])
     
-    def test_element_interpolate_1d_array_2pts(self):
+    def test_element_evaluate_1d_array_2pts(self):
         m = mesher.Mesh()
         m.add_stdnode(1, [0, 0.5, 1])
         m.add_stdnode(2, [1, 0.5, 0.5])
         m.add_element(1, ['L1'], [1, 2])
         m.generate()
-        x = m.elements[1].interpolate(numpy.array([[0.2], [0.6]]))
+        x = m.elements[1].evaluate(numpy.array([[0.2], [0.6]]))
         npt.assert_almost_equal(x, 
             [[0.2, 0.5, 0.9], [0.6, 0.5, 0.7]])
         
-    def test_element_interpolate_2d_list_1pt(self):
+    def test_element_evaluate_2d_list_1pt(self):
         m = mesher.Mesh()
         m.add_stdnode(1, [0, 0, 0])
         m.add_stdnode(2, [1, 0, 1])
@@ -510,10 +510,10 @@ class TestElement(unittest.TestCase):
         m.add_stdnode(4, [1, 1, 1])
         m.add_element(1, ['L1', 'L1'], [1, 2, 3, 4])
         m.generate()  
-        x = m.elements[1].interpolate([0.2, 0.3])
+        x = m.elements[1].evaluate([0.2, 0.3])
         npt.assert_almost_equal(x, [0.2, 0.3, 0.2])
     
-    def test_element_interpolate_2d_list_2pts(self):
+    def test_element_evaluate_2d_list_2pts(self):
         m = mesher.Mesh()
         m.add_stdnode(1, [0, 0, 0])
         m.add_stdnode(2, [1, 0, 1])
@@ -521,10 +521,10 @@ class TestElement(unittest.TestCase):
         m.add_stdnode(4, [1, 1, 1])
         m.add_element(1, ['L1', 'L1'], [1, 2, 3, 4])
         m.generate()  
-        x = m.elements[1].interpolate([[0.2, 0.3], [0.5, 0.6]])
+        x = m.elements[1].evaluate([[0.2, 0.3], [0.5, 0.6]])
         npt.assert_almost_equal(x, [[0.2, 0.3, 0.2], [0.5, 0.6, 0.5]])
     
-    def test_element_interpolate_2d_array_1pt(self):
+    def test_element_evaluate_2d_array_1pt(self):
         m = mesher.Mesh()
         m.add_stdnode(1, [0, 0, 0])
         m.add_stdnode(2, [1, 0, 1])
@@ -532,10 +532,10 @@ class TestElement(unittest.TestCase):
         m.add_stdnode(4, [1, 1, 1])
         m.add_element(1, ['L1', 'L1'], [1, 2, 3, 4])
         m.generate()  
-        x = m.elements[1].interpolate(numpy.array([0.2, 0.3]))
+        x = m.elements[1].evaluate(numpy.array([0.2, 0.3]))
         npt.assert_almost_equal(x, [0.2, 0.3, 0.2])
     
-    def test_element_interpolate_2d_array_2pts(self):
+    def test_element_evaluate_2d_array_2pts(self):
         m = mesher.Mesh()
         m.add_stdnode(1, [0, 0, 0])
         m.add_stdnode(2, [1, 0, 1])
@@ -543,7 +543,7 @@ class TestElement(unittest.TestCase):
         m.add_stdnode(4, [1, 1, 1])
         m.add_element(1, ['L1', 'L1'], [1, 2, 3, 4])
         m.generate()  
-        x = m.elements[1].interpolate(
+        x = m.elements[1].evaluate(
                 numpy.array([[0.2, 0.3], [0.5, 0.6]]))
         npt.assert_almost_equal(x, [[0.2, 0.3, 0.2], [0.5, 0.6, 0.5]])
     

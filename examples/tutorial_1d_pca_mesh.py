@@ -62,7 +62,7 @@ Xp = scipy.zeros((8, Npop))
 
 for i in range(Npop):
     mesh = randomise_mesh(mesh)
-    Xp[:,i] = mesh.elements[1].interpolate(
+    Xp[:,i] = mesh.elements[1].evaluate(
             [[0], [1/3.], [2/3.], [1]]).flatten()
 
     # and plot if need be
@@ -134,8 +134,8 @@ pcamesh.generate()
 #~ #pcamesh.add_element('pca1', ['L3'], ['pca1', 'pca2', 'pca3', 'pca4'])
 #~ #pcamesh.generate()
 
-#~ #print 'Eval Node:', pcamesh.elements[1].interpolate([[0.333]])
-#~ #print 'PCA Node:', pcamesh.elements['pca1'].interpolate([[0.333]])
+#~ #print 'Eval Node:', pcamesh.elements[1].evaluate([[0.333]])
+#~ #print 'PCA Node:', pcamesh.elements['pca1'].evaluate([[0.333]])
 
 
 # Plot each mode into a subplot
@@ -188,4 +188,14 @@ if update:
     import pickle
     filepath = os.path.join(testdatadir, 'pca_node_values.pkl')
     pickle.dump(testdata, open(filepath, 'w'))
+
+
+pcamesh.nodes['weights'].values[1:] = 0
+
+
+
+
+
+
+
 

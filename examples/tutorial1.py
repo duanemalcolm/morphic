@@ -30,11 +30,11 @@ def generate():
     mesh.add_element(2, ['L3'], [4, 5, 6, 7])
     # sphinx tag generate 3
     
-    # Calculate coordinates and derivatives at interpolated points
+    # Calculate coordinates and derivatives at evaluated points
     # sphinx tag generate 4
     S = [0.2, 0.6]
-    Xe = mesh.interpolate(1, S)
-    dXe = mesh.interpolate(1, S, deriv=[1])
+    Xe = mesh.evaluate(1, S)
+    dXe = mesh.evaluate(1, S, deriv=[1])
     # sphinx tag generate 5
     print Xe
     print dXe
@@ -74,18 +74,18 @@ def plotting(mesh, Xd=None):
         pylab.plot(xl[:,0], xl[:,1], 'b')
     # sphinx tag plotting 6
     
-    # Plot interpolated coordinates and derivatives
+    # Plot evaluated coordinates and derivatives
     # sphinx tag plotting 7
-    S = [0.25, 0.75] # interpolated location between 0 and 1 along the element
-    Xe = mesh.interpolate([1, 2], S)
-    dXe = mesh.interpolate([1, 2], S, deriv=[1])
+    S = [0.25, 0.75] # evaluated location between 0 and 1 along the element
+    Xe = mesh.evaluate([1, 2], S)
+    dXe = mesh.evaluate([1, 2], S, deriv=[1])
     
-    pylab.plot(Xe[:,0], Xe[:,1], 'go') # interpolated coordinates
+    pylab.plot(Xe[:,0], Xe[:,1], 'go') # evaluated coordinates
     
     sc = 0.2 # scaling for the vectors
     for i, xe in enumerate(Xe):
         xv = scipy.array([xe, xe + sc*dXe[i,:]])
-        pylab.plot(xv[:,0], xv[:,1], 'g-') # interpolated derivatives
+        pylab.plot(xv[:,0], xv[:,1], 'g-') # evaluated derivatives
     # sphinx tag plotting 8
     
     pylab.ioff()

@@ -8,6 +8,7 @@ import numpy.testing as npt
 sys.path.append('..')
 import morphic
 import random
+
         
 class TestExamples(unittest.TestCase):
     """Unit tests for morphic Node superclass."""
@@ -104,17 +105,23 @@ class TestExamples(unittest.TestCase):
         npt.assert_almost_equal(testmesh.get_nodes(), testdata['Xn2'])
         
     def test_example_2d_fit_lse(self):
-        example = 'example_2d_fit_lse'
-        execfile('../examples/'+example+'.py', globals(), locals())
-        Xn = locals()['mesh'].get_nodes()
-        Xs, Ts = locals()['mesh'].get_surfaces()
+        if not fast:
+            example = 'example_2d_fit_lse'
+            execfile('../examples/'+example+'.py', globals(), locals())
+            Xn = locals()['mesh'].get_nodes()
+            Xs, Ts = locals()['mesh'].get_surfaces()
+            
+            data = pickle.load(open('data/'+example+'.pkl', 'r'))
+            npt.assert_almost_equal(Xn, data['Xn'])
+            npt.assert_almost_equal(Xs, data['Xs'])
+            npt.assert_almost_equal(Ts, data['Ts'])
         
-        data = pickle.load(open('data/'+example+'.pkl', 'r'))
-        npt.assert_almost_equal(Xn, data['Xn'])
-        npt.assert_almost_equal(Xs, data['Xs'])
-        npt.assert_almost_equal(Ts, data['Ts'])
-        
+
 
 
 if __name__ == "__main__":
+    fast = False
+    if 'fast' in sys.argv:
+        fast = True
+    del sys.argv[1:]
     unittest.main()

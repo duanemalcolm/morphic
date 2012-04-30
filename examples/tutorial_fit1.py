@@ -37,8 +37,8 @@ def generate():
             did += 1
     
     Xi = scipy.linspace(0, 1, 100)
-    Xd = mesh.interpolate(1, Xi)
-    Xd = scipy.append(Xd, mesh.interpolate(2, Xi), axis=0)
+    Xd = mesh.evaluate(1, Xi)
+    Xd = scipy.append(Xd, mesh.evaluate(2, Xi), axis=0)
     Xd[:,1] = scipy.cos(Xd[:,0])
     
     fit.set_data('mydata', Xd)

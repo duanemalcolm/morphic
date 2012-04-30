@@ -378,8 +378,12 @@ class Element(object):
                 
     def weights(self, xi, deriv=None):
         return self.mesh._core.weights(self.cid, xi, deriv=deriv)
-        
+    
     def interpolate(self, xi, deriv=None):
+        print 'Interpolate deprecated. Use evaluate instead.'
+        return self.evaluate(xi, deriv=deriv)
+        
+    def evaluate(self, xi, deriv=None):
         xi = numpy.asarray(xi)
         xi_dims = len(xi.shape)
         if xi_dims == 1:
@@ -765,6 +769,10 @@ class Mesh(object):
         self._core.update_params(param_ids, values)
     
     def interpolate(self, element_ids, xi, deriv=None):
+        print 'Interpolate deprecated. Use evaluate instead.'
+        return self.evaluate(element_ids, xi, deriv=deriv)
+        
+    def evalulate(self, element_ids, xi, deriv=None):
         self.generate()
         if isinstance(xi, list):
             xi = numpy.array(xi)
