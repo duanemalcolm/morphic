@@ -42,7 +42,13 @@ class Values(numpy.ndarray):
         obj.node = node
         obj.cids = cids
         return obj
-
+    
+    def __setslice__(self, i, j, sequence):
+        # Required for 1D arrays
+        if j > self.size:
+            j = None
+        self.__setitem__(slice(i, j, None), sequence)
+        
     def __setitem__(self, name, values):
         flat_cids = numpy.array(self.cids).reshape(self.shape)[name].flatten()
         self.node._set_values(flat_cids, values)
@@ -58,7 +64,7 @@ class NodeValues(object):
         if values.shape != instance.shape:
             raise IndexError('Cannot set values with a different shaped'
                     + ' array. User node.set_values(values) instead') 
-        instance.mesh._core.P[instance.cids] = values.reshape(-1)
+        instance.mesh._core.P[instance.cids] = values.flatten()
         
 
 
@@ -142,7 +148,7 @@ class Node(object):
             self.num_modes = values.shape[2]
         
         # Updates the values in core if they exist otherwise adds them.
-        params = values.reshape(self.num_values) 
+        params = values.reshape(self.num_values)
         if self._added:
             self.mesh._core.update_params(self.cids, params)
         else:
@@ -181,12 +187,28 @@ class Node(object):
         self.mesh._core.fix_parameters(self.cids, self.fixed)
         
     def _get_param_indicies(self):
-        pi = []
-        ind = 0
-        for f in range(self.num_fields):
-            pi.append(self.cids[ind:ind+self.num_components])
-            ind += self.num_components
-        return pi
+        #~ if self.num_modes == 0:
+            #~ pi = []
+            #~ ind = 0
+            #~ for f in range(self.num_fields):
+                #~ pi.append(self.cids[ind:ind+self.num_components])
+                #~ ind += self.num_components
+        #~ else:
+            #~ pi = []
+            #~ ind = 0
+            #~ for f in range(self.num_fields):
+                #~ pf = []
+                #~ for 
+                #~ pi.append(self.cids[ind:ind+self.num_components])
+                #~ ind += self.num_components
+        if len(self.shape) == 1:
+            shape = (self.shape[0], 1)
+        else:
+            shape = self.shape
+        pi1 = numpy.array(self.cids).reshape(shape).tolist()
+        #~ print self.shape, pi, '=', pi1, '\n'
+        
+        return pi1
         
     
 class StdNode(Node):
@@ -582,6 +604,28 @@ class Mesh(object):
         node = DepNode(self, uid, element, node_id)
         self.nodes.add(node, group=group)
         return node
+        
+    def add_pcanode(self, uid, values_nid, weights_nid, variance_nid,
+            group='_default'):
+        '''
+        Adds a dependent node to a mesh. A dependent node is typically
+        an interpolated location on an element. The location on the 
+        element is defined by a node.
+        
+        >>> mesh = Mesh()
+        >>> node1 = mesh.add_stdnode(1, [0, 0])
+        >>> node2 = mesh.add_stdnode(2, [2, 1])
+        >>> elem1 = mesh.add_element('elem1', ['L1'], [1, 2])
+        >>> hang1 = mesh.add_stdnode('xi', [0.6]) # element location
+        >>> node3 = mesh.add_depnode(3, 'elem1', 'xi') # hanging node
+        >>> print mesh.get_nodes([3])
+        [[ 1.2  0.6]]
+        '''
+        if uid==None:
+            uid = self.nodes.get_unique_id()
+        node = PCANode(self, uid, values_nid, weights_nid, variance_nid)
+        self.nodes.add(node, group=group)
+        return node
     
     def fix_values(self, uids, fix):
         if not isinstance(uid, list):
@@ -684,6 +728,7 @@ class Mesh(object):
             self._reupdate = True
         
         if self._reupdate == True:
+            self._core.update_pca_nodes()
             self._core.update_dependent_nodes()
             self._reupdate = False
         
@@ -695,6 +740,7 @@ class Mesh(object):
         mesh.update(force=True)
         '''
         if self._reupdate == True or force:
+            self._core.update_pca_nodes()
             self._core.update_dependent_nodes()
             self._reupdate = False
     

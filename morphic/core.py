@@ -193,6 +193,7 @@ class Core():
     
     def interpolate(self, cid, xi, deriv=None):
         num_fields = len(self.EMap[cid])
+        #~ print self.EMap[cid].shape
         X = numpy.zeros((xi.shape[0], num_fields))
         Phi = interpolator.weights(self.EFn[cid], xi, deriv=deriv)
         for i in range(num_fields):

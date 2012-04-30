@@ -15,13 +15,13 @@ Contents:
    installation
    mesher
    tutorial_2d
+   tutorial_pca_mesh
     
 .. comment these out
     fitter
     interpolator
     tutorial_1d
     tutorial_2d
-    tutorial_pca
     tutorial_combi_elems
     examples
     roadmap
@@ -34,6 +34,7 @@ Contents:
 .. include installation.rst
 .. include mesher.rst
 .. include tutorial_2d.rst
+.. include tutorial_pca_mesh.rst
 
 .. comment this block out
     .. include fitter.rst

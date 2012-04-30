@@ -24,6 +24,56 @@ class TestNodeValues(unittest.TestCase):
         npt.assert_equal(node.values[:, :2], Xn[:, :2])
         npt.assert_equal(mesh._core.P, Xn.flatten())
     
+    def test_1d_slices(self):
+        mesh = mesher.Mesh()
+        Xn = numpy.array([0, 0.1, 0.2])
+        Xn2 = numpy.array([0, 3, 3.])
+        node = mesh.add_stdnode(1, Xn)
+        npt.assert_equal(mesh._core.P, Xn.flatten())
+        npt.assert_equal(node.values, Xn)
+        node.values[1:] = 3
+        npt.assert_equal(node.values, Xn2)
+    
+    def test_1d_slices_v2(self):
+        mesh = mesher.Mesh()
+        Xn = numpy.array([0, 0.1, 0.2, 0.3, 0.4])
+        Xn2 = numpy.array([0, 3, 0.2, 3, 0.4])
+        node = mesh.add_stdnode(1, Xn)
+        npt.assert_equal(mesh._core.P, Xn.flatten())
+        npt.assert_equal(node.values, Xn)
+        node.values[1::2] = 3
+        npt.assert_equal(node.values, Xn2)
+    
+    def test_1d_slices_v3(self):
+        mesh = mesher.Mesh()
+        Xn = numpy.array([0, 0.1, 0.2, 0.3, 0.4])
+        Xn2 = numpy.array([0, 0.1, 3, 0.3, 3])
+        node = mesh.add_stdnode(1, Xn)
+        npt.assert_equal(mesh._core.P, Xn.flatten())
+        npt.assert_equal(node.values, Xn)
+        node.values[2::2] = 3
+        npt.assert_equal(node.values, Xn2)
+    
+    def test_1d_slices_v4(self):
+        mesh = mesher.Mesh()
+        Xn = numpy.array([0, 0.1, 0.2, 0.3, 0.4])
+        Xn2 = numpy.array([0, 0.1, 3, 0.3, 0.4])
+        node = mesh.add_stdnode(1, Xn)
+        npt.assert_equal(mesh._core.P, Xn.flatten())
+        npt.assert_equal(node.values, Xn)
+        node.values[2:3:2] = 3
+        npt.assert_equal(node.values, Xn2)
+    
+    def test_2d_slices(self):
+        mesh = mesher.Mesh()
+        Xn = numpy.array([[0, 0.1, 0.2], [1, 2, 3]])
+        Xn2 = numpy.array([[0, 0.1, 0.2], [1, 5, 5]])
+        node = mesh.add_stdnode(1, Xn)
+        npt.assert_equal(mesh._core.P, Xn.flatten())
+        npt.assert_equal(node.values, Xn)
+        node.values[1, 1:] = 5
+        npt.assert_equal(node.values, Xn2)
+        
     def test_set_all(self):
         mesh = mesher.Mesh()
         Xn = numpy.array([[0, 0.1, 0.2], [0.3, 0.4, 0.5]])

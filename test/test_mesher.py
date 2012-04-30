@@ -170,6 +170,12 @@ class TestNode(unittest.TestCase):
         xn = numpy.array([
                 [[0, 0.2, 0.1], [0.5, 0.11, 0.07]],
                 [[1, 0.22, 0.11], [0.5, 0.11, 0.07]]])
+        
+        node = mesh.add_stdnode(1, xn)
+        npt.assert_almost_equal(node.values, xn)
+        npt.assert_almost_equal(node.cids, range(12))
+        npt.assert_almost_equal(node._get_param_indicies(),
+            [[range(3), range(3, 6)], [range(6, 9), range(9, 12)]])
             
     def test_set_value(self):
         mesh = mesher.Mesh()
