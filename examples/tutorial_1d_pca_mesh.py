@@ -6,7 +6,6 @@ import random
 import pylab
 import mdp
 import morphic
-#~ reload(morphic)
 
 testdatadir = 'data'
 docimagedir = os.path.join('..', 'doc', 'images')
@@ -118,12 +117,10 @@ pcamesh.add_stdnode('variance', variance, group='pca_init')
 xn = scipy.zeros((Ndims, Ncomps, Nmodes+1)) # node values array
 for i in range(Nnodes):
     idx = i * Ndims
+    # Add a PCA node using the node values, weights and variance
     xn[:, 0, 0] = pca.avg[0, idx:idx+Ndims] # add mean values
     xn[:, 0, 1:] = pca.v[idx:idx+Ndims,:Nmodes] # add 7 mode values
-    # Add a standard node to hold the node values and modes
-    pcamesh.add_stdnode('pca'+str(i+1), xn, group='pca_nodes')
-    # Add a PCA node using the node values, weights and variance
-    pcamesh.add_pcanode(i+1, 'pca'+str(i+1), 'weights', 'variance')
+    pcamesh.add_pcanode(i+1, xn, 'weights', 'variance', group='pca')
 
 # Add element
 pcamesh.add_element(1, ['L3'], [1, 2, 3, 4])
@@ -137,6 +134,12 @@ pcamesh.generate()
 #~ #print 'Eval Node:', pcamesh.elements[1].evaluate([[0.333]])
 #~ #print 'PCA Node:', pcamesh.elements['pca1'].evaluate([[0.333]])
 
+if update:
+    filepath = os.path.join(testdatadir, 'pca_mesh_orig.mesh')
+    pcamesh.save(filepath)
+
+filepath = os.path.join(testdatadir, 'pca_mesh_test.mesh')
+pcamesh.save(filepath)
 
 # Plot each mode into a subplot
 def plot_modes(pcamesh, mode, sp, title=None):
@@ -188,14 +191,5 @@ if update:
     import pickle
     filepath = os.path.join(testdatadir, 'pca_node_values.pkl')
     pickle.dump(testdata, open(filepath, 'w'))
-
-
-pcamesh.nodes['weights'].values[1:] = 0
-
-
-
-
-
-
 
 

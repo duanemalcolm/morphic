@@ -2,7 +2,8 @@
 This module manages the low level parameters describing the mesh.
 '''
 import interpolator
-import numpy
+import string
+import random
 import numpy
 
 class ObjectList:
@@ -61,13 +62,21 @@ class ObjectList:
         '''
         self._id_counter = value
         
-    def get_unique_id(self):
+    def get_unique_id(self, random_chars=0):
         existing_ids = self._object_ids.keys()
-        while True:
-            if self._id_counter in existing_ids:
-                self._id_counter += 1
-            else:
-                return self._id_counter
+        if random_chars > 0:
+            random_id = existing_ids[0]
+            while random_id in existing_ids:
+                random_id = ''.join(random.choice(
+                        string.ascii_letters + string.digits)
+                        for x in range(random_chars))
+            return random_id
+        else:
+            while True:
+                if self._id_counter in existing_ids:
+                    self._id_counter += 1
+                else:
+                    return self._id_counter
     
     def add_to_group(self, uids, group):
         if not isinstance(uids, list):
@@ -90,6 +99,21 @@ class ObjectList:
             return self.groups[group]
         else:
             return []
+    
+    def _save_dict(self):
+        objlist_dict = {}
+        objlist_dict['groups'] = {}
+        for key in self.groups.keys():
+            ids = []
+            for obj in self.groups[key]:
+                ids.append(obj.id)
+            objlist_dict['groups'][key] = ids
+        return objlist_dict
+    
+    def _load_dict(self, objlist_dict):
+        self.groups = {}
+        for group in objlist_dict['groups'].keys():
+            self.add_to_group(objlist_dict['groups'][group], group)
     
     def __contains__(self, item):
         return item in self._object_ids.keys()
@@ -191,7 +215,7 @@ class Core():
     def weights(self, cid, xi, deriv=None):
         return interpolator.weights(self.EFn[cid], xi, deriv=deriv)
     
-    def interpolate(self, cid, xi, deriv=None):
+    def evaluate(self, cid, xi, deriv=None):
         num_fields = len(self.EMap[cid])
         #~ print self.EMap[cid].shape
         X = numpy.zeros((xi.shape[0], num_fields))

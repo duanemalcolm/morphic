@@ -396,7 +396,7 @@ class Fit:
         NXi = self.Xi.shape[0]
         ind = 0
         for element in mesh.elements:
-            self.X[ind:ind+NXi,:] = element.interpolate(self.Xi)
+            self.X[ind:ind+NXi,:] = element.evaluate(self.Xi)
             ind += NXi
         err = Td.query(list(self.X))[0]
         return err*err
@@ -407,7 +407,7 @@ class Fit:
         NXi = self.Xi.shape[0]
         ind = 0
         for element in mesh.elements:
-            self.X[ind:ind+NXi,:] = element.interpolate(self.Xi)
+            self.X[ind:ind+NXi,:] = element.evaluate(self.Xi)
             ind += NXi
         Tm = cKDTree(self.X)
         err = Tm.query(list(Xd))[0]
@@ -435,7 +435,7 @@ class Fit:
                     elem = 1
                 else:
                     elem = 2
-            dx = mesh.elements[elem].interpolate(scipy.array([xi]))[0] - xd
+            dx = mesh.elements[elem].evaluate(scipy.array([xi]))[0] - xd
             err[ind] = scipy.sum(dx * dx)
             ind += 1
         return err

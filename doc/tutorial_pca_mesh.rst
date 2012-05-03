@@ -73,13 +73,12 @@ Creating a PCA Mesh
 Morphic has a node class to manage PCA values as nodes. It knows how to
 evaluate the vlaues of the node given a set of weights.
 
-There are 5 steps to creating a PCA mesh:
+There are 4 steps to creating a PCA mesh:
     
     1. add the PCA weights as a standard node
     2. add the PCA variance as a standard node
-    3. add the PCA modes for each node as a standard node
-    4. add the PCA nodes which references the PCA modes, weights and variance nodes
-    5. add the elements which references the PCA nodes
+    3. add the PCA nodes which references weights and variance nodes
+    4. add the elements which references the PCA nodes
 
 For example,
 
@@ -91,22 +90,18 @@ For example,
     
     pcamesh.add_stdnode('variance', [1, 0.5, 0.2, 0.1]) # Step 2: variance node
     
-    # Step 3: add the mode values for each node
-    pcamesh.add_stdnode('pca1', xm1)
-    pcamesh.add_stdnode('pca2', xm2)
-    pcamesh.add_stdnode('pca3', xm3)
+    # Step 3: add the pca node for each node
+    pcamesh.add_pcanode(1, xm1, 'weights', 'variance')
+    pcamesh.add_pcanode(2, xm2, 'weights', 'variance')
+    pcamesh.add_pcanode(3, xm3, 'weights', 'variance')
     
-    # Step 4: add the pca node for each node
-    pcamesh.add_pcanode(1, 'pca1', 'weights', 'variance')
-    pcamesh.add_pcanode(2, 'pca2', 'weights', 'variance')
-    pcamesh.add_pcanode(3, 'pca3', 'weights', 'variance')
-    
-    # Step 5: add elements...
+    # Step 4: add elements...
     pcamesh.add_element(1, ['L2'], [1, 2, 3])
     
     pcamesh.generate()
 
-:note::
+:warning::
+
     The first value of the weights and variance nodes should be set to 1
     since it it multiplied with the mean values from the PCA.
 
@@ -130,8 +125,8 @@ be defined in terms of standard deviations,
     :start-after: # can be defined as standard deviations
     :end-before: # Add the four cubic-Lagrange nodes
 
-The mode values are added as standard nodes which are referenced by the
-the PCA nodes,
+The mode values are added as PCA nodes which reference the weights and
+variance nodes,
 
 .. literalinclude:: ../examples/tutorial_1d_pca_mesh.py
     :start-after: # Add the four cubic-Lagrange nodes

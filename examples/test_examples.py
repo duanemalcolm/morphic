@@ -104,6 +104,34 @@ class TestExamples(unittest.TestCase):
         testmesh.update_pca_nodes()
         npt.assert_almost_equal(testmesh.get_nodes(), testdata['Xn2'])
         
+    def test_pca_mesh_io(self):
+        sys.argv = ['', 'test']
+        execfile('../examples/tutorial_1d_pca_mesh.py', globals(), locals())
+        
+        origmesh = morphic.Mesh('data/pca_mesh_orig.mesh')
+        testmesh = morphic.Mesh('data/pca_mesh_test.mesh')
+        testdata = pickle.load(open('data/pca_node_values.pkl', 'r'))
+        
+        testmesh.nodes['weights'].values[1:] *= 0
+        testmesh.update_pca_nodes()
+        npt.assert_almost_equal(testmesh.get_nodes(), testdata['Xn0'])
+        testmesh.nodes['weights'].values[1] = -1.3
+        testmesh.update_pca_nodes()
+        npt.assert_almost_equal(testmesh.get_nodes(), testdata['Xn1'])
+        testmesh.nodes['weights'].values[3] = 0.7
+        testmesh.update_pca_nodes()
+        npt.assert_almost_equal(testmesh.get_nodes(), testdata['Xn2'])
+        
+        origmesh.nodes['weights'].values[1:] *= 0
+        origmesh.update_pca_nodes()
+        npt.assert_almost_equal(origmesh.get_nodes(), testdata['Xn0'])
+        origmesh.nodes['weights'].values[1] = -1.3
+        origmesh.update_pca_nodes()
+        npt.assert_almost_equal(origmesh.get_nodes(), testdata['Xn1'])
+        origmesh.nodes['weights'].values[3] = 0.7
+        origmesh.update_pca_nodes()
+        npt.assert_almost_equal(origmesh.get_nodes(), testdata['Xn2'])
+        
     def test_example_2d_fit_lse(self):
         if not fast:
             example = 'example_2d_fit_lse'

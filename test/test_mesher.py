@@ -359,34 +359,74 @@ class TestPCANode(unittest.TestCase):
         mesh.update_pca_nodes()
         npt.assert_almost_equal(node.values, Xn)
         
-    #~ def test_save(self):
-        #~ mesh = mesher.Mesh()
-        #~ node = mesher.DepNode(mesh, '4', '7', '2')
-        #~ ns = node._save_dict()
-        #~ self.assertEqual(ns['type'], 'dependent')
-        #~ self.assertEqual(ns['id'], '4')
-        #~ self.assertEqual(ns['fixed'], None)
-        #~ self.assertEqual(ns['cids'], None)
-        #~ self.assertEqual(ns['num_values'], 0)
-        #~ self.assertEqual(ns['num_fields'], 0)
-        #~ self.assertEqual(ns['num_components'], 0)
-        #~ self.assertEqual(ns['shape'], (0, 0, 0))
-        #~ self.assertEqual(ns['element'], '7')
-        #~ self.assertEqual(ns['node'], '2')
-        #~ self.assertEqual(len(ns.keys()), 10) 
-     #~ 
-    #~ def test_load(self):
-        #~ mesh = mesher.Mesh()
-        #~ node = mesher.DepNode(mesh, '4', 3, 77)
-        #~ node_dict = node._save_dict()
-        #~ 
-        #~ mesh2 = mesher.Mesh()
-        #~ node2 = mesher.DepNode(mesh2, '4', None, None)
-        #~ node2._load_dict(node_dict)
-        #~ self.assertEqual(node2.id, '4')
-        #~ self.assertEqual(node2._type, 'dependent')   
-        #~ self.assertEqual(node2.element, 3)   
-        #~ self.assertEqual(node2.node, 77)
+    def test_node_init_list(self):
+        mesh = mesher.Mesh()
+        Xpca = [[[1, 0.2, 0.1], [2, 0.55, 0.11]],
+                [[2.1, 0.02, 0.01], [2.3, 0.15, 0.06]]]
+        mesh.add_stdnode('weights', [1, 0.0, 0.0])
+        mesh.add_stdnode('variance', [1, 1., 1.])
+        node = mesh.add_pcanode(2, Xpca, 'weights', 'variance')
+        
+        Xn = numpy.array([[ 1., 2.], [2.1, 2.3]])
+        mesh.update_pca_nodes()
+        npt.assert_equal(node.values, Xn)
+        
+        mesh.nodes['weights'].values = numpy.array([1, 1.0, 0.0])
+        Xn = numpy.array([[ 1.2, 2.55], [2.12, 2.45]])
+        mesh.update_pca_nodes()
+        npt.assert_almost_equal(node.values, Xn)
+        
+    def test_node_init_ndarray(self):
+        mesh = mesher.Mesh()
+        Xpca = numpy.array([[[1, 0.2, 0.1], [2, 0.55, 0.11]],
+                [[2.1, 0.02, 0.01], [2.3, 0.15, 0.06]]])
+        Weights = numpy.array([1, 0.0, 0.0])
+        Variance = numpy.array([1, 1., 1.])
+        mesh.add_stdnode('weights', Weights)
+        mesh.add_stdnode('variance', Variance)
+        node = mesh.add_pcanode(2, Xpca, 'weights', 'variance')
+        
+        Xn = numpy.array([[ 1., 2.], [2.1, 2.3]])
+        mesh.update_pca_nodes()
+        npt.assert_equal(node.values, Xn)
+        
+        mesh.nodes['weights'].values = numpy.array([1, 1.0, 0.0])
+        Xn = numpy.array([[ 1.2, 2.55], [2.12, 2.45]])
+        mesh.update_pca_nodes()
+        npt.assert_almost_equal(node.values, Xn)
+        
+    def test_save(self):
+        mesh = mesher.Mesh()
+        Xpca = numpy.array([[[1, 0.2, 0.1], [2, 0.55, 0.11]],
+                [[2.1, 0.02, 0.01], [2.3, 0.15, 0.06]]])
+        wn = mesh.add_stdnode('weights', [1, 0.0, 0.0])
+        vn = mesh.add_stdnode('variance', [1, 1., 1.])
+        node = mesh.add_pcanode(2, Xpca, 'weights', 'variance')
+        ns = node._save_dict()
+        self.assertEqual(ns['type'], 'pca')
+        self.assertEqual(ns['id'], 2)
+        self.assertEqual(ns['node_id'], node.node_id)
+        self.assertEqual(ns['weights_id'], wn.id)
+        self.assertEqual(ns['variance_id'], vn.id)
+     
+    def test_load(self):
+        mesh = mesher.Mesh()
+        Xpca = numpy.array([[[1, 0.2, 0.1], [2, 0.55, 0.11]],
+                [[2.1, 0.02, 0.01], [2.3, 0.15, 0.06]]])
+        wn = mesh.add_stdnode('weights', [1, 0.0, 0.0])
+        vn = mesh.add_stdnode('variance', [1, 1., 1.])
+        node = mesh.add_pcanode(2, Xpca, 'weights', 'variance')
+        node_dict = node._save_dict()
+        
+        mesh2 = mesher.Mesh()
+        node2 = mesher.PCANode(mesh2, 2, None, None, None)
+        node2._load_dict(node_dict)
+        self.assertEqual(node2.id, 2)
+        self.assertEqual(node2._type, 'pca')   
+        self.assertEqual(node2.node_id, node.node_id)   
+        self.assertEqual(node2.weights_id, wn.id)
+        self.assertEqual(node2.variance_id, vn.id)
+        
         
 class TestElement(unittest.TestCase):
     """Unit tests for morphic interpolants."""

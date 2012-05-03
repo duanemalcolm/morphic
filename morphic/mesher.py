@@ -103,6 +103,7 @@ class Node(object):
         node_dict['num_values'] = self.num_values
         node_dict['num_fields'] = self.num_fields
         node_dict['num_components'] = self.num_components
+        node_dict['num_modes'] = self.num_modes
         node_dict['shape'] = self.shape
         return node_dict
         
@@ -114,6 +115,10 @@ class Node(object):
         self.num_values = node_dict['num_values']
         self.num_fields = node_dict['num_fields']
         self.num_components = node_dict['num_components']
+        if 'num_modes' in node_dict.keys():
+            self.num_modes = node_dict['num_modes']
+        else:
+            self.num_modes = 0
         if 'shape' in node_dict.keys():
             self.shape = node_dict['shape']
         else:
@@ -260,52 +265,51 @@ class PCANode(Node):
         self.weights_id = weights_id
         self.variance_id = variance_id
         
+        self._initialise()
+        
+    def _initialise(self, loading=False):
         OK = True
-        if OK and node_id in self.mesh.nodes:
+        if OK and self.node_id in self.mesh.nodes:
             self.node = self.mesh.nodes[self.node_id]
         else:
-            print 'Warning: PCA node not initialised'
+            #~ print 'Warning: PCA node not initialised'
             OK = False
         
-        if OK and weights_id in self.mesh.nodes:
+        if OK and self.weights_id in self.mesh.nodes:
             self.weights = self.mesh.nodes[self.weights_id]
         else:
-            print 'Warning: PCA node not initialised'
+            #~ print 'Warning: PCA node not initialised'
             OK = False
         
-        if OK and variance_id in self.mesh.nodes:
+        if OK and self.variance_id in self.mesh.nodes:
             self.variance = self.mesh.nodes[self.variance_id]
         else:
-            print 'Warning: PCA node not initialised'
+            #~ print 'Warning: PCA node not initialised'
             OK = False
         
-        if OK:
+        if OK and not loading:
             self.set_values(self.node.values[:,:,0])
+            #~ self.set_values(numpy.zeros(self.shape))
+        
+        if OK:
             self._pca_id = self.mesh._core.add_pca_node(self)
             self._added = self._pca_id > -1
+    
+    def _save_dict(self):
+        node_dict = Node._save_dict(self)
+        node_dict['type'] = self._type   
+        node_dict['node_id'] = self.node_id   
+        node_dict['weights_id'] = self.weights_id
+        node_dict['variance_id'] = self.variance_id
+        return node_dict
+    
+    def _load_dict(self, node_dict):
+        Node._load_dict(self, node_dict)
+        self.node_id = node_dict['node_id']
+        self.weights_id = node_dict['weights_id'] 
+        self.variance_id = node_dict['variance_id'] 
+        self._initialise(True)
         
-        #~ if self._added:
-            #~ self._uptodate = self.mesh._core.update_pca_node(self._pca_id)
-    
-    #~ @property
-    #~ def values(self):
-        #~ Xn = self.mesh.nodes[self.node_id].values
-        #~ W = self.mesh.nodes[self.weights_id].values
-        #~ V = self.mesh.nodes[self.variance_id].values
-        #~ return numpy.dot(Xn, W*V)
-     
-    #~ def _save_dict(self):
-        #~ node_dict = Node._save_dict(self)
-        #~ node_dict['type'] = self._type   
-        #~ node_dict['element'] = self.element   
-        #~ node_dict['node'] = self.node
-        #~ return node_dict
-    #~ 
-    #~ def _load_dict(self, node_dict):
-        #~ Node._load_dict(self, node_dict)
-        #~ self.element = node_dict['element']
-        #~ self.node = node_dict['node'] 
-    
     
 class Element(object):
 
@@ -388,10 +392,10 @@ class Element(object):
         xi_dims = len(xi.shape)
         if xi_dims == 1:
             xi = numpy.array([xi])
-            return self.mesh._core.interpolate(
+            return self.mesh._core.evaluate(
                     self.cid, xi, deriv=deriv)[0]
         else:
-            return self.mesh._core.interpolate(
+            return self.mesh._core.evaluate(
                     self.cid, xi, deriv=deriv)
     
     def normal(self, Xi):
@@ -408,13 +412,13 @@ class Element(object):
             Xi = numpy.array([[0.1, 0.1], [0.3, 0.2], [0.7, 0.2]])
         
         '''
-        dx1 = self.mesh._core.interpolate(self.cid, Xi, deriv=[1, 0])
-        dx2 = self.mesh._core.interpolate(self.cid, Xi, deriv=[0, 1])
+        dx1 = self.mesh._core.evaluate(self.cid, Xi, deriv=[1, 0])
+        dx2 = self.mesh._core.evaluate(self.cid, Xi, deriv=[0, 1])
         return numpy.cross(dx1, dx2)
     
     def _project_objfn(self, xi, *args):
         x = args[0]
-        xe = self.interpolate(xi)
+        xe = self.evaluate(xi)
         dx = xe - x
         return numpy.sum(dx * dx)
     
@@ -480,7 +484,7 @@ class Mesh(object):
     >>> e = mesh.add_element(2, ['L1'], [2, 3])
     
     >>> xi = [0, 0.25, 0.5, 0.75, 1.0]
-    >>> X = mesh.interpolate(1, xi)
+    >>> X = mesh.evaluate(1, xi)
     >>> X
     array([[ 0.   ,  0.   ],
            [ 0.25 ,  0.125],
@@ -515,18 +519,18 @@ class Mesh(object):
     >>> e = mesh.add_element(1, ['L2', 'L1'], [1, 2, 3, 6, 7, 8])
     >>> e = mesh.add_element(2, ['L2', 'L1'], [3, 4, 5, 8, 9, 10])
     
-    >>> # Analyse (interpolate, calculate derivatives and normals)
+    >>> # Analyse (evaluate, calculate derivatives and normals)
     >>> xi = [[0.3, 0.5]]
     
     Interpolate coordinates at xi=[0.3, 0.5] on element 1,
     
-    >>> X = mesh.interpolate(1, xi)
+    >>> X = mesh.evaluate(1, xi)
     
     Calculate derivatives at xi = [0.3, 0.5] on element 2,
     
-    >>> dx1 = mesh.interpolate(2, xi, deriv=[1, 0]) # dx/dxi1
-    >>> dx2 = mesh.interpolate(2, xi, deriv=[0, 1]) # dx/dxi2
-    >>> dx12 = mesh.interpolate(2, xi, deriv=[1, 1]) # d2x/dxi1.dxi2
+    >>> dx1 = mesh.evaluate(2, xi, deriv=[1, 0]) # dx/dxi1
+    >>> dx2 = mesh.evaluate(2, xi, deriv=[0, 1]) # dx/dxi2
+    >>> dx12 = mesh.evaluate(2, xi, deriv=[1, 1]) # d2x/dxi1.dxi2
     
     Calculate the element normal vector at xi=[0.3, 0.5] on element 1,
     
@@ -609,24 +613,20 @@ class Mesh(object):
         self.nodes.add(node, group=group)
         return node
         
-    def add_pcanode(self, uid, values_nid, weights_nid, variance_nid,
-            group='_default'):
+    def add_pcanode(self, uid, values, weights_nid, variance_nid,
+                    group='_default'):
         '''
-        Adds a dependent node to a mesh. A dependent node is typically
-        an interpolated location on an element. The location on the 
-        element is defined by a node.
-        
-        >>> mesh = Mesh()
-        >>> node1 = mesh.add_stdnode(1, [0, 0])
-        >>> node2 = mesh.add_stdnode(2, [2, 1])
-        >>> elem1 = mesh.add_element('elem1', ['L1'], [1, 2])
-        >>> hang1 = mesh.add_stdnode('xi', [0.6]) # element location
-        >>> node3 = mesh.add_depnode(3, 'elem1', 'xi') # hanging node
-        >>> print mesh.get_nodes([3])
-        [[ 1.2  0.6]]
+        Adds a pca node to a mesh.
         '''
         if uid==None:
             uid = self.nodes.get_unique_id()
+        if isinstance(values, list) or isinstance(values, numpy.ndarray):
+            values_nid = '__'+self.nodes.get_unique_id(random_chars=12)
+            std_node = self.add_stdnode(values_nid, values,
+                    group='__sys_'+group)
+        else:
+            values_nid = values
+            
         node = PCANode(self, uid, values_nid, weights_nid, variance_nid)
         self.nodes.add(node, group=group)
         return node
@@ -670,6 +670,10 @@ class Mesh(object):
             mesh_dict['nodes'].append(node._save_dict())
         for elem in self.elements:
             mesh_dict['elements'].append(elem._save_dict())
+        
+        mesh_dict['node_objlist'] = self.nodes._save_dict()
+        mesh_dict['element_objlist'] = self.elements._save_dict()
+        
         mesh_dict['values'] = self._core.P
         return mesh_dict
         
@@ -693,6 +697,8 @@ class Mesh(object):
                 node = self.add_stdnode(node_dict['id'], None)
             elif node_dict['type'] == 'dependent':
                 node = self.add_depnode(node_dict['id'], None, None)
+            elif node_dict['type'] == 'pca':
+                node = self.add_pcanode(node_dict['id'], None, None, None)
             #~ else:
                 #~ raise InputError()
             node._load_dict(node_dict)
@@ -700,6 +706,11 @@ class Mesh(object):
             elem = self.add_element(elem_dict['id'], None, None)
             elem._load_dict(elem_dict)
         self._core.P = mesh_dict['values']
+        
+        if 'node_objlist' in mesh_dict.keys():
+            self.nodes._load_dict(mesh_dict['node_objlist'])
+        if 'element_objlist' in mesh_dict.keys():
+            self.elements._load_dict(mesh_dict['element_objlist'])
         
     
     def load(self, filepath):
@@ -756,6 +767,7 @@ class Mesh(object):
                     if enode.num_values > 0:
                         node.set_values(numpy.zeros(enode.num_values))
                         break
+                        
     def update_pca_nodes(self):
         self._core.update_pca_nodes()
     
@@ -772,7 +784,7 @@ class Mesh(object):
         print 'Interpolate deprecated. Use evaluate instead.'
         return self.evaluate(element_ids, xi, deriv=deriv)
         
-    def evalulate(self, element_ids, xi, deriv=None):
+    def evaluate(self, element_ids, xi, deriv=None):
         self.generate()
         if isinstance(xi, list):
             xi = numpy.array(xi)
@@ -793,7 +805,7 @@ class Mesh(object):
         
         ind = 0
         for element in self.elements[element_ids]:
-            X[ind:ind+num_xi, :] = element.interpolate(xi, deriv=deriv)
+            X[ind:ind+num_xi, :] = element.evaluate(xi, deriv=deriv)
             ind += num_xi
             
         return X
@@ -854,7 +866,7 @@ class Mesh(object):
         Xl = []
         xi = numpy.array([numpy.linspace(0, 1, res)]).T
         for i, elem in enumerate(self.elements(group)):
-            Xl.append(self._core.interpolate(elem.cid, xi))
+            Xl.append(self._core.evaluate(elem.cid, xi))
         return Xl
         
     def get_surfaces(self, res=8, elements=None, groups=None):
@@ -884,12 +896,12 @@ class Mesh(object):
         np, nt = 0, 0
         for elem in Elements:
             if elem.shape == 'tri':
-                X[np:np+NPT,:] = self._core.interpolate(elem.cid, XiT)
+                X[np:np+NPT,:] = self._core.evaluate(elem.cid, XiT)
                 T[nt:nt+NTT,:] = TT + np
                 np += NPT
                 nt += NTT
             elif elem.shape == 'quad':
-                X[np:np+NPQ,:] = self._core.interpolate(elem.cid, XiQ)
+                X[np:np+NPQ,:] = self._core.evaluate(elem.cid, XiQ)
                 T[nt:nt+NTQ,:] = TQ + np
                 np += NPQ
                 nt += NTQ

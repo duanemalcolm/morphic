@@ -11,7 +11,7 @@ fields, and geometric fields such as the the line path a string might
 take or the surface or volume of an object.
 
 A mesh typically consists of field values, a topography over which they
-they are sampled and the basis functions used to interpolate the fields
+they are sampled and the basis functions used to evaluate the fields
 over the topography. In morphic nodes define field values and elements
 define the topography and basis functions.
 
@@ -70,7 +70,7 @@ Now we add the two elements. The command for adding elements is:
     
     mesh.add_element(id, basis_functions, node_ids)
 
-which requires an element id, the basis function used to interpolate
+which requires an element id, the basis function used to evalulate
 fields over the element, and the node ids for creating the elements.
 Therefore, we add elements to the mesh by,
 
@@ -343,9 +343,9 @@ quadralateral element.
 Element Interpolation 
 ---------------------
 
-One can interpolate the field values at any point on the element. The
+One can evaluate the field values at any point on the element. The
 general expression is
-    ``element.interpolate(Xi, deriv=None)``
+    ``element.evaluate(Xi, deriv=None)``
 where ``Xi`` is a list or numpy array of element locations and ``deriv``
 is the definition of the derivative interpolation.
 The default is ``None`` which interpolates the field values.
