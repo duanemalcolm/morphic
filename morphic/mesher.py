@@ -127,7 +127,13 @@ class Node(object):
         
     def _set_values(self, pids, values):
         self.mesh._core.P[pids] = values
-        
+    
+    def add_to_group(self, groups):
+        if not isinstance(groups, list):
+            groups = [groups]
+        for group in groups:
+            self.mesh.nodes.add_to_group(self.id, group)
+    
     def set_values(self, values):
         '''
         Sets the values for the node by adding them to core.
@@ -214,6 +220,19 @@ class Node(object):
         #~ print self.shape, pi, '=', pi1, '\n'
         
         return pi1
+    
+    def variables(self, state=True, fields=None):
+        if isinstance(fields, int):
+            fields = [fields]
+        if fields == None:
+            cids = self.cids
+        else:
+            cids = numpy.array(self.cids).reshape(self.shape)[fields]
+        if state == True:
+            self.mesh._core.add_variables(cids)
+        else:
+            self.mesh._core.remove_variables(cids)
+                
         
     
 class StdNode(Node):
@@ -372,6 +391,12 @@ class Element(object):
                 PI[i].extend(pi)
         
         return PI
+        
+    def add_to_group(self, groups):
+        if not isinstance(groups, list):
+            groups = [groups]
+        for group in groups:
+            self.mesh.elements.add_to_group(self.id, group)
         
     def set_core_id(self, cid):
         self.cid = cid
@@ -656,7 +681,21 @@ class Mesh(object):
         elem = Element(self, uid, interp, node_ids)
         self.elements.add(elem, group=group)
         return elem
-        
+    
+    def groups(self, group_type=None):
+        if group_type == None:
+            return {
+                'nodes':[k for k in self.nodes.groups.keys()],
+                'elements':[k for k in self.nodes.groups.keys()]}
+        elif group_type == 'nodes':
+            return {'nodes':[k for k in self.nodes.groups.keys()]}
+        elif group_type == 'elements':
+            return {'elements':[k for k in self.elements.groups.keys()]}
+
+        return None
+            
+            
+    
     def _save_dict(self):
         import datetime
         mesh_dict = {}
@@ -777,6 +816,14 @@ class Mesh(object):
     def set_variables(self, variables):
         self._core.set_variables(variables)
     
+    def get_element_cids(self, elements=None):
+        if elements == None:
+            elements = self.elements
+        cids = []
+        for elem in elements:
+            cids.append(elem.cid)
+        return cids
+    
     def update_parameters(self, param_ids, values):
         self._core.update_params(param_ids, values)
     
@@ -873,7 +920,10 @@ class Mesh(object):
         self.generate()
         
         if elements == None:
-            Elements = self.elements
+            if groups == None:
+                Elements = self.elements
+            else:
+                Elements = self.elements.get_groups(groups)
         else:
             Elements = self.elements[elements]
         
@@ -891,7 +941,7 @@ class Mesh(object):
                 NP += NPQ
                 NT += NTQ
                 
-        X = numpy.zeros((NP, 3))
+        X = numpy.zeros((NP, elem.nodes[0].num_fields))
         T = numpy.zeros((NT, 3), dtype='uint32')
         np, nt = 0, 0
         for elem in Elements:

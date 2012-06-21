@@ -179,6 +179,9 @@ class Fit:
         if isinstance(method, str):
             self.objfn = self._objfns[method]
         
+        self.on_start = None
+        self.objective_function = None
+        self.on_stop = None
         
         self.X = None
         self.Xi = None
@@ -388,6 +391,25 @@ class Fit:
         x, success = scipy.optimize.leastsq(self.objfn, x0, args=[mesh, Xd, Td], ftol=ftol, xtol=xtol)
         if output: print 'Fit Time: ', time.time()-t0
         mesh.set_variables(x)
+        return mesh
+    
+    def optimize2(self, mesh, data, ftol=1e-9, xtol=1e-9, output=True):
+        
+        mesh.generate()
+        
+        if self.on_start != None:
+            mesh, data = self.on_start(mesh, data)
+        
+        x0 = mesh.get_variables()
+        t0 = time.time()
+        x, success = scipy.optimize.leastsq(self.objective_function, x0, args=[mesh, data], ftol=ftol, xtol=xtol)
+        if output: print 'Fit Time: ', time.time()-t0
+        mesh.set_variables(x)
+        mesh.update()
+        
+        if self.on_stop != None:
+            mesh, data = self.on_stop(mesh, data)
+        
         return mesh
     
     def objfn_mesh_to_data_closest(self, x0, args):

@@ -130,7 +130,6 @@ class Scene:
         self.lines = []
         
         
-    
     def plot_surfaces(self, X, T, scalars=None, color=None, rep='surface'):
         
         if self.autoRemove: self.remove_surfaces()
@@ -173,7 +172,7 @@ class Scenes:
     def clear(self, label=None):
         if label==None:
             for label in self.scenes:
-                self.scenes[label].clear()
+                self.scenes[label].delete()
             
             
     def get_scene(self, label):
@@ -245,4 +244,111 @@ class Scenes:
     def set_view(self, view):
         mlab.view(view[0], view[1], view[2], view[3])
         
+class Figure:
     
+    def __init__(self, figure='Default', bgcolor=(.5,.5,.5)):
+        self.figure = mlab.figure(figure, bgcolor=bgcolor)
+        self.plots = {}
+        
+    def clear(self, label):
+        mlab.figure(self.figure.name)
+        mlab_obj = self.plots.get(label)
+        if mlab_obj != None:
+            if mlab_obj.name == 'Surface':
+                mlab_obj.parent.parent.parent.remove()
+            else:
+                mlab_obj.parent.parent.remove()
+            self.plots.pop(label)
+    
+    def plot_surfaces(self, label, X, T, scalars=None, color=None, rep='surface'):
+        
+        mlab.figure(self.figure.name)
+        
+        if color == None:
+            color = (1,0,0)
+        
+        mlab_obj = self.plots.get(label)
+        if mlab_obj == None:
+            if scalars==None:
+                self.plots[label] = mlab.triangular_mesh(X[:,0], X[:,1], X[:,2], T, color=color, representation=rep)
+            else:
+                self.plots[label] = mlab.triangular_mesh(X[:,0], X[:,1], X[:,2], T, scalars=scalars)
+        
+        else:
+            self.figure.scene.disable_render = True
+            view = mlab.view()
+            
+            if X.shape[0] == mlab_obj.mlab_source.x.shape[0]:
+                if scalars==None:
+                    mlab_obj.mlab_source.set(x=X[:,0], y=X[:,1], z=X[:,2])
+                    mlab_obj.actor.property.color = color
+                else:
+                    mlab_obj.mlab_source.set(x=X[:,0], y=X[:,1], z=X[:,2], scalars=scalars)
+                
+                
+            else:
+                self.clear(label)
+                if scalars==None:
+                    self.plots[label] = mlab.triangular_mesh(X[:,0], X[:,1], X[:,2], T, color=color, representation=rep)
+                else:
+                    self.plots[label] = mlab.triangular_mesh(X[:,0], X[:,1], X[:,2], T, scalars=scalars)
+                
+            mlab.view(*view)
+            self.figure.scene.disable_render = False
+            
+    def plot_points(self, label, X, color=None, size=None, mode=None):
+        
+        mlab.figure(self.figure.name)
+        
+        if color==None:
+            color=(1,0,0)
+        
+        if size == None and mode == None:
+            size = 1
+            mode = 'point'
+        if size == None:
+            size = 1
+        if mode==None:
+            mode='sphere'
+        
+        if isinstance(X, list):
+            X = scipy.array(X)
+        
+        if len(X.shape) == 1:
+            X = scipy.array([X])
+        
+        mlab_obj = self.plots.get(label)
+        if mlab_obj == None:
+            if isinstance(color, tuple):
+                self.plots[label] = mlab.points3d(X[:,0], X[:,1], X[:,2], color=color, scale_factor=size, mode=mode)
+            else:
+                self.plots[label] = mlab.points3d(X[:,0], X[:,1], X[:,2], color, scale_factor=size, scale_mode='none', mode=mode)
+        
+        else:
+            self.figure.scene.disable_render = True
+            view = mlab.view()
+            
+            ### Commented out since VTK gives an error when using mlab_source.set
+            #~ if X.shape[0] == mlab_obj.mlab_source.x.shape[0]:
+                #~ if isinstance(color, tuple):
+                    #~ mlab_obj.mlab_source.set(x=X[:,0], y=X[:,1], z=X[:,2])
+                    #~ mlab_obj.actor.property.color = color
+                #~ else:
+                    #~ mlab_obj.mlab_source.set(x=X[:,0], y=X[:,1], z=X[:,2], scalars=color)
+                #~ 
+                #~ 
+            #~ else:
+                #~ self.clear(label)
+                #~ if isinstance(color, tuple):
+                    #~ self.plots[label] = mlab.points3d(X[:,0], X[:,1], X[:,2], color=color, scale_factor=size, mode=mode)
+                #~ else:
+                    #~ self.plots[label] = mlab.points3d(X[:,0], X[:,1], X[:,2], color, scale_factor=size, scale_mode='none', mode=mode)
+            
+            self.clear(label)
+            if isinstance(color, tuple):
+                self.plots[label] = mlab.points3d(X[:,0], X[:,1], X[:,2], color=color, scale_factor=size, mode=mode)
+            else:
+                self.plots[label] = mlab.points3d(X[:,0], X[:,1], X[:,2], color, scale_factor=size, scale_mode='none', mode=mode)
+                
+            mlab.view(*view)
+            self.figure.scene.disable_render = False

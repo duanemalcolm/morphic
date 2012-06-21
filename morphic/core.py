@@ -100,6 +100,14 @@ class ObjectList:
         else:
             return []
     
+    def get_groups(self, groups):
+        if not isinstance(groups, list):
+            groups = [groups]
+        objs = []
+        for group in groups:
+            objs.extend(self._get_group(group))
+        return [obj for obj in set(objs)]
+    
     def _save_dict(self):
         objlist_dict = {}
         objlist_dict['groups'] = {}
@@ -142,6 +150,7 @@ class Core():
         self.PCAMap = []
         self.fixed = numpy.array([])
         self.idx_unfixed = []
+        self.variable_ids = []
     
     def add_params(self, params):
         i0 = self.P.size
@@ -160,11 +169,27 @@ class Core():
         self.idx_unfixed = numpy.array([i 
                 for i, f in  enumerate(self.fixed) if f == False])
     
+    def add_variables(self, cids):
+        if isinstance(cids, int):
+            cids = [cids]
+        for cid in cids:
+            if cid not in self.variable_ids:
+                self.variable_ids.append(cid)
+    
+    def remove_variables(self, cids):
+        if not isinstance(cids, list):
+            cids = [cids]
+        for cid in cids:
+            if cid in self.variable_ids:
+                self.variable_ids.remove(cid)
+    
     def get_variables(self):
-        return self.P[self.idx_unfixed]
+        #~ return self.P[self.idx_unfixed]
+        return self.P[self.variable_ids]
     
     def set_variables(self, variables):
-        self.P[self.idx_unfixed] = variables
+        #~ self.P[self.idx_unfixed] = variables
+        self.P[self.variable_ids] = variables
     
     def generate_element_map(self, mesh):
         self.EFn = []
@@ -222,4 +247,17 @@ class Core():
         Phi = interpolator.weights(self.EFn[cid], xi, deriv=deriv)
         for i in range(num_fields):
             X[:, i] = numpy.dot(Phi, self.P[self.EMap[cid][i]])
+        return X
+        
+    def evaluates(self, cids, xi, deriv=None, X=None):
+        num_fields = len(self.EMap[cids[0]])
+        if X==None:
+            X = numpy.zeros((len(cids) * xi.shape[0], num_fields))
+        Phi = interpolator.weights(self.EFn[cids[0]], xi, deriv=deriv)
+        Nxi = xi.shape[0]
+        ind = 0
+        for cid in cids:
+            for i in range(num_fields):
+                X[ind:ind+Nxi, i] = numpy.dot(Phi, self.P[self.EMap[cid][i]])
+            ind += Nxi
         return X
