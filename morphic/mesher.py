@@ -334,6 +334,7 @@ class Element(object):
 
     def __init__(self, mesh, uid, interp, node_ids):
         self.mesh = mesh 
+        self.core = mesh._core 
         self.interp = interp 
         self.basis = interp 
         self.id = uid
@@ -413,15 +414,88 @@ class Element(object):
         return self.evaluate(xi, deriv=deriv)
         
     def evaluate(self, xi, deriv=None):
-        xi = numpy.asarray(xi)
-        xi_dims = len(xi.shape)
-        if xi_dims == 1:
-            xi = numpy.array([xi])
-            return self.mesh._core.evaluate(
-                    self.cid, xi, deriv=deriv)[0]
+        if isinstance(xi, int) or isinstance(xi, float):
+            if self.shape is not 'line':
+                raise Exception('Invalid xi to an element greater than 1d')
+            xi = numpy.array([[xi]])
+            return self.mesh._core.evaluate(self.cid, xi, deriv=deriv)[0]
+        
         else:
-            return self.mesh._core.evaluate(
-                    self.cid, xi, deriv=deriv)
+            if isinstance(xi, list):
+                xi = numpy.asarray(xi)
+                
+            if self.shape is 'line':
+                if len(xi.shape) == 1:
+                    xi = numpy.array([xi]).T
+                    if xi.shape[0] == 1:
+                        return self.mesh._core.evaluate(
+                                self.cid, xi, deriv=deriv)[0]
+                    else:
+                        return self.mesh._core.evaluate(
+                                self.cid, xi, deriv=deriv)
+                else:
+                    return self.mesh._core.evaluate(self.cid, xi, deriv=deriv)
+            else:
+                if len(xi.shape) == 1:
+                    xi = numpy.array([xi])
+                    return self.mesh._core.evaluate(
+                            self.cid, xi, deriv=deriv)[0]
+                else:
+                    return self.mesh._core.evaluate(
+                            self.cid, xi, deriv=deriv)
+        
+    
+    def integrate2(self, fields, method='trapezoidal', divs=10, func=None):
+        '''
+        Implementation if trapezoidal integration in 1D. Was supposed to
+        be an alternative to gaussian quadrature.
+        '''
+        xi = numpy.linspace(0, 1, divs+1)
+        t = numpy.array([numpy.linspace(0, 1, divs+1)]).T
+        dxi = xi[1] - xi[0]
+        values = self.evaluate(xi)
+        if func is not None:
+            values = func(values[:,fields])
+            integral = 0.5 * dxi * (values[0:-1] + values[1:])
+        else:
+            integral = 0.5 * dxi * (values[0:-1, fields] + values[1:, fields])
+        return integral.sum(0)
+        
+    def integrate(self, fields, func=None, ng=4):
+        '''
+        Integration using gaussian quadrature.
+        
+        Only supports up to two dimensions. The generation of the gauss
+        points for 3 dimensions and up is required to extend this.
+        
+        Input:
+          - fields is a list of fields to integrate. The format is
+            [[field no, derivative wrt x1, derivative wrt x2,... ], ...]
+            For example, [[0, 0, 0], [2, 1, 0], [1, 0, 2]] will return
+            the integral of Field0, dField2/dx1, and d^2Field1/dx2^2.
+          - func is a function that will take the field values process them
+            and return the processed values for the fields
+          - ng is the number of gauss point. Default is 4. Max is 6.
+            For 2D, the number of gauss points in each direction is
+            given using [ng1, ng2, ...].
+        
+        Returns:
+          - integral of the fields or processed fields by 'func'
+        '''
+        if self.shape is 'line':
+            Xi, W = self.core.get_gauss_points(ng)
+            X = self.mesh._core.evaluate_fields(self.cid, Xi, fields)
+            if func is not None:
+                X = func(X)
+            integral = numpy.dot(W, X)
+        else:
+            Xi, W = self.core.get_gauss_points([ng, ng])
+            X = self.mesh._core.evaluate_fields(self.cid, Xi, fields)
+            if func is not None:
+                X = func(X)
+            integral = numpy.dot(W, X)
+            
+        return integral
     
     def normal(self, Xi):
         '''
@@ -578,6 +652,9 @@ class Mesh(object):
         self.filepath = filepath
         if filepath != None:
             self.load(filepath)
+    
+    def add_node(self, uid, values, group='_default'):
+        return self.add_stdnode(uid, values, group=group)
         
     def add_stdnode(self, uid, values, group='_default'):
         '''

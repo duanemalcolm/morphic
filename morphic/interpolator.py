@@ -224,7 +224,7 @@ def L2d1(x):
     return numpy.array([
         1.0 - 4.0 * L1,
         4.0 * L1 - 4.0 * x,
-        4.0 * x - 1]).T
+        4.0 * x - 1.]).T
 
 # .. todo: L2dxdx
 

@@ -148,20 +148,20 @@ class TestCore(unittest.TestCase):
         c.generate_fixed_index()
         npt.assert_equal(c.idx_unfixed, [0, 2])
         
-    def test_get_variables(self):
-        c = core.Core()
-        cids = c.add_params(numpy.array([3, 6, 9, 5, 2]))
-        c.fix_parameters(cids, [False, True, False, True, True])
-        c.generate_fixed_index()
-        npt.assert_equal(c.get_variables(), [3, 9])
-        
-    def test_set_variables(self):
-        c = core.Core()
-        cids = c.add_params(numpy.array([3, 6, 9, 5, 2]))
-        c.fix_parameters(cids, [False, True, False, True, True])
-        c.generate_fixed_index()
-        c.set_variables([7, 8])
-        npt.assert_equal(c.P, [7, 6, 8, 5, 2])
+    #~ def test_get_variables(self):
+        #~ c = core.Core()
+        #~ cids = c.add_params(numpy.array([3, 6, 9, 5, 2]))
+        #~ c.fix_parameters(cids, [False, True, False, True, True])
+        #~ c.generate_fixed_index()
+        #~ npt.assert_equal(c.get_variables(), [3, 9])
+        #~ 
+    #~ def test_set_variables(self):
+        #~ c = core.Core()
+        #~ cids = c.add_params(numpy.array([3, 6, 9, 5, 2]))
+        #~ c.fix_parameters(cids, [False, True, False, True, True])
+        #~ c.generate_fixed_index()
+        #~ c.set_variables([7, 8])
+        #~ npt.assert_equal(c.P, [7, 6, 8, 5, 2])
         
         
 if __name__ == "__main__":

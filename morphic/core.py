@@ -151,7 +151,22 @@ class Core():
         self.fixed = numpy.array([])
         self.idx_unfixed = []
         self.variable_ids = []
+        
+        self.gauss_points = {}
+        self.gauss_points[2] = [
+                numpy.array([[0.21132486540518708], [0.78867513459481287]]),
+                numpy.array([0.5, 0.5])]
+        self.gauss_points[3] = [
+                numpy.array([[0.1127016653792583], [0.5], [0.8872983346207417]]),
+                numpy.array([5./18., 4./9., 5./18])]
+        self.gauss_points[4] = [numpy.array([[0.33000947820757187, 0.6699905217924281, 0.06943184420297371, 0.9305681557970262]]).T,
+                numpy.array([0.32607257743127305, 0.32607257743127305, 0.1739274225687269, 0.1739274225687269])]
+        self.gauss_points[5] = [numpy.array([[0.5, 0.230765344947, 0.769234655053, 0.0469100770307, 0.953089922969]]).T,
+                numpy.array([0.284444444444, 0.23931433525, 0.23931433525, 0.118463442528, 0.118463442528])]
+        self.gauss_points[6] = [numpy.array([[0.8306046932331322, 0.1693953067668678, 0.3806904069584016, 0.6193095930415985, 0.0337652428984240, 0.9662347571015760]]).T,
+                numpy.array([0.1803807865240693, 0.1803807865240693, 0.2339569672863455, 0.2339569672863455, 0.0856622461895852, 0.0856622461895852])]
     
+        
     def add_params(self, params):
         i0 = self.P.size
         self.P = numpy.append(self.P, params)
@@ -190,6 +205,25 @@ class Core():
     def set_variables(self, variables):
         #~ self.P[self.idx_unfixed] = variables
         self.P[self.variable_ids] = variables
+    
+    def get_gauss_points(self, ng):
+        if isinstance(ng, int):
+            return self.gauss_points.get(ng)
+        elif isinstance(ng, list):
+            if len(ng) > 2:
+                raise Exception('Gauss points for 3 dimensions' +
+                        'and above not supported')
+            Xi1, W1 = self.get_gauss_points(ng[0])
+            Xi2, W2 = self.get_gauss_points(ng[1])
+            Xi1g, Xi2g = numpy.meshgrid(Xi1.flatten(), Xi2.flatten())
+            Xi1 = numpy.array([Xi1g.flatten(), Xi2g.flatten()]).T
+            W1g, W2g = numpy.meshgrid(W1.flatten(), W2.flatten())
+            W1 = W1g.flatten() * W2g.flatten()
+            return Xi1, W1
+            
+        raise Exception('Invalid number of gauss points')
+        return None, None    
+            
     
     def generate_element_map(self, mesh):
         self.EFn = []
@@ -248,7 +282,7 @@ class Core():
         for i in range(num_fields):
             X[:, i] = numpy.dot(Phi, self.P[self.EMap[cid][i]])
         return X
-        
+       
     def evaluates(self, cids, xi, deriv=None, X=None):
         num_fields = len(self.EMap[cids[0]])
         if X==None:
@@ -261,3 +295,12 @@ class Core():
                 X[ind:ind+Nxi, i] = numpy.dot(Phi, self.P[self.EMap[cid][i]])
             ind += Nxi
         return X
+    
+    def evaluate_fields(self, cid, xi, fields):
+        num_fields = len(fields)
+        X = numpy.zeros((xi.shape[0], num_fields))
+        for i, field in enumerate(fields):
+            Phi = interpolator.weights(self.EFn[cid], xi, deriv=field[1:])
+            X[:, i] = numpy.dot(Phi, self.P[self.EMap[cid][field[0]]])
+        return X
+     

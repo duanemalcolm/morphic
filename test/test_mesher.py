@@ -12,6 +12,381 @@ from morphic import core
 from morphic import mesher
 
  
+class TestElementIntegration(unittest.TestCase):
+    """Unit tests for morphic Node superclass."""
+    
+    def field_squared(self, x):
+            return x*x
+    
+    def field_mag(self, x):
+            return numpy.sqrt(x*x)
+            
+    def test_trapeziodal_1D_L1_field(self):
+        mesh = mesher.Mesh()
+        mesh.add_stdnode(1, [0.1, 0.2, 0.3, -0.2, 0.4])
+        mesh.add_stdnode(2, [2, 3, -0.4, -0.2, 1])
+        mesh.add_element(1, ['L1'], [1, 2])
+        mesh.generate()
+        integral = mesh.elements[1].integrate2(0)
+        self.assertAlmostEqual(integral, 1.05)
+        integral = mesh.elements[1].integrate2([1], divs=20)
+        self.assertAlmostEqual(integral, 1.6)
+        integral = mesh.elements[1].integrate2(2)
+        self.assertAlmostEqual(integral, -0.05)
+        integral = mesh.elements[1].integrate2(3, divs=1)
+        self.assertAlmostEqual(integral, -0.2)
+        integral = mesh.elements[1].integrate2(4, divs=1)
+        self.assertAlmostEqual(integral, 0.7)
+    
+    def test_trapeziodal_1D_L1_fields(self):
+        mesh = mesher.Mesh()
+        mesh.add_stdnode(1, [0.1, 0.2, 0.3, -0.2, 0.4])
+        mesh.add_stdnode(2, [2, 3, -0.4, -0.2, 1])
+        mesh.add_element(1, ['L1'], [1, 2])
+        mesh.generate()
+        integral = mesh.elements[1].integrate2([1, 3])
+        npt.assert_almost_equal(integral, [1.6, -0.2])
+    
+    def test_trapeziodal_1D_L1_func(self):
+        def mag(x):
+            return numpy.sqrt((x*x).sum(1))
+        
+        mesh = mesher.Mesh()
+        mesh.add_stdnode(1, [0.1, 0.2, 0.3, -0.2, 0.4])
+        mesh.add_stdnode(2, [2, 3, -0.4, -0.2, 1])
+        mesh.add_element(1, ['L1'], [1, 2])
+        mesh.generate()
+        integral = mesh.elements[1].integrate2([1, 3], func=mag)
+        npt.assert_almost_equal(integral, 1.61862, decimal=2)
+    
+    def test_trapeziodal_1D_L3_fields(self):
+        mesh = mesher.Mesh()
+        mesh.add_stdnode(1, [0.1, 0.2])
+        mesh.add_stdnode(2, [2.0, 1.3])
+        mesh.add_stdnode(3, [2.8, 2.3])
+        mesh.add_stdnode(4, [2.5, 3.0])
+        mesh.add_element(1, ['L3'], [1, 2, 3, 4])
+        mesh.generate()
+        
+        Xi = numpy.linspace(0,1,101)
+        dxi = Xi[1] - Xi[0]
+        X = mesh.elements[1].evaluate(Xi)
+        dX = 0.5 * dxi * (X[1:,:] + X[:-1,:])
+        L = dX.sum(0)
+        
+        integral = mesh.elements[1].integrate2(0, divs=100)
+        self.assertAlmostEqual(integral, L[0])
+        integral = mesh.elements[1].integrate2([1], divs=100)
+        self.assertAlmostEqual(integral, L[1])
+        integral = mesh.elements[1].integrate2([0, 1], divs=100)
+        npt.assert_almost_equal(integral, L)
+    
+    def test_trapeziodal_1D_L3_func(self):
+        def mag1(x):
+            return x*x
+        
+        def mag2(x):
+            return numpy.sqrt((x*x).sum(1))
+        
+        mesh = mesher.Mesh()
+        mesh.add_stdnode(1, [0.1, 0.2])
+        mesh.add_stdnode(2, [2.0, 1.3])
+        mesh.add_stdnode(3, [2.8, 2.3])
+        mesh.add_stdnode(4, [2.5, 3.0])
+        mesh.add_element(1, ['L3'], [1, 2, 3, 4])
+        mesh.generate()
+        
+        Xi = numpy.linspace(0,1,101)
+        dxi = Xi[1] - Xi[0]
+        X = mesh.elements[1].evaluate(Xi)
+        XX = X * X
+        L1 = 0.5 * dxi * (XX[1:,:] + XX[:-1,:]).sum(0)
+        
+        XX2 = numpy.sqrt(XX.sum(1))
+        L2 = (0.5 * dxi * (XX2[1:] + XX2[:-1])).sum(0)
+        
+        integral = mesh.elements[1].integrate2([0, 1], func=mag1, divs=100)
+        npt.assert_almost_equal(integral, L1)
+        integral = mesh.elements[1].integrate2([0, 1], func=mag2, divs=100)
+        npt.assert_almost_equal(integral, L2)
+    
+    def test_gauss_quadrature_1D_L1_fields(self):
+        mesh = mesher.Mesh()
+        mesh.add_stdnode(1, [0.1, 0.2, 0.3, -0.2, 0.4])
+        mesh.add_stdnode(2, [2, 3, -0.4, -0.2, 1])
+        mesh.add_element(1, ['L1'], [1, 2])
+        mesh.generate()
+        integral = mesh.elements[1].integrate([[0,0]])
+        npt.assert_almost_equal(integral, 1.05)
+        integral = mesh.elements[1].integrate([[0,0], [1,0]])
+        npt.assert_almost_equal(integral, [1.05, 1.6])
+        integral = mesh.elements[1].integrate([[3,0], [1,0]])
+        npt.assert_almost_equal(integral, [-0.2, 1.6])
+    
+    def test_gauss_quadrature_1D_L1_func(self):
+        def mag(x):
+            return numpy.sqrt((x*x).sum(1))
+        
+        mesh = mesher.Mesh()
+        mesh.add_stdnode(1, [0.1, 0.2, 0.3, -0.2, 0.4])
+        mesh.add_stdnode(2, [2, 3, -0.4, -0.2, 1])
+        mesh.add_element(1, ['L1'], [1, 2])
+        mesh.generate()
+        integral = mesh.elements[1].integrate([[1,0], [3,0]], func=mag)
+        npt.assert_almost_equal(integral, 1.6165, decimal=2)
+    
+    def test_gauss_quadrature_1D_L1_length(self):
+        def mag(x):
+            return numpy.sqrt((x*x).sum(1))
+        
+        mesh = mesher.Mesh()
+        mesh.add_stdnode(1, [0.1, 0.2, 0.3, -0.2, 0.4])
+        mesh.add_stdnode(2, [2, 3, -0.4, -0.2, 1])
+        mesh.add_element(1, ['L1'], [1, 2])
+        mesh.generate()
+        
+        L = numpy.sqrt((2.0 - 0.1)**2 + (3.0 - 0.2)**2)
+        
+        integral = mesh.elements[1].integrate([[0,1], [1,1]], func=mag)
+        npt.assert_almost_equal(integral, L, decimal=2)
+    
+    def test_gauss_quadrature_1D_L2_length_a(self):
+        def mag(x):
+            return numpy.sqrt((x*x).sum(1))
+        
+        mesh = mesher.Mesh()
+        mesh.add_stdnode(1, [0.0, 0.0])
+        mesh.add_stdnode(2, [1.2, 1.2])
+        mesh.add_stdnode(3, [3.0, 3.0])
+        mesh.add_element(1, ['L2'], [1, 2, 3])
+        mesh.generate()
+        
+        L = numpy.sqrt(18.)
+        integral = mesh.elements[1].integrate([[0,1], [1,1]], func=mag)
+        npt.assert_almost_equal(integral, L, decimal=2)
+    
+    def test_gauss_quadrature_1D_L2_length_b(self):
+        def mag(x):
+            return numpy.sqrt((x*x).sum(1))
+        
+        mesh = mesher.Mesh()
+        mesh.add_stdnode(1, [0.1, 0.2])
+        mesh.add_stdnode(2, [2.0, 1.3])
+        mesh.add_stdnode(3, [2.8, 0.5])
+        mesh.add_element(1, ['L2'], [1, 2, 3])
+        mesh.generate()
+        
+        Xi = numpy.linspace(0,1,1001)
+        X = mesh.elements[1].evaluate(Xi)
+        dX = X[1:,:] - X[:-1,:]
+        L = numpy.sqrt((dX[:,0] * dX[:,0] + dX[:,1] * dX[:,1])).sum()
+        
+        integral = mesh.elements[1].integrate([[0,1], [1,1]], func=mag)
+        npt.assert_almost_equal(integral, L, decimal=2)
+    
+    def test_gauss_quadrature_1D_L3_length_a(self):
+        def mag(x):
+            return numpy.sqrt((x*x).sum(1))
+        
+        mesh = mesher.Mesh()
+        mesh.add_stdnode(1, [0.0, 0.0])
+        mesh.add_stdnode(2, [0.9, 0.9])
+        mesh.add_stdnode(3, [2.3, 2.3])
+        mesh.add_stdnode(4, [3.0, 3.0])
+        mesh.add_element(1, ['L3'], [1, 2, 3, 4])
+        mesh.generate()
+        
+        L = numpy.sqrt(18.)
+        integral = mesh.elements[1].integrate([[0,1], [1,1]], func=mag)
+        npt.assert_almost_equal(integral, L, decimal=2)
+    
+    
+    def test_gauss_quadrature_1D_L3_length_b(self):
+        def mag(x):
+            return numpy.sqrt((x*x).sum(1))
+        
+        mesh = mesher.Mesh()
+        mesh.add_stdnode(1, [0., 10.])
+        mesh.add_stdnode(2, [8., 5.])
+        mesh.add_stdnode(3, [16., 8.6])
+        mesh.add_stdnode(4, [24., -5.])
+        mesh.add_element(1, ['L3'], [1, 2, 3, 4])
+        mesh.generate()
+
+        Xi = numpy.linspace(0,1,1001)
+        X = mesh.elements[1].evaluate(Xi)
+        dX = X[1:,:] - X[:-1,:]
+        L = numpy.sqrt((dX[:,0] * dX[:,0] + dX[:,1] * dX[:,1])).sum()
+        
+        integral = mesh.elements[1].integrate([[0,1], [1,1]], func=mag)
+        npt.assert_almost_equal(integral, L, decimal=0)
+    
+    def test_gauss_quadrature_1D_H3_length_a(self):
+        def mag(x):
+            return numpy.sqrt((x*x).sum(1))
+        
+        mesh = mesher.Mesh()
+        mesh.add_stdnode(1, [[0.0, 1.0], [0., 1.0]])
+        mesh.add_stdnode(2, [[3.0, 1.0], [3.0, 1.0]])
+        mesh.add_element(1, ['H3'], [1, 2])
+        mesh.generate()
+        
+        L = numpy.sqrt(18.)
+        
+        integral = mesh.elements[1].integrate([[0,1], [1,1]], func=mag)
+        npt.assert_almost_equal(integral, L, decimal=2)
+    
+    def test_gauss_quadrature_1D_H3_length_b(self):
+        def mag(x):
+            return numpy.sqrt((x*x).sum(1))
+        
+        mesh = mesher.Mesh()
+        mesh.add_stdnode(1, [[0.0, 1.0], [0., 1.0]])
+        mesh.add_stdnode(2, [[3.0, 2.0], [0.0, 2.0]])
+        mesh.add_element(1, ['H3'], [1, 2])
+        mesh.generate()
+        
+        Xi = numpy.linspace(0,1,1001)
+        X = mesh.elements[1].evaluate(Xi)
+        dX = X[1:,:] - X[:-1,:]
+        L = numpy.sqrt((dX[:,0] * dX[:,0] + dX[:,1] * dX[:,1])).sum()
+        
+        integral = mesh.elements[1].integrate([[0,1], [1,1]], func=mag)
+        npt.assert_almost_equal(integral, L, decimal=2)
+    
+    def test_gauss_quadrature_1D_H3_length_c(self):
+        def mag(x):
+            return numpy.sqrt((x*x).sum(1))
+        
+        mesh = mesher.Mesh()
+        mesh.add_stdnode(1, [[0.0, -1.0], [-1.2, 1.0]])
+        mesh.add_stdnode(2, [[3.0, 2.0], [0.0, 2.0]])
+        mesh.add_element(1, ['H3'], [1, 2])
+        mesh.generate()
+        
+        Xi = numpy.linspace(0,1,100001)
+        X = mesh.elements[1].evaluate(Xi)
+        dX = X[1:,:] - X[:-1,:]
+        L = numpy.sqrt((dX[:,0] * dX[:,0] + dX[:,1] * dX[:,1])).sum()
+        
+        integral = mesh.elements[1].integrate([[0,1], [1,1]], func=mag)
+        npt.assert_almost_equal(integral, L, decimal=1)
+        
+    def test_gauss_quadrature_L1L1_b_a(self):
+        mesh = mesher.Mesh()
+        mesh.add_stdnode(1, [0.0, 0.0, 0.0])
+        mesh.add_stdnode(2, [1.0, 0.0, 0.0])
+        mesh.add_stdnode(3, [0.0, 1.0, 0.0])
+        mesh.add_stdnode(4, [1.0, 1.0, 0.0])
+        mesh.add_element(1, ['L1', 'L1'], [1, 2, 3, 4])
+        mesh.generate()
+        
+        true_integral = 0.0
+        integral = mesh.elements[1].integrate([[2,0,0]])
+        npt.assert_almost_equal(integral, true_integral, decimal=2)
+    
+    def test_gauss_quadrature_L1L1_z_b(self):
+        mesh = mesher.Mesh()
+        mesh.add_stdnode(1, [0.0, 0.0, 1.0])
+        mesh.add_stdnode(2, [1.0, 0.0, 1.0])
+        mesh.add_stdnode(3, [0.0, 1.0, 1.0])
+        mesh.add_stdnode(4, [1.0, 1.0, 1.0])
+        mesh.add_element(1, ['L1', 'L1'], [1, 2, 3, 4])
+        mesh.generate()
+        
+        true_integral = 1.0
+        integral = mesh.elements[1].integrate([[2,0,0]])
+        npt.assert_almost_equal(integral, true_integral, decimal=2)
+    
+    def test_gauss_quadrature_L1L1_z_c(self):
+        mesh = mesher.Mesh()
+        mesh.add_stdnode(1, [0.0, 0.0, 0.0])
+        mesh.add_stdnode(2, [1.0, 0.0, 1.0])
+        mesh.add_stdnode(3, [0.0, 1.0, 0.0])
+        mesh.add_stdnode(4, [1.0, 1.0, 1.0])
+        mesh.add_element(1, ['L1', 'L1'], [1, 2, 3, 4])
+        mesh.generate()
+        
+        true_integral = 0.5
+        integral = mesh.elements[1].integrate([[2,0,0]])
+        npt.assert_almost_equal(integral, true_integral, decimal=2)
+    
+    def test_gauss_quadrature_L1L1_area(self):
+        def area(x):
+            # dx/dxi dot dx/dxi.T
+            x1x1 = x[:,0]*x[:,0] + x[:,1]*x[:,1] + x[:,2]*x[:,2]
+            x1x2 = x[:,0]*x[:,3] + x[:,1]*x[:,4] + x[:,2]*x[:,5]
+            x2x2 = x[:,3]*x[:,3] + x[:,4]*x[:,4] + x[:,5]*x[:,5]
+            det = x1x1 * x2x2 - x1x2 * x1x2
+            return numpy.sqrt(det)
+            
+        mesh = mesher.Mesh()
+        mesh.add_stdnode(1, [0.0, 0.0, 0.11])
+        mesh.add_stdnode(2, [1.0, 0.0, 0.42])
+        mesh.add_stdnode(3, [0.0, 1.0, 0.66])
+        mesh.add_stdnode(4, [1.0, 1.0, 1.27])
+        mesh.add_element(1, ['L1', 'L1'], [1, 2, 3, 4])
+        mesh.generate()
+        
+        true_integral = 1.30902 # from cmiss with 4 gauss points
+        integral = mesh.elements[1].integrate(
+                [[0,1,0],[1,1,0],[2,1,0],[0,0,1],[1,0,1],[2,0,1]],
+                func=area)
+        npt.assert_almost_equal(integral, true_integral, decimal=4)
+    
+    def test_gauss_quadrature_H3H3_area(self):
+        def area(x):
+            # dx/dxi dot dx/dxi.T
+            x1x1 = x[:,0]*x[:,0] + x[:,1]*x[:,1] + x[:,2]*x[:,2]
+            x1x2 = x[:,0]*x[:,3] + x[:,1]*x[:,4] + x[:,2]*x[:,5]
+            x2x2 = x[:,3]*x[:,3] + x[:,4]*x[:,4] + x[:,5]*x[:,5]
+            det = x1x1 * x2x2 - x1x2 * x1x2
+            return numpy.sqrt(det)
+            
+        mesh = mesher.Mesh()
+        mesh.add_stdnode(1, [[0.0, 1, 0.2, 0], [0, -0.1, 0.8, 0], [0.11, 0.3, 0.2, 0]])
+        mesh.add_stdnode(2, [[1.1, 1, 0, 0], [0.1, 0, 1, 0], [0.42, 0, 0, 0]])
+        mesh.add_stdnode(3, [[-0.1, 1.1, 0, 0], [0.9, 0, 0.9, 0.1], [0.66, 0, 0.05, 0]])
+        mesh.add_stdnode(4, [[1.0, 1, 0, 0.1], [1.0, 0, 1, 0], [1.27, 0.1, -0.2, 0.11]])
+        mesh.add_element(1, ['H3', 'H3'], [1, 2, 3, 4])
+        mesh.generate()
+        
+        true_integral = 1.35475 # from cmiss with 4 gauss points
+        integral = mesh.elements[1].integrate(
+                [[0,1,0],[1,1,0],[2,1,0],[0,0,1],[1,0,1],[2,0,1]],
+                func=area)
+        npt.assert_almost_equal(integral, true_integral, decimal=4)
+    
+    def test_get_2D_gauss_points(self):
+        mesh = mesher.Mesh()
+        Xi, W = mesh._core.get_gauss_points([2, 2])
+        true_Xi = numpy.array([
+                [0.21132486540518708, 0.21132486540518708],
+                [0.78867513459481287, 0.21132486540518708],
+                [0.21132486540518708, 0.78867513459481287],
+                [0.78867513459481287, 0.78867513459481287]])
+        true_W = numpy.array([0.25, 0.25, 0.25, 0.25])
+        npt.assert_almost_equal(Xi, true_Xi)
+        npt.assert_almost_equal(W, true_W)
+        
+    #~ def test_get_3D_gauss_points(self):
+        #~ mesh = mesher.Mesh()
+        #~ Xi, W = mesh._core.get_gauss_points([2, 2, 2])
+        #~ true_Xi = numpy.array([
+                #~ [0.21132486540518708, 0.21132486540518708, 0.21132486540518708],
+                #~ [0.78867513459481287, 0.21132486540518708, 0.21132486540518708],
+                #~ [0.21132486540518708, 0.78867513459481287, 0.21132486540518708],
+                #~ [0.78867513459481287, 0.78867513459481287, 0.21132486540518708],
+                #~ [0.21132486540518708, 0.21132486540518708, 0.78867513459481287],
+                #~ [0.78867513459481287, 0.21132486540518708, 0.78867513459481287],
+                #~ [0.21132486540518708, 0.78867513459481287, 0.78867513459481287],
+                #~ [0.78867513459481287, 0.78867513459481287, 0.78867513459481287]])
+        #~ true_W = numpy.array([0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125])
+        #~ npt.assert_almost_equal(Xi, true_Xi)
+        #~ npt.assert_almost_equal(W, true_W)
+        
+        
+        
 class TestNode(unittest.TestCase):
     """Unit tests for morphic Node superclass."""
 
@@ -41,8 +416,9 @@ class TestNode(unittest.TestCase):
         self.assertEqual(ns['num_values'], 0)
         self.assertEqual(ns['num_fields'], 0)
         self.assertEqual(ns['num_components'], 0)
+        self.assertEqual(ns['num_modes'], 0)
         self.assertEqual(ns['shape'], (0, 0, 0))
-        self.assertEqual(len(ns.keys()), 7) 
+        self.assertEqual(len(ns.keys()), 8) 
         
     def test_load(self):
         mesh = mesher.Mesh()
@@ -243,8 +619,9 @@ class TestStdNode(unittest.TestCase):
         self.assertEqual(ns['num_values'], 4)
         self.assertEqual(ns['num_fields'], 2)
         self.assertEqual(ns['num_components'], 2)
+        self.assertEqual(ns['num_modes'], 0)
         self.assertEqual(ns['shape'], (2, 2))
-        self.assertEqual(len(ns.keys()), 8) 
+        self.assertEqual(len(ns.keys()), 9) 
         
     def test_load(self):
         mesh = mesher.Mesh()
@@ -279,10 +656,11 @@ class TestDepNode(unittest.TestCase):
         self.assertEqual(ns['num_values'], 0)
         self.assertEqual(ns['num_fields'], 0)
         self.assertEqual(ns['num_components'], 0)
+        self.assertEqual(ns['num_modes'], 0)
         self.assertEqual(ns['shape'], (0, 0, 0))
         self.assertEqual(ns['element'], '7')
         self.assertEqual(ns['node'], '2')
-        self.assertEqual(len(ns.keys()), 10) 
+        self.assertEqual(len(ns.keys()), 11) 
      
     def test_load(self):
         mesh = mesher.Mesh()
@@ -504,43 +882,75 @@ class TestElement(unittest.TestCase):
         for i, node in enumerate(elem):
             self.assertEqual(node, Nodes[i])
     
+    def test_element_evaluate_1d_1pt(self):
+        m = mesher.Mesh()
+        m.add_stdnode(1, [0, 0.5, -1.2])
+        m.add_stdnode(2, [1, 0.5, -2.2])
+        m.add_element(1, ['L1'], [1, 2])
+        m.generate()
+        x = m.elements[1].evaluate(0.2)
+        npt.assert_almost_equal(x, [0.2, 0.5, -1.4])
+    
     def test_element_evaluate_1d_list_1pt(self):
         m = mesher.Mesh()
-        m.add_stdnode(1, [0, 0.5, 1])
-        m.add_stdnode(2, [1, 0.5, 0.5])
+        m.add_stdnode(1, [0, 0.5, -1.2])
+        m.add_stdnode(2, [1, 0.5, -2.2])
         m.add_element(1, ['L1'], [1, 2])
         m.generate()
         x = m.elements[1].evaluate([0.2])
-        npt.assert_almost_equal(x, [0.2, 0.5, 0.9])
+        npt.assert_almost_equal(x, [0.2, 0.5, -1.4])
     
-    def test_element_evaluate_1d_list_2pts(self):
+    def test_element_evaluate_1d_list_2pts_a(self):
         m = mesher.Mesh()
-        m.add_stdnode(1, [0, 0.5, 1])
-        m.add_stdnode(2, [1, 0.5, 0.5])
+        m.add_stdnode(1, [0, 0.5, -1.2])
+        m.add_stdnode(2, [1, 0.5, -2.2])
+        m.add_element(1, ['L1'], [1, 2])
+        m.generate()
+        x = m.elements[1].evaluate([0.2, 0.6])
+        npt.assert_almost_equal(x, 
+            [[0.2, 0.5, -1.4], [0.6, 0.5, -1.8]])
+        
+    def test_element_evaluate_1d_list_2pts_b(self):
+        m = mesher.Mesh()
+        m.add_stdnode(1, [0, 0.5, -1.2])
+        m.add_stdnode(2, [1, 0.5, -2.2])
         m.add_element(1, ['L1'], [1, 2])
         m.generate()
         x = m.elements[1].evaluate([[0.2], [0.6]])
         npt.assert_almost_equal(x, 
-            [[0.2, 0.5, 0.9], [0.6, 0.5, 0.7]])
+            [[0.2, 0.5, -1.4], [0.6, 0.5, -1.8]])
         
     def test_element_evaluate_1d_array_1pt(self):
         m = mesher.Mesh()
-        m.add_stdnode(1, [0, 0.5, 1])
-        m.add_stdnode(2, [1, 0.5, 0.5])
+        m.add_stdnode(1, [0, 0.5, -1.2])
+        m.add_stdnode(2, [1, 0.5, -2.2])
         m.add_element(1, ['L1'], [1, 2])
         m.generate()
-        x = m.elements[1].evaluate(numpy.array([0.2]))
-        npt.assert_almost_equal(x, [0.2, 0.5, 0.9])
+        xi = numpy.array([0.2])
+        x = m.elements[1].evaluate(xi)
+        npt.assert_almost_equal(x, [0.2, 0.5, -1.4])
     
-    def test_element_evaluate_1d_array_2pts(self):
+    def test_element_evaluate_1d_array_2pts_a(self):
         m = mesher.Mesh()
-        m.add_stdnode(1, [0, 0.5, 1])
-        m.add_stdnode(2, [1, 0.5, 0.5])
+        m.add_stdnode(1, [0, 0.5, -1.2])
+        m.add_stdnode(2, [1, 0.5, -2.2])
         m.add_element(1, ['L1'], [1, 2])
         m.generate()
-        x = m.elements[1].evaluate(numpy.array([[0.2], [0.6]]))
+        xi = numpy.array([0.2, 0.6])
+        x = m.elements[1].evaluate(xi)
         npt.assert_almost_equal(x, 
-            [[0.2, 0.5, 0.9], [0.6, 0.5, 0.7]])
+            [[0.2, 0.5, -1.4], [0.6, 0.5, -1.8]])
+        
+    def test_element_evaluate_1d_array_2pts_b(self):
+        m = mesher.Mesh()
+        m.add_stdnode(1, [0, 0.5, -1.2])
+        m.add_stdnode(2, [1, 0.5, -2.2])
+        m.add_element(1, ['L1'], [1, 2])
+        m.generate()
+        xi = numpy.array([[0.2], [0.6]])
+        x = m.elements[1].evaluate(xi)
+        npt.assert_almost_equal(x, 
+            [[0.2, 0.5, -1.4], [0.6, 0.5, -1.8]])
         
     def test_element_evaluate_2d_list_1pt(self):
         m = mesher.Mesh()
@@ -549,10 +959,10 @@ class TestElement(unittest.TestCase):
         m.add_stdnode(3, [0, 1, 0])
         m.add_stdnode(4, [1, 1, 1])
         m.add_element(1, ['L1', 'L1'], [1, 2, 3, 4])
-        m.generate()  
+        m.generate()
         x = m.elements[1].evaluate([0.2, 0.3])
         npt.assert_almost_equal(x, [0.2, 0.3, 0.2])
-    
+        
     def test_element_evaluate_2d_list_2pts(self):
         m = mesher.Mesh()
         m.add_stdnode(1, [0, 0, 0])
@@ -623,7 +1033,7 @@ class TestMesh(unittest.TestCase):
         mesh.add_element(1, ['L1'], [1, 2])
         mesh.generate()
         md = mesh._save_dict()
-        self.assertEqual(len(md), 7)
+        self.assertEqual(len(md), 9)
         self.assertEqual(md['_version'], mesh._version)
         self.assertTrue(md.has_key('_datetime'))
         self.assertEqual(md['label'], 'cube')
