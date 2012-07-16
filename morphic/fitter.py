@@ -380,7 +380,7 @@ class Fit:
             return scipy.sqrt(err_sqr_sum)
             
             
-    def optimize(self, mesh, Xd, ftol=1e-9, xtol=1e-9, output=True):
+    def optimize(self, mesh, Xd, ftol=1e-9, xtol=1e-9, maxiter=0, output=True):
         
         mesh.generate()
         
@@ -388,12 +388,14 @@ class Fit:
         
         x0 = mesh.get_variables()
         t0 = time.time()
-        x, success = scipy.optimize.leastsq(self.objfn, x0, args=[mesh, Xd, Td], ftol=ftol, xtol=xtol)
+        x, success = scipy.optimize.leastsq(self.objfn, x0,
+                args=[mesh, Xd, Td], ftol=ftol, xtol=xtol,
+                maxfev=maxiter)
         if output: print 'Fit Time: ', time.time()-t0
         mesh.set_variables(x)
         return mesh
     
-    def optimize2(self, mesh, data, ftol=1e-9, xtol=1e-9, output=True):
+    def optimize2(self, mesh, data, ftol=1e-9, xtol=1e-9, maxiter=0, output=True):
         
         mesh.generate()
         
@@ -402,7 +404,9 @@ class Fit:
         
         x0 = mesh.get_variables()
         t0 = time.time()
-        x, success = scipy.optimize.leastsq(self.objective_function, x0, args=[mesh, data], ftol=ftol, xtol=xtol)
+        x, success = scipy.optimize.leastsq(self.objective_function,
+                x0, args=[mesh, data], ftol=ftol, xtol=xtol,
+                maxfev=maxiter)
         if output: print 'Fit Time: ', time.time()-t0
         mesh.set_variables(x)
         mesh.update()
