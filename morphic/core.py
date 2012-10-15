@@ -296,6 +296,18 @@ class Core():
             ind += Nxi
         return X
     
+    def evaluates_weights(self, cids, Phi, X=None):
+        num_fields = len(self.EMap[cids[0]])
+        if X==None:
+            X = numpy.zeros((len(cids) * Phi.shape[0], num_fields))
+        Nxi = Phi.shape[0]
+        ind = 0
+        for cid in cids:
+            for i in range(num_fields):
+                X[ind:ind+Nxi, i] = numpy.dot(Phi, self.P[self.EMap[cid][i]])
+            ind += Nxi
+        return X
+    
     def evaluate_fields(self, cid, xi, fields):
         num_fields = len(fields)
         X = numpy.zeros((xi.shape[0], num_fields))

@@ -407,6 +407,7 @@ class Fit:
         x, success = scipy.optimize.leastsq(self.objective_function,
                 x0, args=[mesh, data], ftol=ftol, xtol=xtol,
                 maxfev=maxiter)
+                
         if output: print 'Fit Time: ', time.time()-t0
         mesh.set_variables(x)
         mesh.update()
