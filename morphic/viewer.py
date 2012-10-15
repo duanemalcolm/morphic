@@ -250,15 +250,22 @@ class Figure:
         self.figure = mlab.figure(figure, bgcolor=bgcolor)
         self.plots = {}
         
-    def clear(self, label):
+    def clear(self, label=None):
+        if label == None:
+            labels = self.plots.keys()
+        else:
+            labels = [label]
+            
         mlab.figure(self.figure.name)
-        mlab_obj = self.plots.get(label)
-        if mlab_obj != None:
-            if mlab_obj.name == 'Surface':
-                mlab_obj.parent.parent.parent.remove()
-            else:
-                mlab_obj.parent.parent.remove()
-            self.plots.pop(label)
+        
+        for label in labels:
+            mlab_obj = self.plots.get(label)
+            if mlab_obj != None:
+                if mlab_obj.name == 'Surface':
+                    mlab_obj.parent.parent.parent.remove()
+                else:
+                    mlab_obj.parent.parent.remove()
+                self.plots.pop(label)
     
     def plot_surfaces(self, label, X, T, scalars=None, color=None, rep='surface'):
         
@@ -294,6 +301,92 @@ class Figure:
                     self.plots[label] = mlab.triangular_mesh(X[:,0], X[:,1], X[:,2], T, scalars=scalars)
                 
             mlab.view(*view)
+            self.figure.scene.disable_render = False
+            
+    def plot_lines(self, label, X, color=None, size=0):
+        
+        nPoints = 0
+        for x in X:
+            nPoints += x.shape[0]
+        
+        Xl = scipy.zeros((nPoints, 3))
+        connections = []
+        
+        ind = 0
+        for x in X:
+            Xl[ind:ind+x.shape[0],:] = x
+            for l in range(x.shape[0]-1):
+                connections.append([ind + l, ind + l + 1])
+            ind += x.shape[0]
+        connections = scipy.array(connections)
+        
+        mlab.figure(self.figure.name)
+        
+        if color == None:
+            color = (1,0,0)
+        if size == None:
+            size = 1
+        
+        mlab_obj = self.plots.get(label)
+        if mlab_obj == None:
+            self.plots[label] = mlab.points3d(Xl[:,0], Xl[:,1], Xl[:,2], color=color, scale_factor=0)
+            self.plots[label].mlab_source.dataset.lines = connections
+            mlab.pipeline.surface(self.plots[label], color=(1, 1, 1),
+                              representation='wireframe',
+                              line_width=size,
+                              name='Connections')
+        else:
+            self.figure.scene.disable_render = True
+            self.clear(label)
+            self.plots[label] = mlab.points3d(Xl[:,0], Xl[:,1], Xl[:,2], color=color, scale_factor=0)
+            self.plots[label].mlab_source.dataset.lines = connections
+            #~ self.plots[label].mlab_source.update()
+            mlab.pipeline.surface(self.plots[label], color=color,
+                              representation='wireframe',
+                              line_width=size,
+                              name='Connections')
+            self.figure.scene.disable_render = False
+        
+            
+    def plot_lines2(self, label, X, scalars=None, color=None, size=0):
+        
+        mlab.figure(self.figure.name)
+        
+        if color == None:
+            color = (1,0,0)
+        
+        mlab_obj = self.plots.get(label)
+        if mlab_obj == None:
+            if scalars==None:
+                self.plots[label] = mlab.plot3d(X[:,0], X[:,1], X[:,2], color=color, tube_radius=size)
+            else:
+                self.plots[label] = mlab.plot3d(X[:,0], X[:,1], X[:,2], scalars, tube_radius=size)
+        
+        else:
+            self.figure.scene.disable_render = True
+            #~ view = mlab.view()
+            
+            #~ if X.shape[0] == mlab_obj.mlab_source.x.shape[0]:
+                #~ if scalars==None:
+                    #~ mlab_obj.mlab_source.set(x=X[:,0], y=X[:,1], z=X[:,2])
+                    #~ mlab_obj.actor.property.color = color
+                #~ else:
+                    #~ mlab_obj.mlab_source.set(x=X[:,0], y=X[:,1], z=X[:,2], scalars=scalars)
+                #~ 
+            #~ else:
+                #~ self.clear(label)
+                #~ if scalars==None:
+                    #~ self.plots[label] = mlab.plot3d(X[:,0], X[:,1], X[:,2], color=color, line_width=size)
+                #~ else:
+                    #~ self.plots[label] = mlab.plot3d(X[:,0], X[:,1], X[:,2], scalars, line_width=size)
+            
+            self.clear(label)
+            if scalars==None:
+                self.plots[label] = mlab.plot3d(X[:,0], X[:,1], X[:,2], color=color, tube_radius=size, reset_zoom=False)
+            else:
+                self.plots[label] = mlab.plot3d(X[:,0], X[:,1], X[:,2], scalars, tube_radius=size, reset_zoom=False)
+            
+            #~ mlab.view(*view)
             self.figure.scene.disable_render = False
             
     def plot_points(self, label, X, color=None, size=None, mode=None):

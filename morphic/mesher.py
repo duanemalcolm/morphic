@@ -993,7 +993,7 @@ class Mesh(object):
             Xl.append(self._core.evaluate(elem.cid, xi))
         return Xl
         
-    def get_surfaces(self, res=8, elements=None, groups=None):
+    def get_surfaces(self, res=8, elements=None, groups=None, include_xi=False):
         self.generate()
         
         if elements == None:
@@ -1020,19 +1020,26 @@ class Mesh(object):
                 
         X = numpy.zeros((NP, elem.nodes[0].num_fields))
         T = numpy.zeros((NT, 3), dtype='uint32')
+        if include_xi:
+            Xi = numpy.zeros((NP, 2))
         np, nt = 0, 0
         for elem in Elements:
             if elem.shape == 'tri':
                 X[np:np+NPT,:] = self._core.evaluate(elem.cid, XiT)
+                if include_xi:
+                    Xi[np:np+NPT,:] = XiT
                 T[nt:nt+NTT,:] = TT + np
                 np += NPT
                 nt += NTT
             elif elem.shape == 'quad':
                 X[np:np+NPQ,:] = self._core.evaluate(elem.cid, XiQ)
                 T[nt:nt+NTQ,:] = TQ + np
+                if include_xi:
+                    Xi[np:np+NPQ,:] = XiQ
                 np += NPQ
                 nt += NTQ
-                
+        if include_xi:
+            return X, T, Xi
         return X, T
         
         
