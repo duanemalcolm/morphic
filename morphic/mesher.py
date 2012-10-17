@@ -405,7 +405,10 @@ class Element(object):
     def grid(self, res=[8, 8]):
         return discretizer.xi_grid(
                 shape=self.shape, res=res, units='div')[0]
-                
+    
+    def get_field_cids(self, field_index):
+        return self.core.EMap[self.cid][field_index]
+
     def weights(self, xi, deriv=None):
         return self.mesh._core.weights(self.cid, xi, deriv=deriv)
     
