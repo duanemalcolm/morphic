@@ -28,19 +28,19 @@ class TestFastEval(unittest.TestCase):
         self.mesh.generate()
 
     def test_init_matrix(self):
-        fe = fasteval.Matrix((5, 3))
+        fe = fasteval.FEMatrix((5, 3))
         npt.assert_equal(fe.A.todense(), np.zeros((5,3)))
         npt.assert_equal(fe.rhs, np.zeros((3)))
 
     def test_add_mesh(self):
-        fe = fasteval.Matrix((5, 3))
+        fe = fasteval.FEMatrix((5, 3))
         fe.add_mesh(self.mesh)
         self.assertEqual(fe.mesh, self.mesh)
     
     def test_auto_increment_row_id(self):
         elem_id = 1
         xi = np.array([[0.1, 0.7]])
-        fe = fasteval.Matrix((3, 12))
+        fe = fasteval.FEMatrix((3, 12))
         fe.add_mesh(self.mesh)
         self.assertEqual(fe.row_id, 0)
         fe.add_element_point(elem_id, xi, 0)
@@ -63,7 +63,7 @@ class TestFastEval(unittest.TestCase):
         A = np.array([[0.27, 0, 0, 0.03, 0, 0, 0.63, 0, 0, 0.07, 0, 0]])
         
         # FastEval contrust
-        fe = fasteval.Matrix((1, 12))
+        fe = fasteval.FEMatrix((1, 12))
         fe.add_mesh(self.mesh)
         fe.add_element_point(elem_id, xi, 0)
         npt.assert_almost_equal(fe.A.toarray(), A)
@@ -79,7 +79,7 @@ class TestFastEval(unittest.TestCase):
         A = scalar * np.array([[0.27, 0, 0, 0.03, 0, 0, 0.63, 0, 0, 0.07, 0, 0]])
         
         # FastEval contrust
-        fe = fasteval.Matrix((1, 12))
+        fe = fasteval.FEMatrix((1, 12))
         fe.add_mesh(self.mesh)
         fe.add_element_point(elem_id, xi, 0, scalar=scalar)
         npt.assert_almost_equal(fe.A.toarray(), A)
@@ -94,7 +94,7 @@ class TestFastEval(unittest.TestCase):
             ])
         
         # FastEval construct
-        fe = fasteval.Matrix((3, 12))
+        fe = fasteval.FEMatrix((3, 12))
         fe.auto_increment_rows()
         fe.add_mesh(self.mesh)
         fe.add_element_point(elem_id, xi, 0)
@@ -117,7 +117,7 @@ class TestFastEval(unittest.TestCase):
             ])
         
         # FastEval construct
-        fe = fasteval.Matrix((3, 12))
+        fe = fasteval.FEMatrix((3, 12))
         fe.auto_increment_rows()
         fe.add_mesh(self.mesh)
         fe.add_element_point(elem_id, xi, 0, deriv=deriv)
@@ -142,7 +142,7 @@ class TestFastEval(unittest.TestCase):
             ])
         
         # FastEval construct
-        fe = fasteval.Matrix((3, 12))
+        fe = fasteval.FEMatrix((3, 12))
         fe.add_mesh(self.mesh)
         fe.add_element_point(elem_id, xi1, 0, scalar=-1)
         fe.add_element_point(elem_id, xi2, 0)

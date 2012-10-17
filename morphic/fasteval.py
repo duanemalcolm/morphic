@@ -1,7 +1,7 @@
 import scipy.sparse
 import numpy as np
 
-class Matrix(object):
+class FEMatrix(object):
     """
     Generates a sparse matrix from mesh nodes and element points.
     This can be used for fast matrix evaluations of mesh values,

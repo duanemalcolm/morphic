@@ -1,6 +1,6 @@
 from mesher import Mesh
 from fitter import Fit
-from fasteval import FastEval
+from fasteval import FEMatrix
 
 reload_modules = True
 if reload_modules:
