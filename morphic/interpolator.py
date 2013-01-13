@@ -39,8 +39,12 @@ def weights(basis, X, deriv=None):
         return W[0]
         
     WW = numpy.zeros((X.shape[0], len(BPInd)))
-    for ind, ii in enumerate(BPInd):
-        WW[:, ind] = W[0][:, ii[0]]* W[1][:, ii[1]]
+    if dimensions == 3:
+        for ind, ii in enumerate(BPInd):
+            WW[:, ind] = W[0][:, ii[0]] * W[1][:, ii[1]] * W[2][:, ii[2]]
+    else:
+        for ind, ii in enumerate(BPInd):
+            WW[:, ind] = W[0][:, ii[0]] * W[1][:, ii[1]]
     
     return WW
 
@@ -50,6 +54,7 @@ def _get_basis_product_indices(basis, dimensions, W):
     Returns the indicies for the product between the weights for each
     interpolant for basis functions.
     """
+    BPInd = None
     if dimensions == 1:
         return None
     elif dimensions == 2:
@@ -70,6 +75,37 @@ def _get_basis_product_indices(basis, dimensions, W):
                       [2, 2], [3, 2], [2, 3], [3, 3]]
             else:
                 raise ValueError('Basis combination not supported')
+    elif dimensions == 3:
+        if len(basis) == 3:
+            if (basis[0][0] == 'L' and basis[1][0] == 'L' and basis[2][0] == 'L'):
+                BPInd = []
+                for ind2 in range(W[2].shape[1]):
+                    for ind1 in range(W[1].shape[1]):
+                        for ind0 in range(W[0].shape[1]):
+                            BPInd.append([ind0, ind1, ind2])
+            elif basis == ['H3', 'H3', 'H3']:
+                BPInd = [
+                    [0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0],
+                    [0, 0, 1], [1, 0, 1], [0, 1, 1], [1, 1, 1],
+                    [2, 0, 0], [3, 0, 0], [2, 1, 0], [3, 1, 0],
+                    [2, 0, 1], [3, 0, 1], [2, 1, 1], [3, 1, 1],
+                    [0, 2, 0], [1, 2, 0], [0, 3, 0], [1, 3, 0],
+                    [0, 2, 1], [1, 2, 1], [0, 3, 1], [1, 3, 1],
+                    [2, 2, 0], [3, 2, 0], [2, 3, 0], [3, 3, 0],
+                    [2, 2, 1], [3, 2, 1], [2, 3, 1], [3, 3, 1],
+                    
+                    [0, 0, 2], [1, 0, 2], [0, 1, 2], [1, 1, 2],
+                    [0, 0, 3], [1, 0, 3], [0, 1, 3], [1, 1, 3],
+                    [2, 0, 2], [3, 0, 2], [2, 1, 2], [3, 1, 2],
+                    [2, 0, 3], [3, 0, 3], [2, 1, 3], [3, 1, 3],
+                    [0, 2, 2], [1, 2, 2], [0, 3, 2], [1, 3, 2],
+                    [0, 2, 3], [1, 2, 3], [0, 3, 3], [1, 3, 3],
+                    [2, 2, 2], [3, 2, 2], [2, 3, 2], [3, 3, 2],
+                    [2, 2, 3], [3, 2, 3], [2, 3, 3], [3, 3, 3]]
+            else:
+                raise ValueError('Basis combination not supported')
+        else:
+            raise ValueError('Basis combination not supported')
     else:
         raise ValueError('%d dimensions not supported' % (len(basis)))
         
@@ -158,7 +194,7 @@ def _process_x(X, dimensions):
             'X dimensions does not match the number of basis')
     
     return X
-    
+
 # Lagrange basis functions
 def L1(x):
     """

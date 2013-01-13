@@ -329,10 +329,11 @@ class PCANode(Node):
         self.variance_id = node_dict['variance_id'] 
         self._initialise(True)
         
-    
+        
 class Element(object):
 
     def __init__(self, mesh, uid, interp, node_ids):
+        self._type = 'element'
         self.mesh = mesh 
         self.core = mesh._core 
         self.interp = interp 
@@ -379,6 +380,7 @@ class Element(object):
         self.shape = elem_dict['shape']
         self._set_shape()
         
+        
     def _get_param_indicies(self):
         PI = None
         for node in self:
@@ -391,8 +393,13 @@ class Element(object):
             for i, pi in enumerate(npi):
                 PI[i].extend(pi)
         
-        return PI
+        PI = self._filter_face_param_indices(PI)
         
+        return PI
+    
+    def _filter_face_param_indices(self, PI):
+        return PI
+    
     def add_to_group(self, groups):
         if not isinstance(groups, list):
             groups = [groups]
@@ -537,7 +544,65 @@ class Element(object):
         
     def __iter__(self):
         return self.nodes.__iter__()
+
+
+class ElFace(Element):
+    '''
+    .. autoclass:: morphic.mesher.Element
+    '''
+    
+    def __init__(self, mesh, uid, interp, nodes, element=None, face_index=0):
+        Element.__init__(self, mesh, uid, interp, nodes)
+        self._type = 'face'
+        self.element_count = 0
+        self.element_ids = []
+        self.face_index = face_index
+        if element != None:
+            self.add_element(element)
+    
+    def add_element(self, element):
+        self.element_ids.append(element)
+        self.element_count = len(self.element_ids)
+    
+    def _filter_face_param_indices(self, PI):
+        basis = self.interp
+        PIout = PI
+        if self.interp == ['H3', 'H3']:
+            
+            if self.face_index in [0, 1]:
+                filter_index = [0, 1, 2, 3, 8, 9, 10, 11, 16, 17, 18, 19, 24, 25, 26, 27]
+            elif self.face_index in [2, 3]:
+                filter_index = [0, 1, 4, 5, 8, 9, 12, 13, 16, 17, 20, 21, 24, 25, 28, 29]
+            elif self.face_index in [4, 5]:
+                filter_index = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]
+            
+            PIout = []
+            for pi in PI:
+                PIout.append([pi[i] for i in filter_index])
+            
+        return PIout
+
+class Face(object):
+    
+    def __init__(self, mesh, uid):
+        self.id = uid
+        self.mesh = mesh
+        self.element_faces = []
+        self.shape = 'quad'
         
+    def add_element(self, element_id, face_index=0):
+        element_face = [element_id, face_index]
+        if element_face not in self.element_faces:
+            self.element_faces.append(element_face)
+    
+    @property
+    def nodes(self):
+        return self.mesh.nodes[self.node_ids]
+        
+    @nodes.setter
+    def nodes(self, nodes):
+        self.node_ids = [node.id for node in nodes]
+    
     
 class Mesh(object):
     '''
@@ -647,10 +712,13 @@ class Mesh(object):
         self.units = units
         self.nodes = core.ObjectList()
         self.elements = core.ObjectList()
+        self.faces = core.ObjectList()
         
         self._core = core.Core()
         self._regenerate = True
         self._reupdate = True
+        
+        self.auto_add_faces = False;
         
         self.filepath = filepath
         if filepath != None:
@@ -760,7 +828,46 @@ class Mesh(object):
             node_ids = node_ids.tolist()
         elem = Element(self, uid, interp, node_ids)
         self.elements.add(elem, group=group)
+        # if self.auto_add_faces:
+        #     if core.dimensions(elem.interp) > 1:
+        #         Basis, Nodes = core.element_face_nodes(
+        #                 elem.interp, elem.node_ids)
+        #         face_index = 0
+        #         for basis, nodes in zip(Basis, Nodes):
+        #             self.add_face(basis, nodes, element=elem.id, face_index=0)
+        #             face_index += 1
+                    
+        if self.auto_add_faces:
+            if core.dimensions(elem.interp) == 2:
+                self.add_face(elem.id, 0, elem.node_ids)
+            elif core.dimensions(elem.interp) == 3:
+                face_nodes = core.element_face_nodes(elem.interp, elem.node_ids)
+                for face_index in range(6):
+                    self.add_face(elem.id, face_index, face_nodes[face_index])
+            
         return elem
+        
+    def add_face(self, element, face_index=0, nodes=None):
+        '''
+        Adds a face to the mesh, typically used to store element faces
+        for graphics
+        - basis: the intepolation functions in each dimension
+            e.g., ['L2', 'H3']
+        - nodes: the node indices for the face
+        - face index: the face position on a cube, range [0:7]
+        '''
+        if nodes == None:
+            nodes = core.element_face_nodes(elem.interp, elem.node_ids)[face_index]
+        sorted_nodes = [n for n in nodes]
+        sorted_nodes.sort()
+        face_id = '_' + '_'.join([str(i) for i in sorted_nodes])
+        if face_id not in self.faces:
+            face = Face(self, face_id)
+            self.faces.add(face)
+        else:
+            face = self.faces[face_id]
+        face.add_element(element, face_index)
+        return face
     
     def groups(self, group_type=None):
         if group_type == None:
@@ -773,9 +880,7 @@ class Mesh(object):
             return {'elements':[k for k in self.elements.groups.keys()]}
 
         return None
-            
-            
-    
+        
     def _save_dict(self):
         import datetime
         mesh_dict = {}
@@ -1036,6 +1141,75 @@ class Mesh(object):
                 nt += NTT
             elif elem.shape == 'quad':
                 X[np:np+NPQ,:] = self._core.evaluate(elem.cid, XiQ)
+                T[nt:nt+NTQ,:] = TQ + np
+                if include_xi:
+                    Xi[np:np+NPQ,:] = XiQ
+                np += NPQ
+                nt += NTQ
+        if include_xi:
+            return X, T, Xi
+        return X, T
+        
+    def get_faces(self, res=8, exterior_only=True, include_xi=False):
+        self.generate()
+        
+        if exterior_only:
+            Faces = [face for face in self.faces if len(face.element_faces) == 1]
+        else:
+            Faces = self.faces
+        
+        XiT, TT = discretizer.xi_grid(shape='tri', res=res)
+        XiQ, TQ = discretizer.xi_grid(shape='quad', res=res)
+        NPT, NTT = XiT.shape[0], TT.shape[0]
+        NPQ, NTQ = XiQ.shape[0], TQ.shape[0]
+        
+        XiQ0 = numpy.zeros(NPQ)
+        XiQ1 = numpy.ones(NPQ)
+        
+        NP, NT = 0, 0
+        for face in Faces:
+            if face.shape == 'tri':
+                NP += NPT
+                NT += NTT
+            elif face.shape == 'quad':
+                NP += NPQ
+                NT += NTQ
+                
+        X = numpy.zeros((NP, 3))#######TODO#####face.nodes[0].num_fields))
+        T = numpy.zeros((NT, 3), dtype='uint32')
+        if include_xi:
+            Xi = numpy.zeros((NP, 2))
+        np, nt = 0, 0
+        for face in Faces:
+            if face.shape == 'tri':
+                X[np:np+NPT,:] = self._core.evaluate(face.cid, XiT)
+                if include_xi:
+                    Xi[np:np+NPT,:] = XiT
+                T[nt:nt+NTT,:] = TT + np
+                np += NPT
+                nt += NTT
+            elif face.shape == 'quad':
+                elem = self.elements[face.element_faces[0][0]]
+                face_index = face.element_faces[0][1]
+                if face_index == 0:
+                    X[np:np+NPQ,:] = self._core.evaluate(elem.cid,
+                        numpy.array([XiQ[:,0], XiQ[:,1], XiQ0]).T)
+                elif face_index == 1:
+                    X[np:np+NPQ,:] = self._core.evaluate(elem.cid,
+                        numpy.array([XiQ[:,0], XiQ[:,1], XiQ1]).T)
+                elif face_index == 2:
+                    X[np:np+NPQ,:] = self._core.evaluate(elem.cid,
+                        numpy.array([XiQ[:,0], XiQ0, XiQ[:,1]]).T)
+                elif face_index == 3:
+                    X[np:np+NPQ,:] = self._core.evaluate(elem.cid,
+                        numpy.array([XiQ[:,0], XiQ1, XiQ[:,1]]).T)
+                elif face_index == 4:
+                    X[np:np+NPQ,:] = self._core.evaluate(elem.cid,
+                        numpy.array([XiQ0, XiQ[:,0], XiQ[:,1]]).T)
+                elif face_index == 5:
+                    X[np:np+NPQ,:] = self._core.evaluate(elem.cid,
+                        numpy.array([XiQ1, XiQ[:,0], XiQ[:,1]]).T)
+                    
                 T[nt:nt+NTQ,:] = TQ + np
                 if include_xi:
                     Xi[np:np+NPQ,:] = XiQ

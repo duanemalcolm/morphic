@@ -249,6 +249,7 @@ class Figure:
     def __init__(self, figure='Default', bgcolor=(.5,.5,.5)):
         self.figure = mlab.figure(figure, bgcolor=bgcolor)
         self.plots = {}
+        print locals()
         
     def clear(self, label=None):
         if label == None:
@@ -267,7 +268,7 @@ class Figure:
                     mlab_obj.parent.parent.remove()
                 self.plots.pop(label)
     
-    def plot_surfaces(self, label, X, T, scalars=None, color=None, rep='surface'):
+    def plot_surfaces(self, label, X, T, scalars=None, color=None, rep='surface', opacity=1.0):
         
         mlab.figure(self.figure.name)
         
@@ -277,9 +278,9 @@ class Figure:
         mlab_obj = self.plots.get(label)
         if mlab_obj == None:
             if scalars==None:
-                self.plots[label] = mlab.triangular_mesh(X[:,0], X[:,1], X[:,2], T, color=color, representation=rep)
+                self.plots[label] = mlab.triangular_mesh(X[:,0], X[:,1], X[:,2], T, color=color, opacity=opacity, representation=rep)
             else:
-                self.plots[label] = mlab.triangular_mesh(X[:,0], X[:,1], X[:,2], T, scalars=scalars)
+                self.plots[label] = mlab.triangular_mesh(X[:,0], X[:,1], X[:,2], T, scalars=scalars, opacity=opacity)
         
         else:
             self.figure.scene.disable_render = True
@@ -289,16 +290,17 @@ class Figure:
                 if scalars==None:
                     mlab_obj.mlab_source.set(x=X[:,0], y=X[:,1], z=X[:,2])
                     mlab_obj.actor.property.color = color
+                    mlab_obj.actor.property.opacity = opacity
                 else:
-                    mlab_obj.mlab_source.set(x=X[:,0], y=X[:,1], z=X[:,2], scalars=scalars)
+                    mlab_obj.mlab_source.set(x=X[:,0], y=X[:,1], z=X[:,2], scalars=scalars, opacity=opacity)
                 
                 
             else:
                 self.clear(label)
                 if scalars==None:
-                    self.plots[label] = mlab.triangular_mesh(X[:,0], X[:,1], X[:,2], T, color=color, representation=rep)
+                    self.plots[label] = mlab.triangular_mesh(X[:,0], X[:,1], X[:,2], T, color=color, opacity=opacity, representation=rep)
                 else:
-                    self.plots[label] = mlab.triangular_mesh(X[:,0], X[:,1], X[:,2], T, scalars=scalars)
+                    self.plots[label] = mlab.triangular_mesh(X[:,0], X[:,1], X[:,2], T, scalars=scalars, opacity=opacity)
                 
             mlab.view(*view)
             self.figure.scene.disable_render = False
@@ -396,7 +398,7 @@ class Figure:
         if color==None:
             color=(1,0,0)
         
-        if size == None and mode == None:
+        if size == None and mode == None or size == 0:
             size = 1
             mode = 'point'
         if size == None:
