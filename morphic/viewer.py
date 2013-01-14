@@ -249,7 +249,6 @@ class Figure:
     def __init__(self, figure='Default', bgcolor=(.5,.5,.5)):
         self.figure = mlab.figure(figure, bgcolor=bgcolor)
         self.plots = {}
-        print locals()
         
     def clear(self, label=None):
         if label == None:

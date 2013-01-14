@@ -31,6 +31,7 @@ import numpy
 
 import core
 import discretizer
+import utils
 
 class Values(numpy.ndarray):
     '''
@@ -337,7 +338,8 @@ class Element(object):
         self.mesh = mesh 
         self.core = mesh._core 
         self.interp = interp 
-        self.basis = interp 
+        self.basis = interp
+        self.dimensions = utils.element_dimensions(interp)
         self.id = uid
         self.node_ids = node_ids
         self.cid = None
