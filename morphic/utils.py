@@ -2,6 +2,23 @@ import numpy
 import morphic
 from scipy.spatial import cKDTree
 
+def grid(divs=10, dims=2):
+    if isinstance(divs, int):
+        divs = [divs for i in range(dims)]
+    if dims == 1:
+        return numpy.linspace(0, 1, divs[0]+1)
+    elif dims == 2:
+        Xi = numpy.mgrid[0:divs[1]+1, 0:divs[2]+1]
+        return numpy.array([
+            Xi[1, :].flatten() * (1./divs[0]),
+            Xi[0, :].flatten() * (1./divs[1])]).T
+    elif dims == 3:
+        Xi = numpy.mgrid[0:divs[2]+1, 0:divs[1]+1, 0:divs[0]+1]
+        return numpy.array([
+            Xi[2, :].flatten() * (1./divs[0]),
+            Xi[1, :].flatten() * (1./divs[1]),
+            Xi[0, :].flatten() * (1./divs[2])]).T
+
 def element_dimensions(basis):
     dimensions = 0
     for base in basis:
@@ -86,4 +103,34 @@ def convert_hermite_lagrange(cHmesh, tol=1e-9):
     return mesh
     
     
+#################
+### GEOMETRIC ###
+#################
+
+def length(v):
+    """
+    Calculates the length of a vector (v)
+    """
+    return numpy.sqrt((v * v).sum())
+
+def vector(x1, x2, normalize=False):
+    """
+    Calculates a vector from two points and normalizes if normalize=True
+    """
+    v = numpy.array(x2) - numpy.array(x1)
+    if normalize:
+        return v / length(v)
+    return v
+
+def dot(v1, v2, normalize=False):
+    """
+    Calculates the dot product of two vectors and normalizes if normalize=True
+    """
+    pass
+
+def normal(v1, v2, normalize=False):
+    """
+    Calculates the normal of two vectors and normalizes if normalize=True
+    """
+    pass
     

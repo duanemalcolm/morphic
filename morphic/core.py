@@ -263,16 +263,31 @@ class Core():
         if isinstance(ng, int):
             return self.gauss_points.get(ng)
         elif isinstance(ng, list):
-            if len(ng) > 2:
-                raise Exception('Gauss points for 3 dimensions' +
+            if len(ng) > 3:
+                raise Exception('Gauss points for 4 dimensions' +
                         'and above not supported')
-            Xi1, W1 = self.get_gauss_points(ng[0])
-            Xi2, W2 = self.get_gauss_points(ng[1])
-            Xi1g, Xi2g = numpy.meshgrid(Xi1.flatten(), Xi2.flatten())
-            Xi1 = numpy.array([Xi1g.flatten(), Xi2g.flatten()]).T
-            W1g, W2g = numpy.meshgrid(W1.flatten(), W2.flatten())
-            W1 = W1g.flatten() * W2g.flatten()
-            return Xi1, W1
+            if len(ng) == 2:
+                Xi1, W1 = self.get_gauss_points(ng[0])
+                Xi2, W2 = self.get_gauss_points(ng[1])
+                Xi1g, Xi2g = numpy.meshgrid(Xi1.flatten(), Xi2.flatten())
+                Xi1 = numpy.array([Xi1g.flatten(), Xi2g.flatten()]).T
+                W1g, W2g = numpy.meshgrid(W1.flatten(), W2.flatten())
+                W1 = W1g.flatten() * W2g.flatten()
+                return Xi1, W1
+            elif len(ng) == 3:
+                Xi1, W1 = self.get_gauss_points(ng[0])
+                Xi2, W2 = self.get_gauss_points(ng[1])
+                Xi3, W3 = self.get_gauss_points(ng[2])
+                gindex = numpy.mgrid[0:ng[0], 0:ng[1], 0:ng[2]]
+                gindex = numpy.array([
+                    gindex[2, :, :].flatten(),
+                    gindex[1, :, :].flatten(),
+                    gindex[0, :, :].flatten()]).T
+                Xi = numpy.array([
+                    Xi1[gindex[:,0]], Xi2[gindex[:,1]], Xi3[gindex[:,2]]])[:,:,0].T
+                W = numpy.array([
+                    W1[gindex[:,0]], W2[gindex[:,1]], W3[gindex[:,2,]]]).T.prod(1)
+                return Xi, W
             
         raise Exception('Invalid number of gauss points')
         return None, None    
@@ -287,17 +302,6 @@ class Core():
             self.EMap.append(elem._get_param_indicies())
             elem.set_core_id(cid)
             cid += 1
-            
-        ###############################
-        ### THIS COULD CAUSE ISSUES ###
-        ### MAYBE CREATE A FACE MAP ###
-        ### INSTEAD OF USING EMAP   ###
-        ###############################
-        # for face in mesh.faces:
-        #     self.EFn.append(face.interp)
-        #     self.EMap.append(face._get_param_indicies())
-        #     face.set_core_id(cid)
-        #     cid += 1
     
     def generate_dependent_node_map(self, mesh):
         self.DNMap = []

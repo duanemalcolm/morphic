@@ -29,6 +29,8 @@ import os
 import sys
 import numpy
 
+from scipy import linalg
+
 import core
 import discretizer
 import utils
@@ -359,12 +361,18 @@ class Element(object):
     
     def _set_shape(self):
         if self.interp:
-            if len(self.interp) == 1:
+            dimensions = utils.element_dimensions(self.interp)
+            if dimensions == 1:
                 self.shape = 'line'
-            else:
+            elif dimensions == 2:
                 self.shape = 'quad'
-            if self.interp[0][0] == 'T':
-                self.shape = 'tri'
+                if self.interp[0][0] == 'T':
+                    self.shape = 'tri'
+            elif dimensions == 3:
+                self.shape = 'hexagonal'
+            else:
+                raise NotImplementedError('Cannot set shape for dimensions'
+                    + ' higher than 3')
     
     def _save_dict(self):
         elem_dict = {}
@@ -457,22 +465,6 @@ class Element(object):
                             self.cid, xi, deriv=deriv)
         
     
-    def integrate2(self, fields, method='trapezoidal', divs=10, func=None):
-        '''
-        Implementation if trapezoidal integration in 1D. Was supposed to
-        be an alternative to gaussian quadrature.
-        '''
-        xi = numpy.linspace(0, 1, divs+1)
-        t = numpy.array([numpy.linspace(0, 1, divs+1)]).T
-        dxi = xi[1] - xi[0]
-        values = self.evaluate(xi)
-        if func is not None:
-            values = func(values[:,fields])
-            integral = 0.5 * dxi * (values[0:-1] + values[1:])
-        else:
-            integral = 0.5 * dxi * (values[0:-1, fields] + values[1:, fields])
-        return integral.sum(0)
-        
     def integrate(self, fields, func=None, ng=4):
         '''
         Integration using gaussian quadrature.
@@ -500,14 +492,80 @@ class Element(object):
             if func is not None:
                 X = func(X)
             integral = numpy.dot(W, X)
-        else:
+        elif self.shape in ['quad', 'tri']:
             Xi, W = self.core.get_gauss_points([ng, ng])
             X = self.mesh._core.evaluate_fields(self.cid, Xi, fields)
             if func is not None:
                 X = func(X)
             integral = numpy.dot(W, X)
+        elif self.shape is 'hexagonal':
+            Xi, W = self.core.get_gauss_points([ng, ng, ng])
+            X = self.mesh._core.evaluate_fields(self.cid, Xi, fields)
+            if func is not None:
+                X = func(X)
+            integral = numpy.dot(W, X)
+        else:
+            raise ValueError('Unknown element shape for integral.')
             
         return integral
+    
+    def length(self, ng=None):
+        
+        def _length_integral(X):
+            return numpy.sqrt((X**2).sum(1))
+            
+        if self.shape is 'line':
+            fields = []
+            for i in range(self.num_fields):
+                fields.append([i, 1])
+            return self.integrate(fields, func=_length_integral, ng=4)
+        else:
+            raise TypeError('You can only calculate the length '
+                + 'of a 1D element.')
+            
+    def area(self, ng=None):
+        
+        def _area_integral(X):
+            A = []
+            for x in X:
+                x = x.reshape((2, x.size/2))
+                c = numpy.cross(x[0], x[1])
+                A.append(numpy.sqrt((c * c).sum()))
+            return A
+            
+        if self.shape is 'quad':
+            fields = []
+            for i in range(self.num_fields):
+                fields.append([i, 1, 0])
+                fields.append([i, 0, 1])
+            return self.integrate(fields, func=_area_integral, ng=4)
+        else:
+            raise TypeError('You can only calculate the area '
+                + 'of a 2D quad element. Triangles not implemented.')
+    
+    def volume(self, ng=None):
+        
+        def _volume_integral0(X):
+            V = []
+            for x in X:
+                V.append(linalg.det(x.reshape((3, x.size/3))))
+            return V
+            
+        def _volume_integral(X):
+            V = X[:,0] * (X[:,4] * X[:,8] - X[:,5] * X[:,7]) - X[:,1] * (X[:,3] * X[:,8] - X[:,5] * X[:,6]) + X[:,2] * (X[:,3] * X[:,7] - X[:,4] * X[:,6])
+            return V
+            
+        if self.shape is 'hexagonal':
+            fields = []
+            for i in range(self.num_fields):
+                fields.append([i, 1, 0, 0])
+                fields.append([i, 0, 1, 0])
+                fields.append([i, 0, 0, 1])
+            return abs(self.integrate(fields, func=_volume_integral, ng=3))
+        else:
+            raise TypeError('You can only calculate the area '
+                + 'of a 3D hexagonal element. Triangles not implemented.')
+    
     
     def normal(self, Xi):
         '''

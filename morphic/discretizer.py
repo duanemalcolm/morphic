@@ -1,4 +1,4 @@
-import numpy
+import numpy    
 
 def xi_grid(shape='quad', res=[8, 8], units='div', method='fit'):
     
