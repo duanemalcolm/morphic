@@ -13,6 +13,7 @@ class FEMatrix(object):
         self.row_id = 0
         self._auto_increment_row_id = False
         self.A = scipy.sparse.dok_matrix(shape)
+        self.rhs = np.zeros(shape[1])
     
     def tocsr(self):
         self.A = self.A.tocsr()

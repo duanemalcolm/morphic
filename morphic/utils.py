@@ -20,6 +20,8 @@ def grid(divs=10, dims=2):
             Xi[0, :].flatten() * (1./divs[2])]).T
 
 def element_dimensions(basis):
+    if basis == None:
+        return None
     dimensions = 0
     for base in basis:
         if base[0] == 'T':
@@ -29,6 +31,9 @@ def element_dimensions(basis):
     return dimensions
 
 def convert_hermite_lagrange(cHmesh, tol=1e-9):
+    if isinstance(cHmesh, str):
+        cHmesh = morphic.Mesh(cHmesh)
+    
     Xi3d = numpy.mgrid[0:4, 0:4, 0:4] * (1./3.)
     Xi3d = numpy.array([Xi3d[2, :, :].flatten(),
             Xi3d[1, :, :].flatten(), Xi3d[0, :, :].flatten()]).T
@@ -54,7 +59,8 @@ def convert_hermite_lagrange(cHmesh, tol=1e-9):
     for element in cHmesh.elements:
         element_nodes = []
         tree = cKDTree(X)
-        if element.dimensions == 1:
+        dims = element_dimensions(element.interp)
+        if dims == 1:
             print "1D element conversion unchecked"
             Xg = element.evaluate(Xi1d)
             for xg in Xg:
@@ -68,7 +74,7 @@ def convert_hermite_lagrange(cHmesh, tol=1e-9):
                     element_nodes.append(index + 1)
             eid += 1
             mesh.add_element(eid, ['L3'], element_nodes)
-        elif element.dimensions == 2:
+        elif dims == 2:
             print "2D element conversion unchecked"
             Xg = element.evaluate(Xi2d)
             for xg in Xg:
@@ -82,7 +88,7 @@ def convert_hermite_lagrange(cHmesh, tol=1e-9):
                     element_nodes.append(index + 1)
             eid += 1
             mesh.add_element(eid, ['L3', 'L3'], element_nodes)
-        elif element.dimensions == 3:
+        elif dims == 3:
             Xg = element.evaluate(Xi3d)
             for xg in Xg:
                 r, index = tree.query(xg.tolist())

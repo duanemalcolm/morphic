@@ -23,7 +23,7 @@ def element_face_nodes(basis, node_ids):
     if dims is 1:
         return None
     elif dims is 2:
-        return basis, node_ids
+        return node_ids
     elif dims is 3:
         shape = []
         for base in basis:
@@ -38,13 +38,13 @@ def element_face_nodes(basis, node_ids):
     else:
         raise ValueError('Dimensions >3 is not supported')
     
-    face_basis = []
-    face_basis.append([basis[0], basis[1]])
-    face_basis.append([basis[0], basis[1]])
-    face_basis.append([basis[0], basis[2]])
-    face_basis.append([basis[0], basis[2]])
-    face_basis.append([basis[1], basis[2]])
-    face_basis.append([basis[1], basis[2]])
+    # face_basis = []
+    # face_basis.append([basis[0], basis[1]])
+    # face_basis.append([basis[0], basis[1]])
+    # face_basis.append([basis[0], basis[2]])
+    # face_basis.append([basis[0], basis[2]])
+    # face_basis.append([basis[1], basis[2]])
+    # face_basis.append([basis[1], basis[2]])
     
     shape.reverse()
     nids = numpy.array(node_ids).reshape(shape)

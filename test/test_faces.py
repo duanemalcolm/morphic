@@ -126,30 +126,24 @@ class TestFace(unittest.TestCase):
     
     def test_add_face_to_mesh(self):
         mesh = morphic.Mesh()
-        face = mesh.add_face(['L1', 'L1'], [7, 3, 22, 2], element=3)
-        face = mesh.add_face(['L1', 'L2'], [5, 15, 22, 2, 7, 4], element=6)
+        face = mesh.add_face(3, 1, [7, 3, 22, 2])
+        face = mesh.add_face(6, 3, [5, 15, 22, 2, 7, 4])
         self.assertEqual(len(mesh.faces.keys()), 2)
         self.assertTrue('_2_3_7_22' in mesh.faces.keys())
         self.assertTrue('_2_4_5_7_15_22' in mesh.faces.keys())
         face = mesh.faces['_2_3_7_22']
-        # self.assertEqual(face.interp, ['L1', 'L1'])
-        # self.assertEqual(face.node_ids, [7, 3, 22, 2])
-        # self.assertEqual(face.element_ids, [3])
+        self.assertEqual(face.element_faces, [[3, 1]])
         face = mesh.faces['_2_4_5_7_15_22']
-        # self.assertEqual(face.interp, ['L1', 'L2'])
-        # self.assertEqual(face.node_ids, [5, 15, 22, 2, 7, 4])
-        # self.assertEqual(face.element_ids, [6])
+        self.assertEqual(face.element_faces, [[6, 3]])
         
     def test_add_duplicate_face_to_mesh(self):
         mesh = morphic.Mesh()
-        face = mesh.add_face(1, 0)
-        face = mesh.add_face(1, 0)
+        face = mesh.add_face(1, 1, [3, 2, 22, 7])
+        face = mesh.add_face(2, 4, [22, 3, 7, 2])
         self.assertEqual(len(mesh.faces.keys()), 1)
-        self.assertTrue('_2_3_7_22' in mesh.core.keys())
+        self.assertTrue('_2_3_7_22' in mesh.faces.keys())
         face = mesh.faces['_2_3_7_22']
-        # self.assertEqual(face.interp, ['L1', 'L1'])
-        # self.assertEqual(face.node_ids, [7, 3, 22, 2])
-        # self.assertEqual(face.element_ids, [3, 6])
+        self.assertEqual(face.element_faces, [[1, 1], [2, 4]])
     
 if __name__ == "__main__":
     unittest.main()

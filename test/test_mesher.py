@@ -27,15 +27,15 @@ class TestElementIntegration(unittest.TestCase):
         mesh.add_stdnode(2, [2, 3, -0.4, -0.2, 1])
         mesh.add_element(1, ['L1'], [1, 2])
         mesh.generate()
-        integral = mesh.elements[1].integrate2(0)
+        integral = mesh.elements[1].integrate([[0,0]])
         self.assertAlmostEqual(integral, 1.05)
-        integral = mesh.elements[1].integrate2([1], divs=20)
+        integral = mesh.elements[1].integrate([[1,0]])
         self.assertAlmostEqual(integral, 1.6)
-        integral = mesh.elements[1].integrate2(2)
+        integral = mesh.elements[1].integrate([[2,0]])
         self.assertAlmostEqual(integral, -0.05)
-        integral = mesh.elements[1].integrate2(3, divs=1)
+        integral = mesh.elements[1].integrate([[3,0]])
         self.assertAlmostEqual(integral, -0.2)
-        integral = mesh.elements[1].integrate2(4, divs=1)
+        integral = mesh.elements[1].integrate([[4,0]])
         self.assertAlmostEqual(integral, 0.7)
     
     def test_trapeziodal_1D_L1_fields(self):
@@ -44,7 +44,7 @@ class TestElementIntegration(unittest.TestCase):
         mesh.add_stdnode(2, [2, 3, -0.4, -0.2, 1])
         mesh.add_element(1, ['L1'], [1, 2])
         mesh.generate()
-        integral = mesh.elements[1].integrate2([1, 3])
+        integral = mesh.elements[1].integrate([[1,0], [3,0]])
         npt.assert_almost_equal(integral, [1.6, -0.2])
     
     def test_trapeziodal_1D_L1_func(self):
@@ -56,7 +56,7 @@ class TestElementIntegration(unittest.TestCase):
         mesh.add_stdnode(2, [2, 3, -0.4, -0.2, 1])
         mesh.add_element(1, ['L1'], [1, 2])
         mesh.generate()
-        integral = mesh.elements[1].integrate2([1, 3], func=mag)
+        integral = mesh.elements[1].integrate([[1,0], [3,0]], func=mag)
         npt.assert_almost_equal(integral, 1.61862, decimal=2)
     
     def test_trapeziodal_1D_L3_fields(self):
@@ -73,13 +73,12 @@ class TestElementIntegration(unittest.TestCase):
         X = mesh.elements[1].evaluate(Xi)
         dX = 0.5 * dxi * (X[1:,:] + X[:-1,:])
         L = dX.sum(0)
-        
-        integral = mesh.elements[1].integrate2(0, divs=100)
-        self.assertAlmostEqual(integral, L[0])
-        integral = mesh.elements[1].integrate2([1], divs=100)
-        self.assertAlmostEqual(integral, L[1])
-        integral = mesh.elements[1].integrate2([0, 1], divs=100)
-        npt.assert_almost_equal(integral, L)
+        integral = mesh.elements[1].integrate([[0,0]])
+        npt.assert_almost_equal(integral[0], L[0], decimal=2)
+        integral = mesh.elements[1].integrate([[1,0]])
+        npt.assert_almost_equal(integral[0], L[1], decimal=2)
+        integral = mesh.elements[1].integrate([[0,0], [1,0]])
+        npt.assert_almost_equal(integral, L, decimal=2)
     
     def test_trapeziodal_1D_L3_func(self):
         def mag1(x):
@@ -105,10 +104,10 @@ class TestElementIntegration(unittest.TestCase):
         XX2 = numpy.sqrt(XX.sum(1))
         L2 = (0.5 * dxi * (XX2[1:] + XX2[:-1])).sum(0)
         
-        integral = mesh.elements[1].integrate2([0, 1], func=mag1, divs=100)
-        npt.assert_almost_equal(integral, L1)
-        integral = mesh.elements[1].integrate2([0, 1], func=mag2, divs=100)
-        npt.assert_almost_equal(integral, L2)
+        integral = mesh.elements[1].integrate([[0,0], [1,0]], func=mag1)
+        npt.assert_almost_equal(integral, L1, decimal=2)
+        integral = mesh.elements[1].integrate([[0,0], [1,0]], func=mag2)
+        npt.assert_almost_equal(integral, L2, decimal=2)
     
     def test_gauss_quadrature_1D_L1_fields(self):
         mesh = mesher.Mesh()

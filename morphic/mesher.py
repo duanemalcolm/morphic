@@ -361,14 +361,15 @@ class Element(object):
     
     def _set_shape(self):
         if self.interp:
-            dimensions = utils.element_dimensions(self.interp)
-            if dimensions == 1:
+            if self.dimensions == None:
+                pass
+            elif self.dimensions == 1:
                 self.shape = 'line'
-            elif dimensions == 2:
+            elif self.dimensions == 2:
                 self.shape = 'quad'
                 if self.interp[0][0] == 'T':
                     self.shape = 'tri'
-            elif dimensions == 3:
+            elif self.dimensions == 3:
                 self.shape = 'hexagonal'
             else:
                 raise NotImplementedError('Cannot set shape for dimensions'
@@ -418,7 +419,15 @@ class Element(object):
         
     def set_core_id(self, cid):
         self.cid = cid
-        
+    
+    def add_faces(self):
+        if utils.element_dimensions(self.interp) == 2:
+            self.mesh.add_face(self.id, 0, self.node_ids)
+        elif utils.element_dimensions(self.interp) == 3:
+            face_nodes = core.element_face_nodes(self.interp, self.node_ids)
+            for face_index in range(6):
+                self.mesh.add_face(self.id, face_index, face_nodes[face_index])
+    
     def grid(self, res=[8, 8]):
         return discretizer.xi_grid(
                 shape=self.shape, res=res, units='div')[0]
@@ -509,7 +518,7 @@ class Element(object):
             
         return integral
     
-    def length(self, ng=None):
+    def length(self, ng=3):
         
         def _length_integral(X):
             return numpy.sqrt((X**2).sum(1))
@@ -518,12 +527,12 @@ class Element(object):
             fields = []
             for i in range(self.num_fields):
                 fields.append([i, 1])
-            return self.integrate(fields, func=_length_integral, ng=4)
+            return self.integrate(fields, func=_length_integral, ng=ng)
         else:
             raise TypeError('You can only calculate the length '
                 + 'of a 1D element.')
             
-    def area(self, ng=None):
+    def area(self, ng=3):
         
         def _area_integral(X):
             A = []
@@ -538,12 +547,12 @@ class Element(object):
             for i in range(self.num_fields):
                 fields.append([i, 1, 0])
                 fields.append([i, 0, 1])
-            return self.integrate(fields, func=_area_integral, ng=4)
+            return self.integrate(fields, func=_area_integral, ng=ng)
         else:
             raise TypeError('You can only calculate the area '
                 + 'of a 2D quad element. Triangles not implemented.')
     
-    def volume(self, ng=None):
+    def volume(self, ng=3):
         
         def _volume_integral0(X):
             V = []
@@ -561,7 +570,7 @@ class Element(object):
                 fields.append([i, 1, 0, 0])
                 fields.append([i, 0, 1, 0])
                 fields.append([i, 0, 0, 1])
-            return abs(self.integrate(fields, func=_volume_integral, ng=3))
+            return abs(self.integrate(fields, func=_volume_integral, ng=ng))
         else:
             raise TypeError('You can only calculate the area '
                 + 'of a 3D hexagonal element. Triangles not implemented.')
@@ -604,43 +613,6 @@ class Element(object):
         
     def __iter__(self):
         return self.nodes.__iter__()
-
-
-class ElFace(Element):
-    '''
-    .. autoclass:: morphic.mesher.Element
-    '''
-    
-    def __init__(self, mesh, uid, interp, nodes, element=None, face_index=0):
-        Element.__init__(self, mesh, uid, interp, nodes)
-        self._type = 'face'
-        self.element_count = 0
-        self.element_ids = []
-        self.face_index = face_index
-        if element != None:
-            self.add_element(element)
-    
-    def add_element(self, element):
-        self.element_ids.append(element)
-        self.element_count = len(self.element_ids)
-    
-    def _filter_face_param_indices(self, PI):
-        basis = self.interp
-        PIout = PI
-        if self.interp == ['H3', 'H3']:
-            
-            if self.face_index in [0, 1]:
-                filter_index = [0, 1, 2, 3, 8, 9, 10, 11, 16, 17, 18, 19, 24, 25, 26, 27]
-            elif self.face_index in [2, 3]:
-                filter_index = [0, 1, 4, 5, 8, 9, 12, 13, 16, 17, 20, 21, 24, 25, 28, 29]
-            elif self.face_index in [4, 5]:
-                filter_index = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]
-            
-            PIout = []
-            for pi in PI:
-                PIout.append([pi[i] for i in filter_index])
-            
-        return PIout
 
 class Face(object):
     
@@ -778,7 +750,7 @@ class Mesh(object):
         self._regenerate = True
         self._reupdate = True
         
-        self.auto_add_faces = False;
+        self.auto_add_faces = True;
         
         self.filepath = filepath
         if filepath != None:
@@ -888,25 +860,12 @@ class Mesh(object):
             node_ids = node_ids.tolist()
         elem = Element(self, uid, interp, node_ids)
         self.elements.add(elem, group=group)
-        # if self.auto_add_faces:
-        #     if core.dimensions(elem.interp) > 1:
-        #         Basis, Nodes = core.element_face_nodes(
-        #                 elem.interp, elem.node_ids)
-        #         face_index = 0
-        #         for basis, nodes in zip(Basis, Nodes):
-        #             self.add_face(basis, nodes, element=elem.id, face_index=0)
-        #             face_index += 1
-                    
         if self.auto_add_faces:
-            if core.dimensions(elem.interp) == 2:
-                self.add_face(elem.id, 0, elem.node_ids)
-            elif core.dimensions(elem.interp) == 3:
-                face_nodes = core.element_face_nodes(elem.interp, elem.node_ids)
-                for face_index in range(6):
-                    self.add_face(elem.id, face_index, face_nodes[face_index])
+            elem.add_faces()
             
         return elem
         
+    
     def add_face(self, element, face_index=0, nodes=None):
         '''
         Adds a face to the mesh, typically used to store element faces
@@ -1132,6 +1091,23 @@ class Mesh(object):
                 X[:,axis] /= R
             
         return X
+    
+    def deformation_gradient_tensor(self, deformed_mesh, xi):
+        dx1 = self.elements[1].evaluate(xi, deriv=[1,0])
+        dx2 = self.elements[1].evaluate(xi, deriv=[0,1])
+        dx = numpy.array([dx1, dx2])
+        invdx = linalg.inv(dx)
+        
+        dX1 = deformed_mesh.elements[1].evaluate(xi, deriv=[1,0])
+        dX2 = deformed_mesh.elements[1].evaluate(xi, deriv=[0,1])
+        dX = numpy.array([dX1, dX2])
+        invdX = linalg.inv(dX)
+        F = numpy.dot(invdx, dX.T)
+        invF = linalg.inv(F)
+        #~ print dx
+        #~ print dX
+        #~ print F
+        return F, invF
     
     def grid(self, res=[8, 8], shape='quad'):
         return discretizer.xi_grid(
