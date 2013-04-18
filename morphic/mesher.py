@@ -390,6 +390,8 @@ class Element(object):
         self.node_ids = elem_dict['nodes'] 
         self.shape = elem_dict['shape']
         self._set_shape()
+        if self.mesh.auto_add_faces:
+            self.add_faces()
         
         
     def _get_param_indicies(self):
@@ -1128,6 +1130,24 @@ class Mesh(object):
             else:
                 Xn.append(node.values[:, 0])
         return numpy.array([xn for xn in Xn])
+        
+    def get_node_ids(self, nodes=None, group='_default'):
+        self.generate()
+        if nodes != None:
+            if not isinstance(nodes, list):
+                nodes = [nodes]
+            nodes = self.nodes[nodes]
+        else:
+            nodes = self.nodes(group)
+        Xn = []
+        labels = []
+        for node in nodes:
+            labels.append(node.id)
+            if len(node.shape) == 1:
+                Xn.append(node.values)
+            else:
+                Xn.append(node.values[:, 0])
+        return numpy.array([xn for xn in Xn]), labels
     
     def get_lines(self, res=8, group='_default'):
         self.generate()
