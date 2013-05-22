@@ -58,6 +58,40 @@ def element_face_nodes(basis, node_ids):
     faces.append(nids[:, :, shape[2] - 1].flatten().tolist())
     
     return faces
+
+def element_line_nodes(basis, node_ids):
+    dims = dimensions(basis)
+    for base in basis:
+        if base[0] == 'T':
+            raise ValueError('Triangular basis are not supported')
+    if dims is 1:
+        return node_ids
+    elif dims in [2, 3]:
+        shape = []
+        for base in basis:
+            if base[0] == 'L':
+                shape.append(int(base[1:]) + 1)
+            elif base[0] == 'H':
+                if base[1:] is not '3':
+                    ValueError('Only 3rd-order hermites are supported')
+                shape.append(2)
+            else:
+                raise ValueError('Basis is not supported')
+    else:
+        raise ValueError('Dimensions >3 is not supported')
+    
+    shape.reverse()
+    nids = numpy.array(node_ids).reshape(shape)
+    
+    lines = []
+    lines.append(nids[0, :, :].flatten().tolist())
+    lines.append(nids[shape[0] - 1, :, :].flatten().tolist())
+    lines.append(nids[:, 0, :].flatten().tolist())
+    lines.append(nids[:, shape[1] - 1, :].flatten().tolist())
+    lines.append(nids[:, :, 0].flatten().tolist())
+    lines.append(nids[:, :, shape[2] - 1].flatten().tolist())
+    
+    return lines
     
 class ObjectList:
     '''
@@ -76,7 +110,11 @@ class ObjectList:
         Returns the number of objects in the list.
         '''
         return len(self._objects)
-        
+    
+    @property
+    def ids(self):
+        return self._object_ids.keys()
+
     def keys(self):
         return self._object_ids.keys()
     
@@ -298,7 +336,7 @@ class Core():
         self.EMap = []
         cid = 0
         for elem in mesh.elements:
-            self.EFn.append(elem.interp)
+            self.EFn.append(elem.basis)
             self.EMap.append(elem._get_param_indicies())
             elem.set_core_id(cid)
             cid += 1

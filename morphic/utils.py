@@ -8,7 +8,7 @@ def grid(divs=10, dims=2):
     if dims == 1:
         return numpy.linspace(0, 1, divs[0]+1)
     elif dims == 2:
-        Xi = numpy.mgrid[0:divs[1]+1, 0:divs[2]+1]
+        Xi = numpy.mgrid[0:divs[1]+1, 0:divs[0]+1]
         return numpy.array([
             Xi[1, :].flatten() * (1./divs[0]),
             Xi[0, :].flatten() * (1./divs[1])]).T

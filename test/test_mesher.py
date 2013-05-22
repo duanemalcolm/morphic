@@ -813,7 +813,7 @@ class TestElement(unittest.TestCase):
         elem = mesher.Element(mesh, 1, ['L1'], [1, 2])
         self.assertEqual(elem.mesh, mesh)
         self.assertEqual(elem.id, 1)
-        self.assertEqual(elem.interp, ['L1'])
+        self.assertEqual(elem.basis, ['L1'])
         self.assertEqual(elem.node_ids, [1, 2])
     
     def test_elem_nodes_access(self):
@@ -829,7 +829,7 @@ class TestElement(unittest.TestCase):
         elem = mesher.Element(mesh, 1, ['L1'], [1, 2])
         es = elem._save_dict()
         self.assertEqual(es['id'], 1)
-        self.assertEqual(es['interp'], ['L1'])
+        self.assertEqual(es['basis'], ['L1'])
         self.assertEqual(es['nodes'], [1, 2])
         self.assertEqual(es['shape'], 'line')
         self.assertEqual(len(es.keys()), 4)
@@ -839,7 +839,7 @@ class TestElement(unittest.TestCase):
         elem = mesher.Element(mesh, 1, ['L1', 'L1'], [1, 2, 3, 4])
         es = elem._save_dict()
         self.assertEqual(es['id'], 1)
-        self.assertEqual(es['interp'], ['L1', 'L1'])
+        self.assertEqual(es['basis'], ['L1', 'L1'])
         self.assertEqual(es['nodes'], [1, 2, 3, 4])
         self.assertEqual(es['shape'], 'quad')
         self.assertEqual(len(es.keys()), 4)
@@ -853,7 +853,7 @@ class TestElement(unittest.TestCase):
         elem2 = mesher.Element(mesh, 1, None, None)
         elem2._load_dict(elem_dict)
         self.assertEqual(elem2.id, 1)
-        self.assertEqual(elem2.interp, ['L1', 'L1'])
+        self.assertEqual(elem2.basis, ['L1', 'L1'])
         self.assertEqual(elem2.node_ids, [1, 2, 3, 4])
         self.assertEqual(elem2.shape, 'quad')
     
@@ -1095,17 +1095,17 @@ class TestMesh(unittest.TestCase):
         elem0 = mesh.add_element(None, ['L1'], [2, 1])
         
         self.assertEqual(elem1.id, 1)
-        self.assertEqual(elem1.interp, ['L1'])
+        self.assertEqual(elem1.basis, ['L1'])
         self.assertEqual(elem1.node_ids, [1, 2])
         self.assertEqual(mesh.elements[1].id, 1)
-        self.assertEqual(mesh.elements[1].interp, ['L1'])
+        self.assertEqual(mesh.elements[1].basis, ['L1'])
         self.assertEqual(mesh.elements[1].node_ids, [1, 2])
         
         self.assertEqual(elem0.id, 0)
-        self.assertEqual(elem0.interp, ['L1'])
+        self.assertEqual(elem0.basis, ['L1'])
         self.assertEqual(elem0.node_ids, [2, 1])
         self.assertEqual(mesh.elements[0].id, 0)
-        self.assertEqual(mesh.elements[0].interp, ['L1'])
+        self.assertEqual(mesh.elements[0].basis, ['L1'])
         self.assertEqual(mesh.elements[0].node_ids, [2, 1])
         
     def test_node_groups(self):

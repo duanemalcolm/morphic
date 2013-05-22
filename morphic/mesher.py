@@ -335,13 +335,13 @@ class PCANode(Node):
         
 class Element(object):
 
-    def __init__(self, mesh, uid, interp, node_ids):
+    def __init__(self, mesh, uid, basis, node_ids):
         self._type = 'element'
         self.mesh = mesh 
         self.core = mesh._core 
-        self.interp = interp 
-        self.basis = interp
-        self.dimensions = utils.element_dimensions(interp)
+        self._interp = basis
+        self.basis = basis
+        self.dimensions = utils.element_dimensions(basis)
         self.id = uid
         self.node_ids = node_ids
         self.cid = None
@@ -352,6 +352,16 @@ class Element(object):
         self.mesh._reupdate = True
     
     @property
+    def interp(self):
+        print 'Deprecated. Use \'basis\' instead'
+        return self.basis
+
+    @interp.setter
+    def interp(self, basis):
+        print 'Deprecated. Use \'basis\' instead'
+        self._interp = basis
+
+    @property
     def nodes(self):
         return self.mesh.nodes[self.node_ids]
         
@@ -360,14 +370,14 @@ class Element(object):
         self.node_ids = [node.id for node in nodes]
     
     def _set_shape(self):
-        if self.interp:
+        if self.basis:
             if self.dimensions == None:
                 pass
             elif self.dimensions == 1:
                 self.shape = 'line'
             elif self.dimensions == 2:
                 self.shape = 'quad'
-                if self.interp[0][0] == 'T':
+                if self.basis[0][0] == 'T':
                     self.shape = 'tri'
             elif self.dimensions == 3:
                 self.shape = 'hexagonal'
@@ -378,7 +388,7 @@ class Element(object):
     def _save_dict(self):
         elem_dict = {}
         elem_dict['id'] = self.id
-        elem_dict['interp'] = self.interp
+        elem_dict['basis'] = self.basis
         elem_dict['nodes'] = self.node_ids
         elem_dict['shape'] = self.shape
         return elem_dict
@@ -386,12 +396,19 @@ class Element(object):
     def _load_dict(self, elem_dict):
         if elem_dict['id'] != self.id:
             raise 'Ids do not match'
-        self.interp = elem_dict['interp']
+        if 'basis' in elem_dict.keys():
+            self._interp = elem_dict['basis']
+            self.basis = elem_dict['basis']
+        else:
+            self._interp = elem_dict['interp']
+            self.basis = elem_dict['interp']
         self.node_ids = elem_dict['nodes'] 
         self.shape = elem_dict['shape']
         self._set_shape()
         if self.mesh.auto_add_faces:
             self.add_faces()
+        # if self.mesh.auto_add_lines:
+        #     self.add_lines()
         
         
     def _get_param_indicies(self):
@@ -423,12 +440,20 @@ class Element(object):
         self.cid = cid
     
     def add_faces(self):
-        if utils.element_dimensions(self.interp) == 2:
+        if utils.element_dimensions(self.basis) == 2:
             self.mesh.add_face(self.id, 0, self.node_ids)
-        elif utils.element_dimensions(self.interp) == 3:
-            face_nodes = core.element_face_nodes(self.interp, self.node_ids)
+        elif utils.element_dimensions(self.basis) == 3:
+            face_nodes = core.element_face_nodes(self.basis, self.node_ids)
             for face_index in range(6):
                 self.mesh.add_face(self.id, face_index, face_nodes[face_index])
+    
+    # def add_lines(self):
+    #     if utils.element_dimensions(self.basis) == 1:
+    #         self.mesh.add_line(self.id, 0, self.node_ids)
+    #     elif utils.element_dimensions(self.basis) == 3:
+    #         face_nodes = core.element_face_nodes(self.basis, self.node_ids)
+    #         for face_index in range(6):
+    #             self.mesh.add_face(self.id, face_index, face_nodes[face_index])
     
     def grid(self, res=[8, 8]):
         return discretizer.xi_grid(
@@ -555,15 +580,10 @@ class Element(object):
                 + 'of a 2D quad element. Triangles not implemented.')
     
     def volume(self, ng=3):
-        
-        def _volume_integral0(X):
-            V = []
-            for x in X:
-                V.append(linalg.det(x.reshape((3, x.size/3))))
-            return V
-            
+         
         def _volume_integral(X):
-            V = X[:,0] * (X[:,4] * X[:,8] - X[:,5] * X[:,7]) - X[:,1] * (X[:,3] * X[:,8] - X[:,5] * X[:,6]) + X[:,2] * (X[:,3] * X[:,7] - X[:,4] * X[:,6])
+            V = X[:,0] * (X[:,4] * X[:,8] - X[:,5] * X[:,7]) - X[:,1] * (X[:,3] * X[:,8]
+                - X[:,5] * X[:,6]) + X[:,2] * (X[:,3] * X[:,7] - X[:,4] * X[:,6])
             return V
             
         if self.shape is 'hexagonal':
@@ -747,12 +767,14 @@ class Mesh(object):
         self.nodes = core.ObjectList()
         self.elements = core.ObjectList()
         self.faces = core.ObjectList()
+        self.lines = core.ObjectList()
         
         self._core = core.Core()
         self._regenerate = True
         self._reupdate = True
         
         self.auto_add_faces = True;
+        self.auto_add_lines = True;
         
         self.filepath = filepath
         if filepath != None:
@@ -845,7 +867,7 @@ class Mesh(object):
             self.nodes[uid].fix(fix)
     
     
-    def add_element(self, uid, interp, node_ids, group='_default'):
+    def add_element(self, uid, basis, node_ids, group='_default'):
         '''
         Adds a element to a mesh.
         
@@ -853,17 +875,19 @@ class Mesh(object):
         >>> n1 = mesh.add_stdnode(1, [0.1])
         >>> n2 = mesh.add_stdnode(2, [0.2])
         >>> elem = mesh.add_element(1, ['L1'], [1, 2])
-        >>> print elem.id, elem.interp, elem.node_ids
+        >>> print elem.id, elem.basis, elem.node_ids
         1 ['L1'] [1, 2]
         '''
         if uid==None:
             uid = self.elements.get_unique_id()
         if isinstance(node_ids, numpy.ndarray):
             node_ids = node_ids.tolist()
-        elem = Element(self, uid, interp, node_ids)
+        elem = Element(self, uid, basis, node_ids)
         self.elements.add(elem, group=group)
         if self.auto_add_faces:
             elem.add_faces()
+        # if self.auto_add_lines:
+        #     elem.add_lines()
             
         return elem
         
@@ -878,7 +902,7 @@ class Mesh(object):
         - face index: the face position on a cube, range [0:7]
         '''
         if nodes == None:
-            nodes = core.element_face_nodes(elem.interp, elem.node_ids)[face_index]
+            nodes = core.element_face_nodes(elem.basis, elem.node_ids)[face_index]
         sorted_nodes = [n for n in nodes]
         sorted_nodes.sort()
         face_id = '_' + '_'.join([str(i) for i in sorted_nodes])
@@ -1106,9 +1130,6 @@ class Mesh(object):
         invdX = linalg.inv(dX)
         F = numpy.dot(invdx, dX.T)
         invF = linalg.inv(F)
-        #~ print dx
-        #~ print dX
-        #~ print F
         return F, invF
     
     def grid(self, res=[8, 8], shape='quad'):
@@ -1275,6 +1296,17 @@ class Mesh(object):
             return X, T, Xi
         return X, T
         
-        
-        
+    def collapse_pca_mesh(self, group='pca'):
+        '''
+        Collapses a PCA mesh to a flat mesh based of the currently
+        set weights and "pca" node group.
+        This node group can be set using the "group" keyword argument.
+        '''
+        self.update_pca_nodes()
+        mesh = Mesh()
+        for node in self.nodes.groups[group]:
+            mesh.add_stdnode(node.id, node.values)
+        for element in self.elements:
+            mesh.add_element(element.id, element.basis, element.node_ids)
+        return mesh
         
