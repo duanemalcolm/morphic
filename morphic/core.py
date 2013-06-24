@@ -84,12 +84,16 @@ def element_line_nodes(basis, node_ids):
     nids = numpy.array(node_ids).reshape(shape)
     
     lines = []
-    lines.append(nids[0, :, :].flatten().tolist())
-    lines.append(nids[shape[0] - 1, :, :].flatten().tolist())
-    lines.append(nids[:, 0, :].flatten().tolist())
-    lines.append(nids[:, shape[1] - 1, :].flatten().tolist())
-    lines.append(nids[:, :, 0].flatten().tolist())
-    lines.append(nids[:, :, shape[2] - 1].flatten().tolist())
+    if dims == 2:
+        lines.append(nids[0, :, :].flatten().tolist())
+        lines.append(nids[-1, :, :].flatten().tolist())
+    elif dims == 3:
+        lines.append(nids[0, :, :].flatten().tolist())
+        lines.append(nids[- 1, :, :].flatten().tolist())
+        lines.append(nids[:, 0, :].flatten().tolist())
+        lines.append(nids[:, -1, :].flatten().tolist())
+        lines.append(nids[:, :, 0].flatten().tolist())
+        lines.append(nids[:, :, -1].flatten().tolist())
     
     return lines
     

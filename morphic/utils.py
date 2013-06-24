@@ -59,7 +59,7 @@ def convert_hermite_lagrange(cHmesh, tol=1e-9):
     for element in cHmesh.elements:
         element_nodes = []
         tree = cKDTree(X)
-        dims = element_dimensions(element.interp)
+        dims = element_dimensions(element.basis)
         if dims == 1:
             print "1D element conversion unchecked"
             Xg = element.evaluate(Xi1d)

@@ -36,6 +36,13 @@ class Figure:
                 else:
                     mlab_obj.parent.parent.remove()
                 self.plots.pop(label)
+
+    def get_camera(self):
+        return (mlab.view(), mlab.roll())
+
+    def set_camera(self, camera):
+        mlab.view(*camera[0])
+        mlab.roll(camera[1])
     
     def plot_surfaces(self, label, X, T, scalars=None, color=None, rep='surface', opacity=1.0):
         
@@ -54,6 +61,7 @@ class Figure:
         else:
             self.figure.scene.disable_render = True
             view = mlab.view()
+            roll = mlab.roll()
             
             if X.shape[0] == mlab_obj.mlab_source.x.shape[0]:
                 if scalars==None:
@@ -72,6 +80,7 @@ class Figure:
                     self.plots[label] = mlab.triangular_mesh(X[:,0], X[:,1], X[:,2], T, scalars=scalars, opacity=opacity)
                 
             mlab.view(*view)
+            mlab.roll(roll)
             self.figure.scene.disable_render = False
             
     def plot_lines(self, label, X, color=None, size=0):
@@ -191,6 +200,7 @@ class Figure:
         else:
             self.figure.scene.disable_render = True
             view = mlab.view()
+            roll = mlab.roll()
             
             ### Commented out since VTK gives an error when using mlab_source.set
             #~ if X.shape[0] == mlab_obj.mlab_source.x.shape[0]:
@@ -215,11 +225,13 @@ class Figure:
                 self.plots[label] = mlab.points3d(X[:,0], X[:,1], X[:,2], color, scale_factor=size, scale_mode='none', mode=mode)
                 
             mlab.view(*view)
+            mlab.roll(roll)
             self.figure.scene.disable_render = False
             
             
     def plot_text(self, label, X, text, size=1):
         view = mlab.view()
+        roll = mlab.roll()
         self.figure.scene.disable_render = True
         
         scale = (size, size, size)
@@ -247,3 +259,4 @@ class Figure:
         
         self.figure.scene.disable_render = False
         mlab.view(*view)
+        mlab.roll(roll)

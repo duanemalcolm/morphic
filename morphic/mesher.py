@@ -243,11 +243,15 @@ class StdNode(Node):
     .. autoclass:: morphic.mesher.Node
     '''
     
-    def __init__(self, mesh, uid, values):
+    def __init__(self, mesh, uid, values=None, cids=None, shape=None):
         Node.__init__(self, mesh, uid)
         self._type = 'standard'
         if values != None:
             self.set_values(values)
+        if cids != None:
+            self.cids = cids
+        if shape != None:
+            self.shape = shape
         
     def _save_dict(self):
         node_dict = Node._save_dict(self)
@@ -353,12 +357,16 @@ class Element(object):
     
     @property
     def interp(self):
+        import traceback
         print 'Deprecated. Use \'basis\' instead'
+        traceback.print_stack(file=sys.stdout)
         return self.basis
 
     @interp.setter
     def interp(self, basis):
+        import traceback
         print 'Deprecated. Use \'basis\' instead'
+        traceback.print_stack(file=sys.stdout)
         self._interp = basis
 
     @property
@@ -422,9 +430,7 @@ class Element(object):
             npi = node._get_param_indicies()
             for i, pi in enumerate(npi):
                 PI[i].extend(pi)
-        
         PI = self._filter_face_param_indices(PI)
-        
         return PI
     
     def _filter_face_param_indices(self, PI):
@@ -522,7 +528,7 @@ class Element(object):
         Returns:
           - integral of the fields or processed fields by 'func'
         '''
-        if self.shape is 'line':
+        if self.shape == 'line':
             Xi, W = self.core.get_gauss_points(ng)
             X = self.mesh._core.evaluate_fields(self.cid, Xi, fields)
             if func is not None:
@@ -534,7 +540,7 @@ class Element(object):
             if func is not None:
                 X = func(X)
             integral = numpy.dot(W, X)
-        elif self.shape is 'hexagonal':
+        elif self.shape == 'hexagonal':
             Xi, W = self.core.get_gauss_points([ng, ng, ng])
             X = self.mesh._core.evaluate_fields(self.cid, Xi, fields)
             if func is not None:
@@ -550,7 +556,7 @@ class Element(object):
         def _length_integral(X):
             return numpy.sqrt((X**2).sum(1))
             
-        if self.shape is 'line':
+        if self.shape == 'line':
             fields = []
             for i in range(self.num_fields):
                 fields.append([i, 1])
@@ -569,7 +575,7 @@ class Element(object):
                 A.append(numpy.sqrt((c * c).sum()))
             return A
             
-        if self.shape is 'quad':
+        if self.shape == 'quad':
             fields = []
             for i in range(self.num_fields):
                 fields.append([i, 1, 0])
@@ -586,7 +592,7 @@ class Element(object):
                 - X[:,5] * X[:,6]) + X[:,2] * (X[:,3] * X[:,7] - X[:,4] * X[:,6])
             return V
             
-        if self.shape is 'hexagonal':
+        if self.shape == 'hexagonal':
             fields = []
             for i in range(self.num_fields):
                 fields.append([i, 1, 0, 0])
@@ -594,7 +600,7 @@ class Element(object):
                 fields.append([i, 0, 0, 1])
             return abs(self.integrate(fields, func=_volume_integral, ng=ng))
         else:
-            raise TypeError('You can only calculate the area '
+            raise TypeError('You can only calculate the volume '
                 + 'of a 3D hexagonal element. Triangles not implemented.')
     
     
@@ -636,6 +642,7 @@ class Element(object):
     def __iter__(self):
         return self.nodes.__iter__()
 
+
 class Face(object):
     
     def __init__(self, mesh, uid):
@@ -643,6 +650,28 @@ class Face(object):
         self.mesh = mesh
         self.element_faces = []
         self.shape = 'quad'
+        
+    def add_element(self, element_id, face_index=0):
+        element_face = [element_id, face_index]
+        if element_face not in self.element_faces:
+            self.element_faces.append(element_face)
+    
+    @property
+    def nodes(self):
+        return self.mesh.nodes[self.node_ids]
+        
+    @nodes.setter
+    def nodes(self, nodes):
+        self.node_ids = [node.id for node in nodes]
+
+
+class Line(object):
+    
+    def __init__(self, mesh, uid):
+        self.id = uid
+        self.mesh = mesh
+        self.element_lines = []
+        self.shape = 'line'
         
     def add_element(self, element_id, face_index=0):
         element_face = [element_id, face_index]
@@ -770,6 +799,7 @@ class Mesh(object):
         self.lines = core.ObjectList()
         
         self._core = core.Core()
+        self.core = self._core
         self._regenerate = True
         self._reupdate = True
         
@@ -780,6 +810,10 @@ class Mesh(object):
         if filepath != None:
             self.load(filepath)
     
+    @property
+    def params(self):
+        return self._core.P
+
     def add_node(self, uid, values, group='_default'):
         return self.add_stdnode(uid, values, group=group)
         
@@ -946,7 +980,7 @@ class Mesh(object):
         mesh_dict['values'] = self._core.P
         return mesh_dict
         
-    def save(self, filepath):
+    def save(self, filepath, format='pickle'):
         '''
         Saves a mesh.
         
@@ -954,10 +988,149 @@ class Mesh(object):
         >>> mesh.save('data/cube.mesh')
         
         '''
-        import pickle
-        mesh_dict = self._save_dict()
-        pickle.dump(mesh_dict, open(filepath, "w"))
+        if format == 'pickle':
+            import pickle
+            mesh_dict = self._save_dict()
+            pickle.dump(mesh_dict, open(filepath, "w"))
         
+        elif format == 'hdf5':
+            import h5py
+            import datetime
+            h5 = h5py.File(filepath, 'w')
+            h5mesh = h5.create_group('mesh')
+            h5mesh.attrs['version'] = self._version
+            h5mesh.attrs['saved_at'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+            h5mesh.attrs['label'] = self.label
+            h5mesh.attrs['units'] = self.units
+            # Save metadata
+
+            # Save nodes
+            h5nodes = h5mesh.create_group('nodes')
+            h5nodes.attrs['size'] = self.nodes.size()
+            nodemap = {}
+            for nid, node in enumerate(self.nodes):
+                nodemap[node.id] = nid
+                h5node = h5nodes.create_group(str(nid))
+                h5node.attrs['id'] = node.id
+                h5node.attrs['type'] = node._type
+
+                if node._type == 'standard':
+                    h5node.attrs['shape'] = node.shape
+                    h5node.create_dataset('pids', data=node.cids)
+                
+                elif node._type == 'dependent':
+                    h5node.attrs['shape'] = node.shape
+                    h5node.attrs['element_id'] = node.element
+                    h5node.attrs['node_id'] = node.node
+                    h5node.create_dataset('pids', data=node.cids)
+
+                elif node._type == 'pca':
+                    h5node.attrs['node_id'] = node.node_id
+                    h5node.attrs['weights_id'] = node.weights_id
+                    h5node.attrs['variance_id'] = node.variance_id
+
+            h5mesh.create_dataset('params', data=self.params)
+            
+            # Save elements
+            h5elems = h5mesh.create_group('elements')
+            h5elems.attrs['size'] = self.elements.size()
+            elemmap = {}
+            for eid, elem in enumerate(self.elements):
+                elemmap[elem.id] = eid
+                h5elem = h5elems.create_group(str(eid))
+                h5elem.attrs['id'] = elem.id
+                h5elem.attrs['type'] = elem._type
+                h5elem.attrs['basis'] = elem.basis
+                h5elem.create_dataset('node_ids',
+                    data=[nodemap[i] for i in elem.node_ids])
+            
+            # Save node groups
+            h5groups = h5mesh.create_group('node_groups')
+            h5groups.attrs['size'] = len(self.nodes.groups.keys())
+            for gid, key in enumerate(self.nodes.groups.keys()):
+                h5group = h5groups.create_group(str(gid))
+                h5group.attrs['id'] = key
+                h5group.create_dataset('node_ids',
+                    data=[nodemap[nd.id] for nd in self.nodes.groups[key]])
+            
+            # Save element groups
+            h5groups = h5mesh.create_group('element_groups')
+            h5groups.attrs['size'] = len(self.elements.groups.keys())
+            for gid, key in enumerate(self.elements.groups.keys()):
+                h5group = h5groups.create_group(str(gid))
+                h5group.attrs['id'] = key
+                h5group.create_dataset('element_ids',
+                    data=[elemmap[el.id] for el in self.elements.groups[key]])
+            
+            h5.close()
+        else:
+            raise Exception('Unknown save format ' % format)
+    
+    def _load_hdf5(self, filepath):
+        import h5py
+        h5 = h5py.File(filepath)
+        
+        h5mesh = h5['mesh']
+        self._version = h5mesh.attrs['version']
+        self.label = h5mesh.attrs['label']
+        self.units = h5mesh.attrs['units']
+        
+        # Load nodes
+        h5nodes = h5mesh['nodes']
+        total_nodes = h5nodes.attrs['size']
+        nodemap = {}
+        for nn in range(total_nodes):
+            h5node = h5nodes[str(nn)]
+            nodemap[nn] = h5node.attrs['id']
+            if h5node.attrs['type'] == 'standard':
+                values = numpy.zeros(h5node.attrs['shape'])
+                node = StdNode(self, h5node.attrs['id'], values)
+                node.cids = h5node['pids'][...]
+                self.nodes.add(node)
+
+            elif h5node.attrs['type'] == 'dependent':
+                node = DepNode(self, h5node.attrs['id'],  h5node.attrs['element_id'], h5node.attrs['node_id'])
+                node.shape = h5node.attrs['shape']
+                node.cids = h5node['pids'][...]
+                node._added = True
+                self.nodes.add(node)
+
+            elif h5node.attrs['type'] == 'pca':
+                node = PCANode(self, h5node.attrs['id'], h5node.attrs['node_id'],
+                    h5node.attrs['weights_id'], h5node.attrs['variance_id'])
+                self.nodes.add(node)
+
+        self.core.P = numpy.array(h5mesh['params'][...])
+        
+        # Load elements
+        h5elems = h5mesh['elements']
+        total_elements = h5elems.attrs['size']
+        elemmap = {}
+        for ne in range(total_elements):
+            h5elem = h5elems[str(ne)]
+            elemmap[ne] = h5elem.attrs['id']
+            self.add_element(h5elem.attrs['id'], h5elem.attrs['basis'],
+                [nodemap[i] for i in h5elem['node_ids'][...]])
+            elem = self.elements[h5elem.attrs['id']]
+        
+        # Load node groups
+        h5groups = h5mesh['node_groups']
+        total_groups = h5groups.attrs['size']
+        for ng in range(total_groups):
+            h5group = h5groups[str(ng)]
+            node_ids = [nodemap[nd] for nd in h5group['node_ids'][...]]
+            self.nodes.add_to_group(node_ids, group=h5group.attrs['id'])
+        
+        # Load element groups
+        h5groups = h5mesh['element_groups']
+        total_groups = h5groups.attrs['size']
+        for ng in range(total_groups):
+            h5group = h5groups[str(ng)]
+            elem_ids = [elemmap[el] for el in h5group['element_ids'][...]]
+            self.elements.add_to_group(elem_ids, group=h5group.attrs['id'])
+            
+        h5.close()
+
     def _load_dict(self, mesh_dict):
         self.label = mesh_dict['label']
         self.units = mesh_dict['units']
@@ -995,7 +1168,12 @@ class Mesh(object):
         
         '''
         import pickle
-        self._load_dict(pickle.load(open(filepath, "r")))
+        import h5py
+
+        if h5py.is_hdf5(filepath):
+            self._load_hdf5(filepath)
+        else:
+            self._load_dict(pickle.load(open(filepath, "r")))
         self.generate(True)
         
     
@@ -1227,14 +1405,22 @@ class Mesh(object):
             return X, T, Xi
         return X, T
         
-    def get_faces(self, res=8, exterior_only=True, include_xi=False):
+    def get_faces(self, res=8, exterior_only=True, include_xi=False, elements=None):
         self.generate()
-        
-        if exterior_only:
-            Faces = [face for face in self.faces if len(face.element_faces) == 1]
-        else:
+
+        if elements == None:
             Faces = self.faces
-        
+        else:
+            Faces = []
+            for face in self.faces:
+                for element_face in face.element_faces:
+                    if element_face[0] in elements:
+                        Faces.append(face)
+                        break
+
+        if exterior_only:
+            Faces = [face for face in Faces if len(face.element_faces) == 1]
+
         XiT, TT = discretizer.xi_grid(shape='tri', res=res)
         XiQ, TQ = discretizer.xi_grid(shape='quad', res=res)
         NPT, NTT = XiT.shape[0], TT.shape[0]
@@ -1296,6 +1482,31 @@ class Mesh(object):
             return X, T, Xi
         return X, T
         
+    def append_lines(self, lines, elements, lindex, res=8):
+        L = ((None, 0, 0), (None, 1, 0), (0, None, 0), (1, None, 0),
+            (None, 0, 1), (None, 1, 1), (0, None, 1), (1, None, 1),
+            (0, 0, None), (1, 0, None), (0, 1, None), (1, 1, None))
+        
+        if isinstance(elements, int):
+            elements = [elements]
+        if isinstance(lindex, int):
+            lindex = [lindex]
+
+        xi01 = numpy.linspace(0, 1, res)
+        for eid in elements:
+            for lidx in lindex:
+                Xi = numpy.zeros((res, 3))
+                for i, x in enumerate(L[lidx]):
+                    if x == None:
+                        Xi[:, i] = xi01
+                    else:
+                        Xi[:, i] = x
+                if False:
+                    lines.append(self.elements[eid].evaluate(Xi[:,:2]))
+                else:
+                    lines.append(self.elements[eid].evaluate(Xi))
+        return lines
+
     def collapse_pca_mesh(self, group='pca'):
         '''
         Collapses a PCA mesh to a flat mesh based of the currently
@@ -1309,4 +1520,10 @@ class Mesh(object):
         for element in self.elements:
             mesh.add_element(element.id, element.basis, element.node_ids)
         return mesh
+
+    def volume(self):
+        V = 0
+        for element in self.elements:
+            V += element.volume()
+        return V
         
