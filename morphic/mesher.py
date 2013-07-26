@@ -996,6 +996,9 @@ class Mesh(object):
         elif format == 'hdf5':
             import h5py
             import datetime
+            # compression = 'gzip'
+            # shuffle = False
+
             h5 = h5py.File(filepath, 'w')
             h5mesh = h5.create_group('mesh')
             h5mesh.attrs['version'] = self._version

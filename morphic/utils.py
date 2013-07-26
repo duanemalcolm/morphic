@@ -1,6 +1,72 @@
 import numpy
 import morphic
-from scipy.spatial import cKDTree
+
+class PCAMesh(object):
+
+    def __init__(self):
+        self.X = []
+        self.pca = None
+        self.num_modes = 5
+        self.input_mesh = None
+        self.mesh = None
+
+    def add_mesh(self, mesh):
+        if self.input_mesh == None:
+            self.input_mesh = mesh
+        if isinstance(mesh, str):
+            mesh = morphic.Mesh(mesh)
+        x = []
+        for node in mesh.nodes:
+            x.extend(node.values.flatten().tolist())
+        self.X.append(x)
+
+    def generate(self, num_modes=5, package='sklearn'):
+        self.X = numpy.array(self.X)
+        self.num_modes = num_modes
+        if package == 'sklearn':
+            from sklearn import decomposition
+            self.pca = decomposition.PCA(n_components=num_modes)
+            self.pca.fit(self.X)
+            self.mean = self.pca.mean_
+            self.components = self.pca.components_.T
+            self.variance = self.pca.explained_variance_
+        else:
+            import mdp
+            self.pca = mdp.nodes.PCANode(output_dim=num_modes)
+            self.pca.execute(self.X)
+            self.mean = self.pca.avg[0]
+            self.components = self.pca.v
+            self.variance = self.pca.d
+        self.generate_mesh()
+        return self.mesh
+
+    def generate_mesh(self):
+        ### Generate mesh from PCA results
+        self.mesh = morphic.Mesh()
+        weights = numpy.zeros(self.num_modes + 1)
+        weights[0] = 1.
+        self.mesh.add_stdnode('weights', weights)
+        variance = numpy.zeros(self.num_modes + 1)
+        variance[0] = 1.0
+        variance[1:] = numpy.sqrt(self.variance)
+        self.mesh.add_stdnode('variance', variance)
+        
+        # Add node values
+        idx = 0
+        for node in self.input_mesh.nodes:
+            nsize = node.values.size
+            pca_node_shape = (node.shape[0], node.shape[1], self.num_modes)
+            x = numpy.zeros((node.shape[0], node.shape[1], self.num_modes + 1)) # +1 to include mean
+            x[:, :, 0] = self.mean[idx:idx+nsize].reshape(node.shape) # mean values
+            x[:, :, 1:] = self.components[idx:idx+nsize,:].reshape(pca_node_shape) # mode values
+            self.mesh.add_pcanode(node.id, x, 'weights', 'variance', group='pca')
+            idx += nsize
+        
+        for element in self.input_mesh.elements:
+            self.mesh.add_element(element.id, element.basis, element.node_ids)
+        
+        self.mesh.generate()
+
 
 def grid(divs=10, dims=2):
     if isinstance(divs, int):
