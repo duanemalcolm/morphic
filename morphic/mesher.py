@@ -25,6 +25,7 @@ interpolation.
 
 
 '''
+import datetime
 import os
 import sys
 import numpy
@@ -790,7 +791,9 @@ class Mesh(object):
     '''
     
     def __init__(self, filepath=None, label='/', units='m'):
-        self._version = 1
+        self.version = 1
+        self.saved_at = ""
+        self.created_at = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
         self.label = label
         self.units = units
         self.nodes = core.ObjectList()
@@ -961,10 +964,10 @@ class Mesh(object):
         return None
         
     def _save_dict(self):
-        import datetime
         mesh_dict = {}
-        mesh_dict['_version'] = self._version
-        mesh_dict['_datetime'] = datetime.datetime.now()
+        mesh_dict['version'] = self.version
+        mesh_dict['created_at'] = self.created_at
+        mesh_dict['saved_at'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
         mesh_dict['label'] = self.label
         mesh_dict['units'] = self.units
         mesh_dict['nodes'] = []
@@ -992,91 +995,360 @@ class Mesh(object):
             import pickle
             mesh_dict = self._save_dict()
             pickle.dump(mesh_dict, open(filepath, "w"))
-        
-        elif format == 'hdf5':
-            import h5py
-            import datetime
-            # compression = 'gzip'
-            # shuffle = False
-
-            h5 = h5py.File(filepath, 'w')
-            h5mesh = h5.create_group('mesh')
-            h5mesh.attrs['version'] = self._version
-            h5mesh.attrs['saved_at'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
-            h5mesh.attrs['label'] = self.label
-            h5mesh.attrs['units'] = self.units
-            # Save metadata
-
-            # Save nodes
-            h5nodes = h5mesh.create_group('nodes')
-            h5nodes.attrs['size'] = self.nodes.size()
-            nodemap = {}
-            for nid, node in enumerate(self.nodes):
-                nodemap[node.id] = nid
-                h5node = h5nodes.create_group(str(nid))
-                h5node.attrs['id'] = node.id
-                h5node.attrs['type'] = node._type
-
-                if node._type == 'standard':
-                    h5node.attrs['shape'] = node.shape
-                    h5node.create_dataset('pids', data=node.cids)
-                
-                elif node._type == 'dependent':
-                    h5node.attrs['shape'] = node.shape
-                    h5node.attrs['element_id'] = node.element
-                    h5node.attrs['node_id'] = node.node
-                    h5node.create_dataset('pids', data=node.cids)
-
-                elif node._type == 'pca':
-                    h5node.attrs['node_id'] = node.node_id
-                    h5node.attrs['weights_id'] = node.weights_id
-                    h5node.attrs['variance_id'] = node.variance_id
-
-            h5mesh.create_dataset('params', data=self.params)
-            
-            # Save elements
-            h5elems = h5mesh.create_group('elements')
-            h5elems.attrs['size'] = self.elements.size()
-            elemmap = {}
-            for eid, elem in enumerate(self.elements):
-                elemmap[elem.id] = eid
-                h5elem = h5elems.create_group(str(eid))
-                h5elem.attrs['id'] = elem.id
-                h5elem.attrs['type'] = elem._type
-                h5elem.attrs['basis'] = elem.basis
-                h5elem.create_dataset('node_ids',
-                    data=[nodemap[i] for i in elem.node_ids])
-            
-            # Save node groups
-            h5groups = h5mesh.create_group('node_groups')
-            h5groups.attrs['size'] = len(self.nodes.groups.keys())
-            for gid, key in enumerate(self.nodes.groups.keys()):
-                h5group = h5groups.create_group(str(gid))
-                h5group.attrs['id'] = key
-                h5group.create_dataset('node_ids',
-                    data=[nodemap[nd.id] for nd in self.nodes.groups[key]])
-            
-            # Save element groups
-            h5groups = h5mesh.create_group('element_groups')
-            h5groups.attrs['size'] = len(self.elements.groups.keys())
-            for gid, key in enumerate(self.elements.groups.keys()):
-                h5group = h5groups.create_group(str(gid))
-                h5group.attrs['id'] = key
-                h5group.create_dataset('element_ids',
-                    data=[elemmap[el.id] for el in self.elements.groups[key]])
-            
-            h5.close()
+        elif format == 'pytables':
+            self._save_pytables(filepath)
+        elif format == 'h5py':
+            self._save_h5py(filepath)
         else:
             raise Exception('Unknown save format ' % format)
-    
-    def _load_hdf5(self, filepath):
-        import h5py
-        h5 = h5py.File(filepath)
+            
+    def load(self, filepath):
+        '''
+        Loads a mesh.
         
+        >>> mesh = Mesh('data/cube.mesh')
+        
+        or
+        
+        >>> mesh = Mesh()
+        >>> mesh.load('data/cube.mesh')
+        
+        '''
+        import pickle
+        import tables
+        if tables.isHDF5File(filepath):
+            if tables.isPyTablesFile(filepath):
+                self._load_pytables(filepath)
+            else:
+                self._load_h5py(filepath)
+        else:
+            self._load_dict(pickle.load(open(filepath, "r")))
+        self.generate(True)
+        
+        
+    def _save_pytables(self, filepath):
+        import tables
+        
+        nodemap = {}
+        for nn, node in enumerate(self.nodes):
+            nodemap[node.id] = nn
+        
+        elemmap = {}
+        for ne, elem in enumerate(self.elements):
+            elemmap[elem.id] = ne
+            
+        class NodeAtom(tables.IsDescription):
+            id = tables.StringCol(itemsize=64)
+            idIsInt = tables.BoolCol()
+            type = tables.StringCol(itemsize=16)
+            shape = tables.UInt32Col(shape=(3))
+            pids = tables.UInt32Col(shape=(2), dflt=[0,0])
+            node_id = tables.UInt16Col()
+            element_id = tables.UInt32Col()
+            weights_id = tables.UInt32Col()
+            variance_id = tables.UInt32Col()
+
+        class ElementAtom(tables.IsDescription):
+            id = tables.StringCol(itemsize=64)
+            idIsInt = tables.BoolCol()
+            type = tables.StringCol(itemsize=16)
+            basis = tables.StringCol(itemsize=32)
+            node_ids = tables.UInt32Col(shape=(2), dflt=[0,0])
+        
+        class GroupAtom(tables.IsDescription):
+            id = tables.StringCol(itemsize=64)
+            idIsInt = tables.BoolCol()
+            index_range = tables.UInt32Col(shape=(2), dflt=[0,0])
+            
+        h5f = tables.openFile(filepath, 'w')
+        filters = tables.Filters(complevel=5, complib='zlib', shuffle=True)
+        h5f.setNodeAttr(h5f.root, 'version', self.version)
+        h5f.setNodeAttr(h5f.root, 'created_at', self.created_at)
+        h5f.setNodeAttr(h5f.root, 'saved_at', datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"))
+        h5f.setNodeAttr(h5f.root, 'label', self.label)
+        h5f.setNodeAttr(h5f.root, 'units', self.units)
+        
+        params = h5f.createCArray(h5f.root, 'params', tables.Float64Atom(), self.params.shape, filters=filters)
+        params[:] = self.params
+        
+        table = h5f.createTable(h5f.root, 'nodes', NodeAtom, 'Mesh nodes', filters=filters)
+        row = table.row
+        pids = []
+        for idx, node in enumerate(self.nodes):
+            row['id'] = str(node.id)
+            row['idIsInt'] = isinstance(node.id, int)
+            row['type'] = node._type
+            if node._type in ['standard', 'dependent']:
+                shape = [0,0,0]
+                for dim_idx, dim_size in enumerate(node.shape):
+                    shape[dim_idx] = dim_size
+                row['shape'] = shape
+                idx0 = len(pids)
+                pids.extend(node.cids)
+                row['pids'] = [idx0, len(pids)]
+            if node._type == 'dependent':
+                row['element_id'] = elemmap[node.element]
+                row['node_id'] = nodemap[node.node]
+            elif node._type == 'pca':
+                row['node_id'] = nodemap[node.node_id]
+                row['weights_id'] = nodemap[node.weights_id]
+                row['variance_id'] = nodemap[node.variance_id]
+            row.append()
+        table.flush()
+
+        pids = numpy.array(pids)
+        pids_array = h5f.createCArray(h5f.root, 'node_pids', tables.IntAtom(), pids.shape, filters=filters)
+        pids_array[:] = pids
+        
+        table = h5f.createTable(h5f.root, 'elements', ElementAtom, 'Mesh element', filters=filters)
+        row = table.row
+        node_ids = []
+        for eid, elem in enumerate(self.elements):
+            row['id'] = str(elem.id)
+            row['idIsInt'] = isinstance(elem.id, int)
+            row['type'] = elem._type
+            row['basis'] = ' '.join(elem.basis)
+            a = len(node_ids)
+            node_ids.extend([nodemap[nid] for nid in elem.node_ids])
+            row['node_ids'] = [a, len(node_ids)]
+            row.append()
+        table.flush()
+        
+        if len(node_ids) == 0:
+            node_ids = [-1]
+        node_ids = numpy.array(node_ids)
+        nids_array = h5f.createCArray(h5f.root, 'element_nodes', tables.IntAtom(), node_ids.shape, filters=filters)
+        nids_array[:] = node_ids
+        
+        # Save node groups
+        table = h5f.createTable(h5f.root, 'node_groups', GroupAtom, 'Mesh node groups', filters=filters)
+        row = table.row
+        node_group_ids = []
+        for gid, key in enumerate(self.nodes.groups.keys()):
+            row['id'] = str(key)
+            row['idIsInt'] = isinstance(key, int)
+            a = len(node_group_ids)
+            node_group_ids.extend([nodemap[nd.id] for nd in self.nodes.groups[key]])
+            row['index_range'] = [a, len(node_group_ids)]
+            row.append()
+        table.flush()
+        
+        if len(node_group_ids) == 0:
+            node_group_ids = [-1]
+        node_group_ids = numpy.array(node_group_ids)
+        ngids_array = h5f.createCArray(h5f.root, 'node_group_ids', tables.IntAtom(), node_group_ids.shape, filters=filters)
+        ngids_array[:] = node_group_ids
+        
+        # Save element groups
+        table = h5f.createTable(h5f.root, 'element_groups', GroupAtom, 'Mesh element groups', filters=filters)
+        row = table.row
+        element_group_ids = []
+        for gid, key in enumerate(self.elements.groups.keys()):
+            row['id'] = str(key)
+            row['idIsInt'] = isinstance(key, int)
+            a = len(element_group_ids)
+            element_group_ids.extend([elemmap[el.id] for el in self.elements.groups[key]])
+            row['index_range'] = [a, len(element_group_ids)]
+            row.append()
+        table.flush()
+        
+        if len(element_group_ids) == 0:
+            element_group_ids = [-1]
+        element_group_ids = numpy.array(element_group_ids)
+        egids_array = h5f.createCArray(h5f.root, 'element_group_ids', tables.IntAtom(), element_group_ids.shape, filters=filters)
+        egids_array[:] = element_group_ids
+        
+        h5f.close()
+    
+    def _load_pytables(self, filepath):
+        import tables
+        
+        def get_attribute(h5node, key, default=None):
+            if key in h5node._v_attrs:
+                return h5node._v_attrs[key]
+            return default
+        
+        def parse_id(h5row):
+            if h5row['idIsInt']:
+                return int(h5row['id'])
+            return h5row['id']
+        
+        def parse_shape(h5row):
+            shape = h5row['shape'].tolist()
+            for i in range(len(shape),0,-1):
+                if shape[i - 1] == 0:
+                    shape.pop(i - 1)
+                else:
+                    return shape
+        
+        h5f = tables.openFile(filepath, 'r')
+        
+        self.version = get_attribute(h5f.root, 'version')
+        self.created_at = get_attribute(h5f.root, 'created_at')
+        self.saved_at = get_attribute(h5f.root, 'saved_at')
+        self.label = get_attribute(h5f.root, 'label')
+        self.units = get_attribute(h5f.root, 'units')
+        
+        nodemap = {}
+        for nn, h5node in enumerate(h5f.root.nodes.iterrows()):
+            nodemap[nn] = parse_id(h5node)
+        
+        elemmap = {}
+        for ne, h5elem in enumerate(h5f.root.elements.iterrows()):
+            elemmap[ne] = parse_id(h5elem)
+        
+        node_pids = h5f.root.node_pids.read()
+        # print h5f.root.params.read()
+        for nn, h5node in enumerate(h5f.root.nodes.iterrows()):
+            node_id = parse_id(h5node)
+            
+            if h5node['type'] == 'standard':
+                values = numpy.zeros(parse_shape(h5node))
+                node = StdNode(self, node_id, values)
+                node.cids = node_pids[h5node['pids'][0]:h5node['pids'][1]]
+                self.nodes.add(node)
+
+            elif h5node['type'] == 'dependent':
+                node = DepNode(self, node_id,
+                        elemmap[h5node['element_id']], nodemap[h5node['node_id']])
+                node.shape = parse_shape(h5node)
+                node.cids = node_pids[h5node['pids'][0]:h5node['pids'][1]]
+                node._added = True
+                self.nodes.add(node)
+
+            elif h5node['type'] == 'pca':
+                node = PCANode(self, node_id, nodemap[h5node['node_id']],
+                        nodemap[h5node['weights_id']], nodemap[h5node['variance_id']])
+                self.nodes.add(node)
+        
+        self._core.P = h5f.root.params.read()
+        elem_node = h5f.root.element_nodes.read()
+        
+        for ne, h5elem in enumerate(h5f.root.elements.iterrows()):
+            elem_id = parse_id(h5elem)
+            self.add_element(elem_id, h5elem['basis'].split(' '),
+                [nodemap[nidx] for nidx in 
+                elem_node[h5elem['node_ids'][0]:h5elem['node_ids'][1]]])
+        
+        group_ids = h5f.root.node_group_ids.read()
+        for h5group in h5f.root.node_groups.iterrows():
+            idx = h5group['index_range']
+            ids = [nodemap[nd] for nd in group_ids[idx[0]:idx[1]]]
+            self.nodes.add_to_group(ids, group=parse_id(h5group))
+        
+        group_ids = h5f.root.element_group_ids.read()
+        for h5group in h5f.root.element_groups.iterrows():
+            idx = h5group['index_range']
+            ids = [elemmap[el] for el in group_ids[idx[0]:idx[1]]]
+            self.elements.add_to_group(ids, group=parse_id(h5group))
+            
+        h5f.close()
+
+    def _save_h5py(self, filepath):
+        import h5py
+        
+        def get_attribute(source, default=""):
+            if source == None:
+                return default
+            return source
+        
+        compression = None #'gzip'
+        compression_opts = None #5
+        shuffle = False #True
+        
+        compression = 'gzip'
+        compression_opts = 9
+        shuffle = True
+
+        h5 = h5py.File(filepath, 'w')
+        h5mesh = h5.create_group('mesh')
+        h5mesh.attrs['version'] = get_attribute(self.version)
+        h5mesh.attrs['created_at'] = get_attribute(self.created_at)
+        h5mesh.attrs['saved_at'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+        h5mesh.attrs['label'] = get_attribute(self.label)
+        h5mesh.attrs['units'] = get_attribute(self.units)
+        # Save metadata
+
+        # Save nodes
+        h5nodes = h5mesh.create_group('nodes')
+        h5nodes.attrs['size'] = self.nodes.size()
+        nodemap = {}
+        for nid, node in enumerate(self.nodes):
+            nodemap[node.id] = nid
+            h5node = h5nodes.create_group(str(nid))
+            h5node.attrs['id'] = node.id
+            h5node.attrs['type'] = node._type
+
+            if node._type == 'standard':
+                h5node.attrs['shape'] = node.shape
+                h5node.create_dataset('pids', data=node.cids,
+                    compression=compression, compression_opts=compression_opts, shuffle=shuffle)
+            
+            elif node._type == 'dependent':
+                h5node.attrs['shape'] = node.shape
+                h5node.attrs['element_id'] = node.element
+                h5node.attrs['node_id'] = node.node
+                h5node.create_dataset('pids', data=node.cids,
+                    compression=compression, compression_opts=compression_opts, shuffle=shuffle)
+
+            elif node._type == 'pca':
+                h5node.attrs['node_id'] = node.node_id
+                h5node.attrs['weights_id'] = node.weights_id
+                h5node.attrs['variance_id'] = node.variance_id
+
+        h5mesh.create_dataset('params', data=self.params, compression=compression, compression_opts=compression_opts, shuffle=shuffle)
+        
+        # Save elements
+        h5elems = h5mesh.create_group('elements')
+        h5elems.attrs['size'] = self.elements.size()
+        elemmap = {}
+        for eid, elem in enumerate(self.elements):
+            elemmap[elem.id] = eid
+            h5elem = h5elems.create_group(str(eid))
+            h5elem.attrs['id'] = elem.id
+            h5elem.attrs['type'] = elem._type
+            h5elem.attrs['basis'] = elem.basis
+            h5elem.create_dataset('node_ids',
+                data=[nodemap[i] for i in elem.node_ids],
+                compression=compression, compression_opts=compression_opts, shuffle=shuffle)
+        
+        # Save node groups
+        h5groups = h5mesh.create_group('node_groups')
+        h5groups.attrs['size'] = len(self.nodes.groups.keys())
+        for gid, key in enumerate(self.nodes.groups.keys()):
+            h5group = h5groups.create_group(str(gid))
+            h5group.attrs['id'] = key
+            h5group.create_dataset('node_ids',
+                data=[nodemap[nd.id] for nd in self.nodes.groups[key]],
+                compression=compression, compression_opts=compression_opts, shuffle=shuffle)
+        
+        # Save element groups
+        h5groups = h5mesh.create_group('element_groups')
+        h5groups.attrs['size'] = len(self.elements.groups.keys())
+        for gid, key in enumerate(self.elements.groups.keys()):
+            h5group = h5groups.create_group(str(gid))
+            h5group.attrs['id'] = key
+            h5group.create_dataset('element_ids',
+                data=[elemmap[el.id] for el in self.elements.groups[key]],
+                compression=compression, compression_opts=compression_opts, shuffle=shuffle)
+        
+        h5.close()
+    
+    def _load_h5py(self, filepath):
+        import h5py
+        
+        def get_attribute(h5node, key, default=None):
+            if key in h5node.attrs.keys():
+                return h5node.attrs[key]
+            return default
+            
+        h5 = h5py.File(filepath)
         h5mesh = h5['mesh']
-        self._version = h5mesh.attrs['version']
-        self.label = h5mesh.attrs['label']
-        self.units = h5mesh.attrs['units']
+        self.version = get_attribute(h5mesh, 'version')
+        self.created_at = get_attribute(h5mesh, 'created_at')
+        self.saved_at = get_attribute(h5mesh, 'saved_at')
+        self.label = get_attribute(h5mesh, 'label')
+        self.units = get_attribute(h5mesh, 'units')
         
         # Load nodes
         h5nodes = h5mesh['nodes']
@@ -1114,7 +1386,6 @@ class Mesh(object):
             elemmap[ne] = h5elem.attrs['id']
             self.add_element(h5elem.attrs['id'], h5elem.attrs['basis'],
                 [nodemap[i] for i in h5elem['node_ids'][...]])
-            elem = self.elements[h5elem.attrs['id']]
         
         # Load node groups
         h5groups = h5mesh['node_groups']
@@ -1135,8 +1406,16 @@ class Mesh(object):
         h5.close()
 
     def _load_dict(self, mesh_dict):
-        self.label = mesh_dict['label']
-        self.units = mesh_dict['units']
+        
+        def get_attribute(datadict, key, default=None):
+            if key in datadict.keys():
+                return datadict[key]
+            return default
+            
+        self.label = get_attribute(mesh_dict, 'label')
+        self.created_at = get_attribute(mesh_dict, 'created_at')
+        self.saved_at = get_attribute(mesh_dict, 'saved_at')
+        self.units = get_attribute(mesh_dict, 'units')
         for node_dict in mesh_dict['nodes']:
             if node_dict['type'] == 'standard':
                 node = self.add_stdnode(node_dict['id'], None)
@@ -1156,29 +1435,6 @@ class Mesh(object):
             self.nodes._load_dict(mesh_dict['node_objlist'])
         if 'element_objlist' in mesh_dict.keys():
             self.elements._load_dict(mesh_dict['element_objlist'])
-        
-    
-    def load(self, filepath):
-        '''
-        Loads a mesh.
-        
-        >>> mesh = Mesh('data/cube.mesh')
-        
-        or
-        
-        >>> mesh = Mesh()
-        >>> mesh.load('data/cube.mesh')
-        
-        '''
-        import pickle
-        import h5py
-
-        if h5py.is_hdf5(filepath):
-            self._load_hdf5(filepath)
-        else:
-            self._load_dict(pickle.load(open(filepath, "r")))
-        self.generate(True)
-        
     
     def generate(self, force=False):
         '''

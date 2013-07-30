@@ -2,6 +2,8 @@ import sys
 import unittest
 import doctest
 
+import ddt
+
 import numpy
 from numpy import array
 import numpy.testing as npt
@@ -10,37 +12,50 @@ import numpy.testing as npt
 sys.path.append('..')
 from morphic import mesher
         
-class TestHDF5Mesh(unittest.TestCase):
+@ddt.ddt
+class TestPyTablesMesh(unittest.TestCase):
     """Unit tests for morphic interpolants."""
     
-    def test_metadata(self):
+    @ddt.file_data('io_formats.json')
+    def test_metadata(self, value):
+        filepath = 'data/%s.mesh' % (value)
         mesh0 = mesher.Mesh(label='cube', units='mm')
         mesh0.add_stdnode(1, [0.5])
         mesh0.generate()
-        mesh0.save('data/hdf5a.mesh', format='hdf5')
+        mesh0.save(filepath, format=value)
 
-        mesh1 = mesher.Mesh('data/hdf5a.mesh')
-        self.assertEqual(mesh0._version, mesh1._version)
+        mesh1 = mesher.Mesh(filepath)
+        self.assertEqual(mesh0.version, mesh1.version)
+        self.assertEqual(mesh1.version, 1)
+        self.assertEqual(mesh0.created_at, mesh1.created_at)
+        self.assertEqual(mesh1.created_at[:2], "20")
+        self.assertEqual(mesh1.created_at[-3:], "UTC")
+        self.assertEqual(mesh1.saved_at[:2], "20")
+        self.assertEqual(mesh1.saved_at[-3:], "UTC")
         self.assertEqual(mesh0.label, mesh1.label)
         self.assertEqual(mesh0.units, mesh1.units)
     
-    def test_stdnodes(self):
+    @ddt.file_data('io_formats.json')
+    def test_stdnodes(self, value):
+        filepath = 'data/%s.mesh' % (value)
         mesh0 = mesher.Mesh()
         mesh0.add_stdnode(1, [0.5, 0.5])
         mesh0.add_stdnode(2, [0.0, 0.3])
         mesh0.add_stdnode('2', [[1.0, 0.5],[0.9, 1.3]])
         mesh0.add_element(1, ['L1'], [1, 2])
         mesh0.generate()
-        mesh0.save('data/hdf5b.mesh', format='hdf5')
+        mesh0.save(filepath, format=value)
 
-        mesh1 = mesher.Mesh('data/hdf5b.mesh')
+        mesh1 = mesher.Mesh(filepath)
         for node in mesh0.nodes:
             nid = node.id
             npt.assert_equal(node.id, mesh1.nodes[nid].id)
             npt.assert_equal(mesh0.nodes[nid].values, mesh1.nodes[nid].values)
         npt.assert_equal(mesh0.core.P, mesh1.core.P)
 
-    def test_depnodes(self):
+    @ddt.file_data('io_formats.json')
+    def test_depnodes(self, value):
+        filepath = 'data/%s.mesh' % (value)
         mesh0 = mesher.Mesh()
         mesh0.add_stdnode('xi', [0.5])
         mesh0.add_stdnode(1, [0.0, 0.0])
@@ -48,13 +63,15 @@ class TestHDF5Mesh(unittest.TestCase):
         mesh0.add_depnode(3, 1, 'xi')
         mesh0.add_element(1, ['L1'], [1, 2])
         mesh0.generate()
-        mesh0.save('data/hdf5c.mesh', format='hdf5')
-        
-        mesh1 = mesher.Mesh('data/hdf5c.mesh')
+        mesh0.save(filepath, format=value)
+
+        mesh1 = mesher.Mesh(filepath)
         npt.assert_equal(mesh0.nodes[3].values, mesh1.nodes[3].values)
         npt.assert_equal(mesh0.core.P, mesh1.core.P)
         
-    def test_pcanodes(self):
+    @ddt.file_data('io_formats.json')
+    def test_pcanodes(self, value):
+        filepath = 'data/%s.mesh' % (value)
         mesh0 = mesher.Mesh()
         mesh0.add_stdnode('weights', [1, 1, -0.1])
         mesh0.add_stdnode('vars', [1, 0.1, 0.04])
@@ -62,10 +79,9 @@ class TestHDF5Mesh(unittest.TestCase):
         mesh0.add_pcanode(2, [[[0.0, -0.1, 0.01]], [[0.0, 0.02, -0.01]]], 'weights', 'vars')
         mesh0.add_element(1, ['L1'], [2, 1])
         mesh0.generate()
-        mesh0.save('data/hdf5d.mesh', format='hdf5')
-        
-        mesh1 = mesher.Mesh('data/hdf5d.mesh')
+        mesh0.save(filepath, format=value)
 
+        mesh1 = mesher.Mesh(filepath)
         npt.assert_equal(mesh0.nodes[1].values, mesh1.nodes[1].values)
         npt.assert_equal(mesh0.nodes[2].values, mesh1.nodes[2].values)
         npt.assert_equal(mesh0.elements[1].evaluate([0.3]),
@@ -85,16 +101,18 @@ class TestHDF5Mesh(unittest.TestCase):
         npt.assert_equal(mesh0.core.P, mesh1.core.P)
 
 
-    def test_elements(self):
+    @ddt.file_data('io_formats.json')
+    def test_elements(self, value):
+        filepath = 'data/%s.mesh' % (value)
         mesh0 = mesher.Mesh()
         mesh0.add_stdnode(1, [0.5, 0.7, 1.2])
         mesh0.add_stdnode(2, [0.0, 0.3, 0.4])
         mesh0.add_element(1, ['L1'], [1, 2])
         mesh0.add_element('-1', ['L1'], [2, 1])
         mesh0.generate()
-        mesh0.save('data/hdf5e.mesh', format='hdf5')
+        mesh0.save(filepath, format=value)
 
-        mesh1 = mesher.Mesh('data/hdf5e.mesh')
+        mesh1 = mesher.Mesh(filepath)
         for ne, el0 in enumerate(mesh0.elements):
             el1 = mesh1.elements[el0.id]
             self.assertEqual(el0.id, el1.id)
@@ -106,7 +124,8 @@ class TestHDF5Mesh(unittest.TestCase):
         npt.assert_equal(mesh0.elements[1].length(),
             mesh1.elements[1].length())
 
-    def test_groups(self):
+    @ddt.file_data('io_formats.json')
+    def test_groups(self, value):
         def compare_node_groups(mesh0, mesh1, group):
             nids0 = [n.id for n in mesh0.nodes.groups[group]]
             nids1 = [n.id for n in mesh1.nodes.groups[group]]
@@ -117,6 +136,7 @@ class TestHDF5Mesh(unittest.TestCase):
             nids1 = [n.id for n in mesh1.elements.groups[group]]
             self.assertEqual(nids0, nids1)
         
+        filepath = 'data/%s.mesh' % (value)
         mesh0 = mesher.Mesh()
         mesh0.add_stdnode(1, [0., 0.])
         mesh0.add_stdnode('2', [3., 0.])
@@ -131,9 +151,9 @@ class TestHDF5Mesh(unittest.TestCase):
         mesh0.elements.add_to_group('hypotenuse', 'hypotenuse')
         mesh0.elements.add_to_group([1, 2, 'hypotenuse'], 'loop')
         mesh0.generate()
-        mesh0.save('data/hdf5f.mesh', format='hdf5')
-        
-        mesh1 = mesher.Mesh('data/hdf5f.mesh')
+        mesh0.save(filepath, format=value)
+
+        mesh1 = mesher.Mesh(filepath)
         compare_node_groups(mesh0, mesh1, 'origin')
         compare_node_groups(mesh0, mesh1, 5)
         compare_node_groups(mesh0, mesh1, 'all')
@@ -141,6 +161,5 @@ class TestHDF5Mesh(unittest.TestCase):
         compare_elem_groups(mesh0, mesh1, 'hypotenuse')
         compare_elem_groups(mesh0, mesh1, 'loop')
 
- 
 if __name__ == "__main__":
     unittest.main()
