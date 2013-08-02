@@ -53,6 +53,10 @@ class TestPyTablesMesh(unittest.TestCase):
         mesh0.metadata.name = 'Joe Bloggs'
         mesh0.metadata.age = 23
         mesh0.metadata.height = 1.68
+        mesh0.metadata.list1 = ['c', 'a', 'b']
+        mesh0.metadata.list2 = [2, 1, 3]
+        mesh0.metadata.list3 = [2.1, 1.1, 3.1]
+        mesh0.metadata.list4 = [1, 'a', 3.3]
         
         mesh0.add_stdnode(1, [0.5])
         mesh0.generate()
@@ -62,6 +66,10 @@ class TestPyTablesMesh(unittest.TestCase):
         self.assertEqual(mesh1.metadata.name, 'Joe Bloggs')
         self.assertEqual(mesh1.metadata.age, 23)
         self.assertEqual(mesh1.metadata.height, 1.68)
+        self.assertEqual(mesh1.metadata.list1, ['c', 'a', 'b'])
+        self.assertEqual(mesh1.metadata.list2, [2, 1, 3])
+        self.assertEqual(mesh1.metadata.list3, [2.1, 1.1, 3.1])
+        self.assertEqual(mesh1.metadata.list4, [1, 'a', 3.3])
     
     @ddt.file_data('io_formats.json')
     def test_stdnodes(self, value):
