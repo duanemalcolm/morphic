@@ -57,6 +57,7 @@ class TestPyTablesMesh(unittest.TestCase):
         mesh0.metadata.list2 = [2, 1, 3]
         mesh0.metadata.list3 = [2.1, 1.1, 3.1]
         mesh0.metadata.list4 = [1, 'a', 3.3]
+        mesh0.metadata.dict4 = {'a':1, 'b':'c'}
         
         mesh0.add_stdnode(1, [0.5])
         mesh0.generate()
@@ -70,6 +71,7 @@ class TestPyTablesMesh(unittest.TestCase):
         self.assertEqual(mesh1.metadata.list2, [2, 1, 3])
         self.assertEqual(mesh1.metadata.list3, [2.1, 1.1, 3.1])
         self.assertEqual(mesh1.metadata.list4, [1, 'a', 3.3])
+        self.assertEqual(mesh1.metadata.dict4, {'a':1, 'b':'c'})
     
     @ddt.file_data('io_formats.json')
     def test_stdnodes(self, value):
