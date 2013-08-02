@@ -36,6 +36,79 @@ import core
 import discretizer
 import utils
 
+class Metadata(object):
+    
+    def set(self, name, value, overwrite=True):
+        if not overwrite:
+            if name in self.__dict__:
+                return False
+        self.__dict__[name] = value
+        return True
+        
+    def get(self, name, default=None):
+        if name not in self.__dict__:
+            return default
+        return self.__dict__[name]
+    
+    def delete(self, name):
+        if name in self.__dict__:
+            self.__dict__.pop(name)
+    
+    def get_dict(self):
+        return self.__dict__
+    
+    def set_dict(self, data):
+        for key, value in data.iteritems():
+            self.__dict__[key] = value
+            
+    def save_pytables(self, node):
+        for key, value in self.iteritems():
+            node._v_attrs[key] = value
+            
+    def load_pytables(self, node):
+        a = node._AttributeSet(node)
+        for key in a._v_attrnamesuser:
+            self.set(key, a[key])
+    
+    def __setattr__(self, name, value):
+        self.__dict__[name] = value
+    
+    def __getattr__(self, name):
+        return self.__dict__[name]
+    
+    def __setitem__(self, name, value):
+        self.__dict__[name] = value
+    
+    def __getitem__(self, name):
+        return self.__dict__[name]
+    
+    def keys(self):
+        return self.__dict__.keys()
+    
+    def values(self):
+        return self.__dict__.values()
+    
+    def items(self):
+        return self.__dict__.items()
+    
+    def iteritems(self):
+        return self.__dict__.iteritems()
+    
+    def iterkeys(self):
+        return self.__dict__.iterkeys()
+    
+    def itervalues(self):
+        return self.__dict__.itervalues()
+    
+    def __contains__(self, name):
+        return name in self.__dict__
+    
+    def __len__(self):
+        return len(self.__dict__)
+    
+    def __str__(self):
+        return self.__dict__.__str__()
+    
 class Values(numpy.ndarray):
     '''
     This is a temporary object passed to the user when setting node
@@ -809,6 +882,9 @@ class Mesh(object):
         self.auto_add_faces = True;
         self.auto_add_lines = True;
         
+        self.sysdata = Metadata()
+        self.metadata = Metadata()
+        
         self.filepath = filepath
         if filepath != None:
             self.load(filepath)
@@ -970,6 +1046,7 @@ class Mesh(object):
         mesh_dict['saved_at'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
         mesh_dict['label'] = self.label
         mesh_dict['units'] = self.units
+        mesh_dict['metadata'] = self.metadata.get_dict()
         mesh_dict['nodes'] = []
         mesh_dict['elements'] = []
         for node in self.nodes:
@@ -1067,6 +1144,10 @@ class Mesh(object):
         h5f.setNodeAttr(h5f.root, 'saved_at', datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"))
         h5f.setNodeAttr(h5f.root, 'label', self.label)
         h5f.setNodeAttr(h5f.root, 'units', self.units)
+        
+        
+        metadata_node = h5f.createGroup(h5f.root, 'metadata')
+        self.metadata.save_pytables(metadata_node)
         
         params = h5f.createCArray(h5f.root, 'params', tables.Float64Atom(), self.params.shape, filters=filters)
         params[:] = self.params
@@ -1188,6 +1269,9 @@ class Mesh(object):
         self.saved_at = get_attribute(h5f.root, 'saved_at')
         self.label = get_attribute(h5f.root, 'label')
         self.units = get_attribute(h5f.root, 'units')
+        
+        if 'metadata' in h5f.root:
+            self.metadata.load_pytables(h5f.root.metadata)
         
         nodemap = {}
         for nn, h5node in enumerate(h5f.root.nodes.iterrows()):
@@ -1416,6 +1500,8 @@ class Mesh(object):
         self.created_at = get_attribute(mesh_dict, 'created_at')
         self.saved_at = get_attribute(mesh_dict, 'saved_at')
         self.units = get_attribute(mesh_dict, 'units')
+        if mesh_dict.has_key('metadata'):
+            self.metadata.set_dict(mesh_dict['metadata'])
         for node_dict in mesh_dict['nodes']:
             if node_dict['type'] == 'standard':
                 node = self.add_stdnode(node_dict['id'], None)

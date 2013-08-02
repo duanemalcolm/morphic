@@ -1,5 +1,4 @@
 {
     "pickle": "pickle",
-    "h5py": "h5py",
     "pytables": "pytables"
 }

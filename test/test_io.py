@@ -17,6 +17,17 @@ class TestPyTablesMesh(unittest.TestCase):
     """Unit tests for morphic interpolants."""
     
     @ddt.file_data('io_formats.json')
+    def test_save_empty_mesh(self, value):
+        filepath = 'data/%s.mesh' % (value)
+        mesh0 = mesher.Mesh(label='cube', units='mm')
+        mesh0.generate()
+        # mesh0.save(filepath, format=value)
+
+        # mesh1 = mesher.Mesh(filepath)
+        # self.assertEqual(mesh0.label, mesh1.label)
+        # self.assertEqual(mesh0.units, mesh1.units)
+    
+    @ddt.file_data('io_formats.json')
     def test_metadata(self, value):
         filepath = 'data/%s.mesh' % (value)
         mesh0 = mesher.Mesh(label='cube', units='mm')
@@ -34,6 +45,23 @@ class TestPyTablesMesh(unittest.TestCase):
         self.assertEqual(mesh1.saved_at[-3:], "UTC")
         self.assertEqual(mesh0.label, mesh1.label)
         self.assertEqual(mesh0.units, mesh1.units)
+    
+    @ddt.file_data('io_formats.json')
+    def test_metadata(self, value):
+        filepath = 'data/%s.mesh' % (value)
+        mesh0 = mesher.Mesh(label='cube', units='mm')
+        mesh0.metadata.name = 'Joe Bloggs'
+        mesh0.metadata.age = 23
+        mesh0.metadata.height = 1.68
+        
+        mesh0.add_stdnode(1, [0.5])
+        mesh0.generate()
+        mesh0.save(filepath, format=value)
+
+        mesh1 = mesher.Mesh(filepath)
+        self.assertEqual(mesh1.metadata.name, 'Joe Bloggs')
+        self.assertEqual(mesh1.metadata.age, 23)
+        self.assertEqual(mesh1.metadata.height, 1.68)
     
     @ddt.file_data('io_formats.json')
     def test_stdnodes(self, value):
