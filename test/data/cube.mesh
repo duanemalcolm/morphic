@@ -4,11 +4,11 @@ p1
 (lp2
 sS'created_at'
 p3
-S'2013-07-30 00:29:02 UTC'
+S'2013-08-02 04:25:53 UTC'
 p4
 sS'saved_at'
 p5
-S'2013-07-30 00:29:02 UTC'
+S'2013-08-02 04:25:53 UTC'
 p6
 sS'label'
 p7
@@ -72,4 +72,7 @@ p34
 (dp35
 g11
 (dp36
-ss.
+ssS'metadata'
+p37
+(dp38
+s.

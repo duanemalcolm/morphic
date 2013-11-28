@@ -85,6 +85,9 @@ class Metadata(object):
     def keys(self):
         return self.__dict__.keys()
     
+    def has_key(self, name):
+        return name in self.__dict__
+    
     def values(self):
         return self.__dict__.values()
     
