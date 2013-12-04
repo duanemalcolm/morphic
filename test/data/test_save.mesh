@@ -22,11 +22,11 @@ S'L1'
 p11
 asasS'created_at'
 p12
-S'2013-07-30 00:29:02 UTC'
+S'2013-12-01 21:10:37 UTC'
 p13
 sS'saved_at'
 p14
-S'2013-07-30 00:29:02 UTC'
+S'2013-12-01 21:10:37 UTC'
 p15
 sS'label'
 p16
@@ -197,4 +197,7 @@ g20
 g22
 (lp70
 I1
-asss.
+asssS'metadata'
+p71
+(dp72
+s.

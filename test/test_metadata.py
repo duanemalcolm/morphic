@@ -10,13 +10,14 @@ import numpy.testing as npt
 sys.path.append('..')
 from morphic import core
 from morphic import mesher
+from morphic import metadata
 
 class TestNode(unittest.TestCase):
     """Unit tests for morphic Node superclass."""
 
     def test_init_attributes(self):
         mesh = mesher.Mesh()
-        self.assertTrue(isinstance(mesh.metadata, mesher.Metadata))
+        self.assertTrue(isinstance(mesh.metadata, metadata.Metadata))
     
     def test_set_attribute(self):
         mesh = mesher.Mesh()

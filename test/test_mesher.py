@@ -1032,7 +1032,7 @@ class TestMesh(unittest.TestCase):
         mesh.add_element(1, ['L1'], [1, 2])
         mesh.generate()
         md = mesh._save_dict()
-        self.assertEqual(len(md), 10)
+        self.assertEqual(len(md), 11)
         self.assertEqual(md['version'], mesh.version)
         self.assertEqual(md['label'], 'cube')
         self.assertEqual(md['units'], 'mm')

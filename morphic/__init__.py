@@ -1,4 +1,5 @@
 from mesher import Mesh
+from data import Data
 from fitter import Fit
 from fasteval import FEMatrix
 
