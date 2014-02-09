@@ -7,10 +7,19 @@ class Metadata(object):
         self.__dict__[name] = value
         return True
         
-    def get(self, name, default=None):
-        if name not in self.__dict__:
-            return default
-        return self.__dict__[name]
+    def get(self, *args, **kwargs):
+        '''
+        Recursively retrives a value from the Metadata and returns
+        the default value if it is not found.
+        value = metadata.get('house', 'colour', default='white')
+        '''
+        default = kwargs.get('default')
+        d = self.__dict__
+        for i, arg in enumerate(args):
+            d = d.get(arg)
+            if d == None:
+                return default
+        return d
     
     def delete(self, name):
         if name in self.__dict__:
