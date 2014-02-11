@@ -1,4 +1,4 @@
-import scipy
+import numpy
 
 # Some systems have the mayavi2 module referenced by diffrent names.
 try:
@@ -43,7 +43,15 @@ class Figure:
     def set_camera(self, camera):
         mlab.view(*camera[0])
         mlab.roll(camera[1])
-    
+
+    def hide(self, label):
+        if label in self.plots.keys():
+            self.plots[label].visible = False
+
+    def show(self, label):
+        if label in self.plots.keys():
+            self.plots[label].visible = True
+
     def plot_surfaces(self, label, X, T, scalars=None, color=None, rep='surface', opacity=1.0):
         
         mlab.figure(self.figure.name)
@@ -89,7 +97,7 @@ class Figure:
         for x in X:
             nPoints += x.shape[0]
         
-        Xl = scipy.zeros((nPoints, 3))
+        Xl = numpy.zeros((nPoints, 3))
         connections = []
         
         ind = 0
@@ -98,7 +106,7 @@ class Figure:
             for l in range(x.shape[0]-1):
                 connections.append([ind + l, ind + l + 1])
             ind += x.shape[0]
-        connections = scipy.array(connections)
+        connections = numpy.array(connections)
         
         mlab.figure(self.figure.name)
         
@@ -185,10 +193,10 @@ class Figure:
             mode='sphere'
         
         if isinstance(X, list):
-            X = scipy.array(X)
+            X = numpy.array(X)
         
         if len(X.shape) == 1:
-            X = scipy.array([X])
+            X = numpy.array([X])
         
         mlab_obj = self.plots.get(label)
         if mlab_obj == None:
@@ -260,3 +268,149 @@ class Figure:
         self.figure.scene.disable_render = False
         mlab.view(*view)
         mlab.roll(roll)
+
+    def plot_dicoms(self, label, dicom_files):
+        scan = self._load_dicom_attributes(dicom_files)
+
+        mlab.figure(self.figure.name)
+        
+        mlab_objs = self.plots.get(label)
+        if mlab_objs == None:
+            src = mlab.pipeline.scalar_field(scan.values)
+            src.origin = scan.origin
+            src.spacing = scan.spacing
+            plane = mlab.pipeline.image_plane_widget(src,
+                                plane_orientation='z_axes',
+                                slice_index=int(0.5 * scan.num_slices),
+                                colormap='black-white')
+            self.plots[label] = {}
+            self.plots[label]['src'] = src
+            self.plots[label]['plane'] = plane
+        else:
+            self.plots[label]['src'].origin = scan.origin
+            self.plots[label]['src'].spacing = scan.spacing
+            self.plots[label]['src'].scalar_data = scan.values
+            self.plots[label]['plane'].update_pipeline()
+
+    def _load_dicom_attributes(self, dicom_files):
+        import dicom
+
+        class Scan(object):
+
+            def __init__(self):
+                self.num_slices = 0
+                self.origin = numpy.array([0.,0.,0.])
+                self.spacing = numpy.array([1.,1.,1.])
+                self.values = None
+
+            def set_origin(self, values):
+                self.origin = numpy.array([float(v) for v in values])
+
+            def set_pixel_spacing(self, values):
+                self.spacing[0] = float(values[0])
+                self.spacing[1] = float(values[1])
+
+            def set_slice_thickness(self, value):
+                self.spacing[2] = float(value)
+
+            def init_values(self, rows, cols, slices):
+                self.num_slices = slices
+                self.values = numpy.zeros((rows, cols, slices))
+
+            def insert_slice(self, index, values):
+                self.values[:,:,index] = values
+
+        import os
+        if isinstance(dicom_files, str):
+            dicom_path = dicom_files
+            dicom_files = os.listdir(dicom_path)
+            for i, filename in enumerate(dicom_files):
+                dicom_files[i] = os.path.join(dicom_path, dicom_files[i])
+
+        scan = Scan()
+        slice_location_tag = (0x0020, 0x1041)
+        slice_thickness_tag = (0x0018, 0x0050)
+        image_position_tag = (0x0020, 0x0032)
+        image_orientation_tag = (0x0020, 0x0037)
+        pixel_spacing_tag = (0x0028, 0x0030)
+        rows_tag = (0x0028, 0x0010)
+        cols_tag = (0x0028, 0x0011)
+        slice_location = []
+        slice_thickness = []
+        image_position = []
+        remove_files = []
+        for i, dicom_file in enumerate(dicom_files):
+            try:
+                dcm = dicom.read_file(dicom_file)
+                valid_dicom = True
+            except dicom.filereader.InvalidDicomError:
+                remove_files.append(i)
+                valid_dicom = False
+
+            if valid_dicom:
+                dcmtags = dcm.keys()
+                if slice_location_tag in dcmtags:
+                    slice_location.append(float(dcm[slice_location_tag].value))
+                else:
+                    print 'No slice location found in ' + dicom_file
+                    return
+                if slice_thickness_tag in dcmtags:
+                    slice_thickness.append(float(dcm[slice_thickness_tag].value))
+                else:
+                    print 'No slice thickness found in ' + dicom_file
+                    return
+                if image_position_tag in dcmtags:
+                    image_position.append([float(v)
+                        for v in dcm[image_position_tag].value])
+                else:
+                    print 'No image_position found in ' + dicom_file
+                    return
+
+        remove_files.reverse()
+        for index in remove_files:
+            dicom_files.pop(index)
+
+        slice_location = numpy.array(slice_location)
+        slice_thickness = numpy.array(slice_thickness)
+        image_position = numpy.array(image_position)
+
+        sorted_index = numpy.array(slice_location).argsort()
+        dt = []
+        for i,zi in enumerate(sorted_index[:-1]):
+            i0 = sorted_index[i]
+            i1 = sorted_index[i+1]
+            dt.append(slice_location[i1] - slice_location[i0])
+        dt = numpy.array(dt)
+
+        if slice_thickness.std() > 1e-6 or dt.std() > 1e-6:
+            print 'Warning: slices are not regularly spaced'
+
+        scan.set_slice_thickness(slice_thickness[0])
+
+        if pixel_spacing_tag in dcmtags:
+            scan.set_pixel_spacing(dcm[pixel_spacing_tag].value)
+        else:
+            print 'No pixel spacing vlaues found in' + dicom_file
+            return
+
+        scan.set_origin(image_position.min(0))
+
+        if rows_tag in dcmtags:
+            rows = int(dcm[rows_tag].value)
+        else:
+            print 'Number of rows not found in ' + dicom_file
+            return
+        if cols_tag in dcmtags:
+            cols = int(dcm[cols_tag].value)
+        else:
+            print 'Number of cols not found in ' + dicom_file
+            return
+
+        scan.init_values(rows, cols, slice_location.shape[0])
+        for i, index in enumerate(sorted_index):
+            scan.insert_slice(i, dicom.read_file(dicom_files[index]).pixel_array[:,::-1])
+
+        return scan
+
+
+
