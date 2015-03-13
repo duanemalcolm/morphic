@@ -500,6 +500,32 @@ class TestBasisFunction(unittest.TestCase):
                      0.302336  , -1.87264   ,  5.637632  ,  4.612608  ,  0.178816  ,
                     -1.054592  , -3.331328  ,  0.11818667,  1.50468267, -0.283584  ]]))
 
-        
+class TestVectorElements(unittest.TestCase):
+    """Unit tests for morphic interpolator."""
+
+    def test_weights(self):
+        W = interpolator.weights(['V1'], [0.1])
+        numpy.testing.assert_almost_equal(W, [1, 0.1])
+        W = interpolator.weights(['V1', 'V1'], [-0.33, 1.44], deriv=[0, 0])
+        numpy.testing.assert_almost_equal(W, [1, -0.33, 1.44])
+        W = interpolator.weights(['V1', 'V1'], [-0.33, 1.44], deriv=[1, 0])
+        numpy.testing.assert_almost_equal(W, [0, 1, 0])
+        W = interpolator.weights(['V1', 'V1'], [-0.33, 1.44], deriv=[0, 1])
+        numpy.testing.assert_almost_equal(W, [0, 0, 1])
+        W = interpolator.weights(['V1', 'V1'], [[-0.33, 1.44]], deriv=[1, 1])
+        numpy.testing.assert_almost_equal(W, [0, 0, 0])
+        W = interpolator.weights(['V1', 'V1'], [[-0.33, 1.44]], deriv=[2, 0])
+        numpy.testing.assert_almost_equal(W, [0, 0, 0])
+        W = interpolator.weights(['V1', 'V1'], [[-0.33, 1.44]], deriv=[0, 2])
+        numpy.testing.assert_almost_equal(W, [0, 0, 0])
+        W = interpolator.weights(['V1', 'V1', 'V1'], [[-0.33, 1.44, 15]], deriv=None)
+        numpy.testing.assert_almost_equal(W, [1, -0.33, 1.44, 15])
+        W = interpolator.weights(['V1', 'V1', 'V1'], [[-0.33, 1.44, 15]], deriv=[0, 0, 1])
+        numpy.testing.assert_almost_equal(W, [0, 0, 0, 1])
+        W = interpolator.weights(['V1', 'V1', 'V1'], [[-0.33, 1.44, 15]], deriv=[1, 0, 1])
+        numpy.testing.assert_almost_equal(W, [0, 0, 0, 0])
+        W = interpolator.weights(['V1', 'V1', 'V1'], [[-0.33, 1.44, 15]], deriv=[1, 0, 2])
+        numpy.testing.assert_almost_equal(W, [0, 0, 0, 0])
+
 if __name__ == "__main__":
     unittest.main()

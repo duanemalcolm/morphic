@@ -11,7 +11,14 @@ def xi_grid(shape='quad', res=[8, 8], units='div', method='fit'):
         raise TypeError('Unimplemented units')
     
     nx = divs[0]+1
-    xi = numpy.linspace(0,1,divs[0]+1)
+    dx = 0.5 / nx
+    if method == 'fit':
+        xi = numpy.linspace(0, 1, divs[0] + 1)
+    elif method == 'center':
+        xi = numpy.linspace(dx, 1 - dx, divs[0] + 1)
+    else:
+        xi = numpy.linspace(0, 1, divs[0] + 1)
+
     
     if shape == 'quad':
         NPQ = int(nx*nx)

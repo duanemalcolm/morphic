@@ -286,11 +286,13 @@ class Figure:
             self.plots[label] = {}
             self.plots[label]['src'] = src
             self.plots[label]['plane'] = plane
+            self.plots[label]['filepaths'] = scan.filepaths
         else:
             self.plots[label]['src'].origin = scan.origin
             self.plots[label]['src'].spacing = scan.spacing
             self.plots[label]['src'].scalar_data = scan.values
             self.plots[label]['plane'].update_pipeline()
+            self.plots[label]['filepaths'] = scan.filepaths
 
     def _load_dicom_attributes(self, dicom_files):
         import dicom
@@ -301,6 +303,7 @@ class Figure:
                 self.num_slices = 0
                 self.origin = numpy.array([0.,0.,0.])
                 self.spacing = numpy.array([1.,1.,1.])
+                self.filepaths = []
                 self.values = None
 
             def set_origin(self, values):
@@ -366,6 +369,7 @@ class Figure:
                     print 'No image_position found in ' + dicom_file
                     return
 
+        # Remove files that are not dicoms
         remove_files.reverse()
         for index in remove_files:
             dicom_files.pop(index)
@@ -408,6 +412,7 @@ class Figure:
 
         scan.init_values(rows, cols, slice_location.shape[0])
         for i, index in enumerate(sorted_index):
+            scan.filepaths.append(dicom_files[index])
             scan.insert_slice(i, dicom.read_file(dicom_files[index]).pixel_array[:,::-1])
 
         return scan

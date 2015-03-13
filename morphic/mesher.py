@@ -37,52 +37,52 @@ import discretizer
 import metadata
 import utils
 
+
 class Values(numpy.ndarray):
     '''
     This is a temporary object passed to the user when setting node
     values.
     '''
+
     def __new__(cls, input_array, node, cids):
         obj = numpy.asarray(input_array).view(cls)
         obj.node = node
         obj.cids = cids
         return obj
-    
+
     def __setslice__(self, i, j, sequence):
         # Required for 1D arrays
         if j > self.size:
             j = None
         self.__setitem__(slice(i, j, None), sequence)
-        
+
     def __setitem__(self, name, values):
         flat_cids = numpy.array(self.cids).reshape(self.shape)[name].flatten()
         self.node._set_values(flat_cids, values)
 
 
 class NodeValues(object):
-    
     def __get__(self, instance, owner):
         x = instance.mesh._core.P[instance.cids].reshape(instance.shape)
         return Values(x, instance, instance.cids)
-    
+
     def __set__(self, instance, values):
         if values.shape != instance.shape:
             raise IndexError('Cannot set values with a different shaped'
-                    + ' array. User node.set_values(values) instead') 
+                             + ' array. User node.set_values(values) instead')
         instance.mesh._core.P[instance.cids] = values.flatten()
-        
 
 
 class Node(object):
     '''
     This is the super-class for StdNode and DepNode.
     '''
-    
+
     values = NodeValues()
-    
+
     def __init__(self, mesh, uid):
         self._type = 'standard'
-        self.mesh = mesh 
+        self.mesh = mesh
         self.id = uid
         self.fixed = None
         self.cids = None
@@ -95,11 +95,11 @@ class Node(object):
         self._uptodate = False
         self.mesh._regenerate = True
         self.mesh._reupdate = True
-        
+
     @property
     def field_cids(self):
         return self._get_param_indicies()
-    
+
     def _save_dict(self):
         node_dict = {}
         node_dict['id'] = self.id
@@ -111,12 +111,12 @@ class Node(object):
         node_dict['num_modes'] = self.num_modes
         node_dict['shape'] = self.shape
         return node_dict
-        
+
     def _load_dict(self, node_dict):
         if node_dict['id'] != self.id:
             raise 'Ids do not match'
         self.fixed = node_dict['fixed']
-        self.cids = node_dict['cids'] 
+        self.cids = node_dict['cids']
         self.num_values = node_dict['num_values']
         self.num_fields = node_dict['num_fields']
         self.num_components = node_dict['num_components']
@@ -129,16 +129,16 @@ class Node(object):
         else:
             self.shape = (self.num_fields, self.num_components)
         self._added = True
-        
+
     def _set_values(self, pids, values):
         self.mesh._core.P[pids] = values
-    
+
     def add_to_group(self, groups):
         if not isinstance(groups, list):
             groups = [groups]
         for group in groups:
             self.mesh.nodes.add_to_group(self.id, group)
-    
+
     def set_values(self, values):
         '''
         Sets the values for the node by adding them to core.
@@ -156,29 +156,48 @@ class Node(object):
         self.num_fields = values.shape[0]
         self.num_components = 1
         self.shape = values.shape
-        
+
         if len(values.shape) >= 2:
             self.num_components = values.shape[1]
-        
+
         if len(values.shape) >= 3:
             self.num_modes = values.shape[2]
-        
+
         # Updates the values in core if they exist otherwise adds them.
         params = values.reshape(self.num_values)
         if self._added:
             self.mesh._core.update_params(self.cids, params)
         else:
             self.cids = self.mesh._core.add_params(params)
-        
+
         self._added = True
         self.mesh._regenerate = True
         self.mesh._reupdate = True
-        
+
     def get_values(self, index=None):
         if index == None:
             return self.mesh._core.P[self.cids].reshape(
-                    (self.num_fields, self.num_components))
-    
+                (self.num_fields, self.num_components))
+
+    def get_x(self):
+        x = self.values
+        if len(x.shape) == 1:
+            return x
+        elif len(x.shape) == 2:
+            return x[:, 0]
+        elif len(x.shape) == 3:
+            return x[:, 0, 0]
+
+    def set_x(self, values):
+        values = numpy.array(values)
+        x = self.values
+        if len(x.shape) == 1:
+            self.values = values
+        elif len(x.shape) == 2:
+            self.values[:, 0] = values
+        elif len(x.shape) == 3:
+            self.values[:, 0, 0] = values
+
     def fix(self, fix):
         '''
         This function will the values of the node, which is used for
@@ -201,31 +220,31 @@ class Node(object):
                     fixed.extend([f2 for f2 in f1])
             self.fixed = fixed
         self.mesh._core.fix_parameters(self.cids, self.fixed)
-        
+
     def _get_param_indicies(self):
-        #~ if self.num_modes == 0:
-            #~ pi = []
-            #~ ind = 0
-            #~ for f in range(self.num_fields):
-                #~ pi.append(self.cids[ind:ind+self.num_components])
-                #~ ind += self.num_components
+        # ~ if self.num_modes == 0:
+        # ~ pi = []
+        #~ ind = 0
+        #~ for f in range(self.num_fields):
+        #~ pi.append(self.cids[ind:ind+self.num_components])
+        #~ ind += self.num_components
         #~ else:
-            #~ pi = []
-            #~ ind = 0
-            #~ for f in range(self.num_fields):
-                #~ pf = []
-                #~ for 
-                #~ pi.append(self.cids[ind:ind+self.num_components])
-                #~ ind += self.num_components
+        #~ pi = []
+        #~ ind = 0
+        #~ for f in range(self.num_fields):
+        #~ pf = []
+        #~ for
+        #~ pi.append(self.cids[ind:ind+self.num_components])
+        #~ ind += self.num_components
         if len(self.shape) == 1:
             shape = (self.shape[0], 1)
         else:
             shape = self.shape
         pi1 = numpy.array(self.cids).reshape(shape).tolist()
         #~ print self.shape, pi, '=', pi1, '\n'
-        
+
         return pi1
-    
+
     def variables(self, state=True, fields=None):
         if isinstance(fields, int):
             fields = [fields]
@@ -237,129 +256,182 @@ class Node(object):
             self.mesh._core.add_variables(cids)
         else:
             self.mesh._core.remove_variables(cids)
-                
-        
-    
+
+    def groups(self):
+        groups = []
+        for group in self.mesh.nodes.groups.keys():
+            if self in self.mesh.nodes.groups[group]:
+                groups.append(group)
+        return groups
+
+    def in_group(self, groups):
+        if not isinstance(groups, list):
+            groups = [groups]
+        for group in groups:
+            if group in self.mesh.nodes.groups.keys() and self in self.mesh.nodes.groups[group]:
+                return True
+        return False
+
+
 class StdNode(Node):
     '''
     .. autoclass:: morphic.mesher.Node
     '''
-    
+
     def __init__(self, mesh, uid, values=None, cids=None, shape=None):
         Node.__init__(self, mesh, uid)
         self._type = 'standard'
-        if values != None:
+        if values is not None:
             self.set_values(values)
-        if cids != None:
+        if cids is not None:
             self.cids = cids
-        if shape != None:
+        if shape is not None:
             self.shape = shape
-        
+
     def _save_dict(self):
         node_dict = Node._save_dict(self)
         node_dict['type'] = self._type
         return node_dict
-        
+
     def _load_dict(self, node_dict):
         Node._load_dict(self, node_dict)
-        
-        
-class DepNode(Node):
 
-    def __init__(self, mesh, uid, element, node):
+    def smooth_derivatives(self, axis=[0, 1]):
+        derivs = {
+            0: {'axis_neighbour': [1, 2, 4], 'scale': [1, 1, 1]},
+            1: {'axis_neighbour': [0, 3, 5], 'scale': [-1, 1, 1]},
+            2: {'axis_neighbour': [3, 0, 6], 'scale': [1, -1, 1]},
+            3: {'axis_neighbour': [2, 1, 7], 'scale': [-1, -1, 1]},
+            4: {'axis_neighbour': [5, 6, 0], 'scale': [1, 1, -1]},
+            5: {'axis_neighbour': [4, 7, 1], 'scale': [-1, 1, -1]},
+            6: {'axis_neighbour': [7, 4, 2], 'scale': [1, -1, -1]},
+            7: {'axis_neighbour': [6, 5, 3], 'scale': [-1, -1, -1]},
+            }
+        axis_deriv_index = [1, 2, 4]
+        for ax in axis:
+            dx = 0
+            count = 0
+            for elem in self.mesh.elements:
+                if self.id in elem.node_ids:
+                    index = elem.node_ids.index(self.id)
+                    deriv = derivs[index]
+                    dx += (deriv['scale'][ax] * (elem.nodes[deriv['axis_neighbour'][ax]].values[:, 0] - self.values[:, 0]))
+                    count += 1
+            if count > 0:
+                dx /= count
+                self.values[:, axis_deriv_index[ax]] = dx
+
+
+class DepNode(Node):
+    def __init__(self, mesh, uid, element, node, shape=None, scale=None):
         Node.__init__(self, mesh, uid)
         self._type = 'dependent'
         self.element = element
         self.node = node
-     
+        if shape is not None:
+            self.shape = shape
+        self.scale = None
+        if scale is not None:
+            self.scale = numpy.array(scale)
+
     def _save_dict(self):
         node_dict = Node._save_dict(self)
-        node_dict['type'] = self._type   
-        node_dict['element'] = self.element   
+        node_dict['type'] = self._type
+        node_dict['element'] = self.element
         node_dict['node'] = self.node
+        node_dict['scale'] = self.scale
         return node_dict
-    
+
     def _load_dict(self, node_dict):
         Node._load_dict(self, node_dict)
         self.element = node_dict['element']
-        self.node = node_dict['node'] 
-    
-class PCANode(Node):
+        self.node = node_dict['node']
+        self.scale = node_dict['scale']
 
+    def evaluate(self):
+        return self.mesh.elements[self.element].evaluate(self.mesh.nodes[self.node].values)
+
+    @property
+    def values(self):
+        return numpy.array(self.mesh.core.P[self.cids].reshape(self.shape))
+        # return self.evaluate()
+
+
+class PCANode(Node):
     def __init__(self, mesh, uid, node_id, weights_id, variance_id):
         Node.__init__(self, mesh, uid)
         self._type = 'pca'
         self.node_id = node_id
         self.weights_id = weights_id
         self.variance_id = variance_id
-        
+
         self._initialise()
-        
+
     def _initialise(self, loading=False):
         OK = True
         if OK and self.node_id in self.mesh.nodes:
             self.node = self.mesh.nodes[self.node_id]
         else:
-            #~ print 'Warning: PCA node not initialised'
+            # ~ print 'Warning: PCA node not initialised'
             OK = False
-        
+
         if OK and self.weights_id in self.mesh.nodes:
             self.weights = self.mesh.nodes[self.weights_id]
         else:
-            #~ print 'Warning: PCA node not initialised'
+            # ~ print 'Warning: PCA node not initialised'
             OK = False
-        
+
         if OK and self.variance_id in self.mesh.nodes:
             self.variance = self.mesh.nodes[self.variance_id]
         else:
-            #~ print 'Warning: PCA node not initialised'
+            # ~ print 'Warning: PCA node not initialised'
             OK = False
-        
+
         if OK and not loading:
-            self.set_values(self.node.values[:,:,0])
-            #~ self.set_values(numpy.zeros(self.shape))
-        
+            self.set_values(self.node.values[:, :, 0])
+            # ~ self.set_values(numpy.zeros(self.shape))
+
         if OK:
             self._pca_id = self.mesh._core.add_pca_node(self)
             self._added = self._pca_id > -1
-    
+
     def _save_dict(self):
         node_dict = Node._save_dict(self)
-        node_dict['type'] = self._type   
-        node_dict['node_id'] = self.node_id   
+        node_dict['type'] = self._type
+        node_dict['node_id'] = self.node_id
         node_dict['weights_id'] = self.weights_id
         node_dict['variance_id'] = self.variance_id
         return node_dict
-    
+
     def _load_dict(self, node_dict):
         Node._load_dict(self, node_dict)
         self.node_id = node_dict['node_id']
-        self.weights_id = node_dict['weights_id'] 
-        self.variance_id = node_dict['variance_id'] 
+        self.weights_id = node_dict['weights_id']
+        self.variance_id = node_dict['variance_id']
         self._initialise(True)
-        
-        
-class Element(object):
 
+
+class Element(object):
     def __init__(self, mesh, uid, basis, node_ids):
         self._type = 'element'
-        self.mesh = mesh 
-        self.core = mesh._core 
+        self.mesh = mesh
+        self.core = mesh._core
         self._interp = basis
         self.basis = basis
         self.dimensions = utils.element_dimensions(basis)
         self.id = uid
         self.node_ids = node_ids
         self.cid = None
-        
+
         self._set_shape()
-        
+
         self.mesh._regenerate = True
         self.mesh._reupdate = True
-    
+
     @property
     def interp(self):
         import traceback
+
         print 'Deprecated. Use \'basis\' instead'
         traceback.print_stack(file=sys.stdout)
         return self.basis
@@ -367,6 +439,7 @@ class Element(object):
     @interp.setter
     def interp(self, basis):
         import traceback
+
         print 'Deprecated. Use \'basis\' instead'
         traceback.print_stack(file=sys.stdout)
         self._interp = basis
@@ -374,11 +447,11 @@ class Element(object):
     @property
     def nodes(self):
         return self.mesh.nodes[self.node_ids]
-        
+
     @nodes.setter
     def nodes(self, nodes):
         self.node_ids = [node.id for node in nodes]
-    
+
     def _set_shape(self):
         if self.basis:
             if self.dimensions == None:
@@ -393,8 +466,8 @@ class Element(object):
                 self.shape = 'hexagonal'
             else:
                 raise NotImplementedError('Cannot set shape for dimensions'
-                    + ' higher than 3')
-    
+                                          + ' higher than 3')
+
     def _save_dict(self):
         elem_dict = {}
         elem_dict['id'] = self.id
@@ -402,7 +475,7 @@ class Element(object):
         elem_dict['nodes'] = self.node_ids
         elem_dict['shape'] = self.shape
         return elem_dict
-     
+
     def _load_dict(self, elem_dict):
         if elem_dict['id'] != self.id:
             raise 'Ids do not match'
@@ -412,15 +485,15 @@ class Element(object):
         else:
             self._interp = elem_dict['interp']
             self.basis = elem_dict['interp']
-        self.node_ids = elem_dict['nodes'] 
+        self.node_ids = elem_dict['nodes']
         self.shape = elem_dict['shape']
         self._set_shape()
         if self.mesh.auto_add_faces:
             self.add_faces()
-        # if self.mesh.auto_add_lines:
-        #     self.add_lines()
-        
-        
+            # if self.mesh.auto_add_lines:
+            # self.add_lines()
+
+
     def _get_param_indicies(self):
         PI = None
         for node in self:
@@ -434,19 +507,19 @@ class Element(object):
                 PI[i].extend(pi)
         PI = self._filter_face_param_indices(PI)
         return PI
-    
+
     def _filter_face_param_indices(self, PI):
         return PI
-    
+
     def add_to_group(self, groups):
         if not isinstance(groups, list):
             groups = [groups]
         for group in groups:
             self.mesh.elements.add_to_group(self.id, group)
-        
+
     def set_core_id(self, cid):
         self.cid = cid
-    
+
     def add_faces(self):
         if utils.element_dimensions(self.basis) == 2:
             self.mesh.add_face(self.id, 0, self.node_ids)
@@ -454,61 +527,72 @@ class Element(object):
             face_nodes = core.element_face_nodes(self.basis, self.node_ids)
             for face_index in range(6):
                 self.mesh.add_face(self.id, face_index, face_nodes[face_index])
-    
+
     # def add_lines(self):
-    #     if utils.element_dimensions(self.basis) == 1:
-    #         self.mesh.add_line(self.id, 0, self.node_ids)
+    # if utils.element_dimensions(self.basis) == 1:
+    # self.mesh.add_line(self.id, 0, self.node_ids)
     #     elif utils.element_dimensions(self.basis) == 3:
     #         face_nodes = core.element_face_nodes(self.basis, self.node_ids)
     #         for face_index in range(6):
     #             self.mesh.add_face(self.id, face_index, face_nodes[face_index])
-    
+
     def grid(self, res=[8, 8]):
         return discretizer.xi_grid(
-                shape=self.shape, res=res, units='div')[0]
-    
+            shape=self.shape, res=res, units='div')[0]
+
     def get_field_cids(self, field_index):
         return self.core.EMap[self.cid][field_index]
 
     def weights(self, xi, deriv=None):
         return self.mesh._core.weights(self.cid, xi, deriv=deriv)
-    
+
+    def compute_weighted_sum(self, xi, field, deriv=None):
+        rhs = 0
+        weights = self.weights(xi, deriv)[0]
+        print 'w', weights
+        cids = self.core.EMap[self.cid]
+        for idx, node in enumerate(self.nodes):
+            if node._type == 'dependent':
+                pass
+
+        return 1, 1, rhs
+
     def interpolate(self, xi, deriv=None):
         print 'Interpolate deprecated. Use evaluate instead.'
         return self.evaluate(xi, deriv=deriv)
-        
+
     def evaluate(self, xi, deriv=None):
         if isinstance(xi, int) or isinstance(xi, float):
             if self.shape is not 'line':
                 raise Exception('Invalid xi to an element greater than 1d')
             xi = numpy.array([[xi]])
             return self.mesh._core.evaluate(self.cid, xi, deriv=deriv)[0]
-        
+
         else:
             if isinstance(xi, list):
                 xi = numpy.asarray(xi)
-                
+
             if self.shape is 'line':
                 if len(xi.shape) == 1:
                     xi = numpy.array([xi]).T
                     if xi.shape[0] == 1:
                         return self.mesh._core.evaluate(
-                                self.cid, xi, deriv=deriv)[0]
+                            self.cid, xi, deriv=deriv)[0]
                     else:
                         return self.mesh._core.evaluate(
-                                self.cid, xi, deriv=deriv)
+                            self.cid, xi, deriv=deriv)
                 else:
                     return self.mesh._core.evaluate(self.cid, xi, deriv=deriv)
             else:
                 if len(xi.shape) == 1:
                     xi = numpy.array([xi])
                     return self.mesh._core.evaluate(
-                            self.cid, xi, deriv=deriv)[0]
+                        self.cid, xi, deriv=deriv)[0]
                 else:
                     return self.mesh._core.evaluate(
-                            self.cid, xi, deriv=deriv)
-        
-    
+                        self.cid, xi, deriv=deriv)
+
+
     def integrate(self, fields, func=None, ng=4):
         '''
         Integration using gaussian quadrature.
@@ -550,14 +634,14 @@ class Element(object):
             integral = numpy.dot(W, X)
         else:
             raise ValueError('Unknown element shape for integral.')
-            
+
         return integral
-    
+
     def length(self, ng=3):
-        
+
         def _length_integral(X):
-            return numpy.sqrt((X**2).sum(1))
-            
+            return numpy.sqrt((X ** 2).sum(1))
+
         if self.shape == 'line':
             fields = []
             for i in range(self.num_fields):
@@ -565,18 +649,18 @@ class Element(object):
             return self.integrate(fields, func=_length_integral, ng=ng)
         else:
             raise TypeError('You can only calculate the length '
-                + 'of a 1D element.')
-            
+                            + 'of a 1D element.')
+
     def area(self, ng=3):
-        
+
         def _area_integral(X):
             A = []
             for x in X:
-                x = x.reshape((2, x.size/2))
+                x = x.reshape((2, x.size / 2))
                 c = numpy.cross(x[0], x[1])
                 A.append(numpy.sqrt((c * c).sum()))
             return A
-            
+
         if self.shape == 'quad':
             fields = []
             for i in range(self.num_fields):
@@ -585,15 +669,16 @@ class Element(object):
             return self.integrate(fields, func=_area_integral, ng=ng)
         else:
             raise TypeError('You can only calculate the area '
-                + 'of a 2D quad element. Triangles not implemented.')
-    
+                            + 'of a 2D quad element. Triangles not implemented.')
+
     def volume(self, ng=3):
-         
+
         def _volume_integral(X):
-            V = X[:,0] * (X[:,4] * X[:,8] - X[:,5] * X[:,7]) - X[:,1] * (X[:,3] * X[:,8]
-                - X[:,5] * X[:,6]) + X[:,2] * (X[:,3] * X[:,7] - X[:,4] * X[:,6])
+            V = X[:, 0] * (X[:, 4] * X[:, 8] - X[:, 5] * X[:, 7]) - X[:, 1] * (X[:, 3] * X[:, 8]
+                                                                               - X[:, 5] * X[:, 6]) + X[:, 2] * (
+                X[:, 3] * X[:, 7] - X[:, 4] * X[:, 6])
             return V
-            
+
         if self.shape == 'hexagonal':
             fields = []
             for i in range(self.num_fields):
@@ -603,9 +688,9 @@ class Element(object):
             return abs(self.integrate(fields, func=_volume_integral, ng=ng))
         else:
             raise TypeError('You can only calculate the volume '
-                + 'of a 3D hexagonal element. Triangles not implemented.')
-    
-    
+                            + 'of a 3D hexagonal element. Triangles not implemented.')
+
+
     def normal(self, Xi):
         '''
         Calculates the surface normals at xi locations on an element.
@@ -623,72 +708,71 @@ class Element(object):
         dx1 = self.mesh._core.evaluate(self.cid, Xi, deriv=[1, 0])
         dx2 = self.mesh._core.evaluate(self.cid, Xi, deriv=[0, 1])
         return numpy.cross(dx1, dx2)
-    
+
     def _project_objfn(self, xi, *args):
         x = args[0]
         xe = self.evaluate(xi)
         dx = xe - x
         return numpy.sum(dx * dx)
-    
+
     def project(self, x, xi=None, xtol=1e-4, ftol=1e-4):
         from scipy.optimize import fmin
+
         if xi == None:
             if self.shape == 'line':
                 xi = 0.5
             else:
                 xi = [0.5, 0.5]
         xi_opt = fmin(self._project_objfn, xi, args=(x),
-                xtol=xtol, ftol=ftol, disp=False)
+                      xtol=xtol, ftol=ftol, disp=False)
         return xi_opt
-        
+
     def __iter__(self):
         return self.nodes.__iter__()
 
 
 class Face(object):
-    
     def __init__(self, mesh, uid):
         self.id = uid
         self.mesh = mesh
         self.element_faces = []
         self.shape = 'quad'
-        
+
     def add_element(self, element_id, face_index=0):
         element_face = [element_id, face_index]
         if element_face not in self.element_faces:
             self.element_faces.append(element_face)
-    
+
     @property
     def nodes(self):
         return self.mesh.nodes[self.node_ids]
-        
+
     @nodes.setter
     def nodes(self, nodes):
         self.node_ids = [node.id for node in nodes]
 
 
 class Line(object):
-    
     def __init__(self, mesh, uid):
         self.id = uid
         self.mesh = mesh
         self.element_lines = []
         self.shape = 'line'
-        
+
     def add_element(self, element_id, face_index=0):
         element_face = [element_id, face_index]
         if element_face not in self.element_faces:
             self.element_faces.append(element_face)
-    
+
     @property
     def nodes(self):
         return self.mesh.nodes[self.node_ids]
-        
+
     @nodes.setter
     def nodes(self, nodes):
         self.node_ids = [node.id for node in nodes]
-    
-    
+
+
 class Mesh(object):
     '''
     This is the top level object for a mesh which allows:
@@ -790,8 +874,9 @@ class Mesh(object):
     
     
     '''
-    
+
     def __init__(self, filepath=None, label='/', units='m'):
+        self.debug_on = False
         self.version = 1
         self.saved_at = ""
         self.created_at = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
@@ -801,30 +886,34 @@ class Mesh(object):
         self.elements = core.ObjectList()
         self.faces = core.ObjectList()
         self.lines = core.ObjectList()
-        
+
         self._core = core.Core()
         self.core = self._core
         self._regenerate = True
         self._reupdate = True
-        
-        self.auto_add_faces = True;
-        self.auto_add_lines = True;
-        
+
+        self.auto_add_faces = True
+        self.auto_add_lines = True
+
         self.sysdata = metadata.Metadata()
         self.metadata = metadata.Metadata()
-        
+
         self.filepath = filepath
         if filepath != None:
             self.load(filepath)
-    
+
     @property
     def params(self):
         return self._core.P
 
+    def set_debug(self, state):
+        self.debug_on = state
+        self.core.debug_on = state
+
     def add_node(self, uid, values, group='_default'):
         return self.add_stdnode(uid, values, group=group)
-        
-    def add_stdnode(self, uid, values, group='_default'):
+
+    def add_stdnode(self, uid, values, group='_default', add_components=0):
         '''
         Adds a node to a mesh.
         
@@ -856,13 +945,20 @@ class Mesh(object):
         2 [ 0.2]
         
         '''
-        if uid==None:
+        if uid == None:
             uid = self.nodes.get_unique_id()
+
+        if add_components > 0:
+            # This assumes values is a vector
+            if isinstance(values, list):
+                values = numpy.array(values)
+            values = numpy.concatenate(
+                (numpy.array([values]).T, numpy.zeros((values.shape[0], add_components))), 1)
         node = StdNode(self, uid, values)
         self.nodes.add(node, group=group)
         return node
-    
-    def add_depnode(self, uid, element, node_id, group='_default'):
+
+    def add_depnode(self, uid, element, node_id, shape=None, scale=None, group='_default'):
         '''
         Adds a dependent node to a mesh. A dependent node is typically
         an interpolated location on an element. The location on the 
@@ -877,37 +973,39 @@ class Mesh(object):
         >>> print mesh.get_nodes([3])
         [[ 1.2  0.6]]
         '''
-        if uid==None:
+        if uid == None:
             uid = self.nodes.get_unique_id()
-        node = DepNode(self, uid, element, node_id)
+        node = DepNode(self, uid, element, node_id, shape=shape, scale=scale)
         self.nodes.add(node, group=group)
         return node
-        
+
     def add_pcanode(self, uid, values, weights_nid, variance_nid,
                     group='_default'):
         '''
         Adds a pca node to a mesh.
         '''
-        if uid==None:
+        if uid == None:
             uid = self.nodes.get_unique_id()
         if isinstance(values, list) or isinstance(values, numpy.ndarray):
-            values_nid = '__'+self.nodes.get_unique_id(random_chars=12)
+            values_nid = '__' + self.nodes.get_unique_id(random_chars=12)
             std_node = self.add_stdnode(values_nid, values,
-                    group='__sys_'+group)
+                                        group='__sys_' + group)
         else:
             values_nid = values
-            
+
         node = PCANode(self, uid, values_nid, weights_nid, variance_nid)
         self.nodes.add(node, group=group)
         return node
-    
+
     def fix_values(self, uids, fix):
-        if not isinstance(uid, list):
+        if not isinstance(uids, list):
             uids = [uids]
         for uid in uids:
             self.nodes[uid].fix(fix)
-    
-    
+
+    def add_elem(self, uid, basis, node_ids, group='_default'):
+        self.add_element(uid, basis, node_ids, group=group)
+
     def add_element(self, uid, basis, node_ids, group='_default'):
         '''
         Adds a element to a mesh.
@@ -919,20 +1017,22 @@ class Mesh(object):
         >>> print elem.id, elem.basis, elem.node_ids
         1 ['L1'] [1, 2]
         '''
-        if uid==None:
+        if uid == None:
             uid = self.elements.get_unique_id()
         if isinstance(node_ids, numpy.ndarray):
             node_ids = node_ids.tolist()
+        if isinstance(basis, str):
+            basis = [basis]
         elem = Element(self, uid, basis, node_ids)
         self.elements.add(elem, group=group)
         if self.auto_add_faces:
             elem.add_faces()
         # if self.auto_add_lines:
-        #     elem.add_lines()
-            
+        # elem.add_lines()
+
         return elem
-        
-    
+
+
     def add_face(self, element, face_index=0, nodes=None):
         '''
         Adds a face to the mesh, typically used to store element faces
@@ -954,19 +1054,19 @@ class Mesh(object):
             face = self.faces[face_id]
         face.add_element(element, face_index)
         return face
-    
+
     def groups(self, group_type=None):
         if group_type == None:
             return {
-                'nodes':[k for k in self.nodes.groups.keys()],
-                'elements':[k for k in self.nodes.groups.keys()]}
+                'nodes': [k for k in self.nodes.groups.keys()],
+                'elements': [k for k in self.nodes.groups.keys()]}
         elif group_type == 'nodes':
-            return {'nodes':[k for k in self.nodes.groups.keys()]}
+            return {'nodes': [k for k in self.nodes.groups.keys()]}
         elif group_type == 'elements':
-            return {'elements':[k for k in self.elements.groups.keys()]}
+            return {'elements': [k for k in self.elements.groups.keys()]}
 
         return None
-        
+
     def _save_dict(self):
         mesh_dict = {}
         mesh_dict['version'] = self.version
@@ -981,14 +1081,14 @@ class Mesh(object):
             mesh_dict['nodes'].append(node._save_dict())
         for elem in self.elements:
             mesh_dict['elements'].append(elem._save_dict())
-        
+
         mesh_dict['node_objlist'] = self.nodes._save_dict()
         mesh_dict['element_objlist'] = self.elements._save_dict()
-        
+
         mesh_dict['values'] = self._core.P
         return mesh_dict
-        
-    def save(self, filepath, format='pickle'):
+
+    def save(self, filepath=None, format='pytables'):
         '''
         Saves a mesh.
         
@@ -996,8 +1096,12 @@ class Mesh(object):
         >>> mesh.save('data/cube.mesh')
         
         '''
+        if filepath is None:
+            filepath = self.filepath
+
         if format == 'pickle':
             import pickle
+
             mesh_dict = self._save_dict()
             pickle.dump(mesh_dict, open(filepath, "w"))
         elif format == 'pytables':
@@ -1006,21 +1110,22 @@ class Mesh(object):
             self._save_h5py(filepath)
         else:
             raise Exception('Unknown save format ' % format)
-            
+
     def load(self, filepath):
         '''
         Loads a mesh.
         
-        >>> mesh = Mesh('data/cube.mesh')
+        >>> mesh = Mesh('../test/data/cube.mesh')
         
         or
         
         >>> mesh = Mesh()
-        >>> mesh.load('data/cube.mesh')
+        >>> mesh.load('../test/data/cube.mesh')
         
         '''
         import pickle
         import tables
+
         if tables.isHDF5File(filepath):
             if tables.isPyTablesFile(filepath):
                 self._load_pytables(filepath)
@@ -1029,25 +1134,25 @@ class Mesh(object):
         else:
             self._load_dict(pickle.load(open(filepath, "r")))
         self.generate(True)
-        
-        
+
+
     def _save_pytables(self, filepath):
         import tables
-        
+
         nodemap = {}
         for nn, node in enumerate(self.nodes):
             nodemap[node.id] = nn
-        
+
         elemmap = {}
         for ne, elem in enumerate(self.elements):
             elemmap[elem.id] = ne
-            
+
         class NodeAtom(tables.IsDescription):
             id = tables.StringCol(itemsize=64)
             idIsInt = tables.BoolCol()
             type = tables.StringCol(itemsize=16)
             shape = tables.UInt32Col(shape=(3))
-            pids = tables.UInt32Col(shape=(2), dflt=[0,0])
+            pids = tables.UInt32Col(shape=(2), dflt=[0, 0])
             node_id = tables.UInt16Col()
             element_id = tables.UInt32Col()
             weights_id = tables.UInt32Col()
@@ -1058,29 +1163,28 @@ class Mesh(object):
             idIsInt = tables.BoolCol()
             type = tables.StringCol(itemsize=16)
             basis = tables.StringCol(itemsize=32)
-            node_ids = tables.UInt32Col(shape=(2), dflt=[0,0])
-        
+            node_ids = tables.UInt32Col(shape=(2), dflt=[0, 0])
+
         class GroupAtom(tables.IsDescription):
             id = tables.StringCol(itemsize=64)
             idIsInt = tables.BoolCol()
-            index_range = tables.UInt32Col(shape=(2), dflt=[0,0])
-            
-        h5f = tables.openFile(filepath, 'w')
+            index_range = tables.UInt32Col(shape=(2), dflt=[0, 0])
+
+        h5f = tables.open_file(filepath, 'w')
         filters = tables.Filters(complevel=5, complib='zlib', shuffle=True)
-        h5f.setNodeAttr(h5f.root, 'version', self.version)
-        h5f.setNodeAttr(h5f.root, 'created_at', self.created_at)
-        h5f.setNodeAttr(h5f.root, 'saved_at', datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"))
-        h5f.setNodeAttr(h5f.root, 'label', self.label)
-        h5f.setNodeAttr(h5f.root, 'units', self.units)
-        
-        
-        metadata_node = h5f.createGroup(h5f.root, 'metadata')
+        h5f.set_node_attr(h5f.root, 'version', self.version)
+        h5f.set_node_attr(h5f.root, 'created_at', self.created_at)
+        h5f.set_node_attr(h5f.root, 'saved_at', datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"))
+        h5f.set_node_attr(h5f.root, 'label', self.label)
+        h5f.set_node_attr(h5f.root, 'units', self.units)
+
+        metadata_node = h5f.create_group(h5f.root, 'metadata')
         self.metadata.save_pytables(metadata_node)
-        
-        params = h5f.createCArray(h5f.root, 'params', tables.Float64Atom(), self.params.shape, filters=filters)
+
+        params = h5f.create_carray(h5f.root, 'params', tables.Float64Atom(), self.params.shape, filters=filters)
         params[:] = self.params
-        
-        table = h5f.createTable(h5f.root, 'nodes', NodeAtom, 'Mesh nodes', filters=filters)
+
+        table = h5f.create_table(h5f.root, 'nodes', NodeAtom, 'Mesh nodes', filters=filters)
         row = table.row
         pids = []
         for idx, node in enumerate(self.nodes):
@@ -1088,7 +1192,7 @@ class Mesh(object):
             row['idIsInt'] = isinstance(node.id, int)
             row['type'] = node._type
             if node._type in ['standard', 'dependent']:
-                shape = [0,0,0]
+                shape = [0, 0, 0]
                 for dim_idx, dim_size in enumerate(node.shape):
                     shape[dim_idx] = dim_size
                 row['shape'] = shape
@@ -1106,10 +1210,10 @@ class Mesh(object):
         table.flush()
 
         pids = numpy.array(pids)
-        pids_array = h5f.createCArray(h5f.root, 'node_pids', tables.IntAtom(), pids.shape, filters=filters)
+        pids_array = h5f.create_carray(h5f.root, 'node_pids', tables.IntAtom(), pids.shape, filters=filters)
         pids_array[:] = pids
-        
-        table = h5f.createTable(h5f.root, 'elements', ElementAtom, 'Mesh element', filters=filters)
+
+        table = h5f.create_table(h5f.root, 'elements', ElementAtom, 'Mesh element', filters=filters)
         row = table.row
         node_ids = []
         for eid, elem in enumerate(self.elements):
@@ -1122,15 +1226,15 @@ class Mesh(object):
             row['node_ids'] = [a, len(node_ids)]
             row.append()
         table.flush()
-        
+
         if len(node_ids) == 0:
             node_ids = [-1]
         node_ids = numpy.array(node_ids)
-        nids_array = h5f.createCArray(h5f.root, 'element_nodes', tables.IntAtom(), node_ids.shape, filters=filters)
+        nids_array = h5f.create_carray(h5f.root, 'element_nodes', tables.IntAtom(), node_ids.shape, filters=filters)
         nids_array[:] = node_ids
-        
+
         # Save node groups
-        table = h5f.createTable(h5f.root, 'node_groups', GroupAtom, 'Mesh node groups', filters=filters)
+        table = h5f.create_table(h5f.root, 'node_groups', GroupAtom, 'Mesh node groups', filters=filters)
         row = table.row
         node_group_ids = []
         for gid, key in enumerate(self.nodes.groups.keys()):
@@ -1141,15 +1245,16 @@ class Mesh(object):
             row['index_range'] = [a, len(node_group_ids)]
             row.append()
         table.flush()
-        
+
         if len(node_group_ids) == 0:
             node_group_ids = [-1]
         node_group_ids = numpy.array(node_group_ids)
-        ngids_array = h5f.createCArray(h5f.root, 'node_group_ids', tables.IntAtom(), node_group_ids.shape, filters=filters)
+        ngids_array = h5f.create_carray(h5f.root, 'node_group_ids', tables.IntAtom(), node_group_ids.shape,
+                                        filters=filters)
         ngids_array[:] = node_group_ids
-        
+
         # Save element groups
-        table = h5f.createTable(h5f.root, 'element_groups', GroupAtom, 'Mesh element groups', filters=filters)
+        table = h5f.create_table(h5f.root, 'element_groups', GroupAtom, 'Mesh element groups', filters=filters)
         row = table.row
         element_group_ids = []
         for gid, key in enumerate(self.elements.groups.keys()):
@@ -1160,60 +1265,61 @@ class Mesh(object):
             row['index_range'] = [a, len(element_group_ids)]
             row.append()
         table.flush()
-        
+
         if len(element_group_ids) == 0:
             element_group_ids = [-1]
         element_group_ids = numpy.array(element_group_ids)
-        egids_array = h5f.createCArray(h5f.root, 'element_group_ids', tables.IntAtom(), element_group_ids.shape, filters=filters)
+        egids_array = h5f.create_carray(h5f.root, 'element_group_ids', tables.IntAtom(), element_group_ids.shape,
+                                        filters=filters)
         egids_array[:] = element_group_ids
-        
+
         h5f.close()
-    
+
     def _load_pytables(self, filepath):
         import tables
-        
+
         def get_attribute(h5node, key, default=None):
             if key in h5node._v_attrs:
                 return h5node._v_attrs[key]
             return default
-        
+
         def parse_id(h5row):
             if h5row['idIsInt']:
                 return int(h5row['id'])
             return h5row['id']
-        
+
         def parse_shape(h5row):
             shape = h5row['shape'].tolist()
-            for i in range(len(shape),0,-1):
+            for i in range(len(shape), 0, -1):
                 if shape[i - 1] == 0:
                     shape.pop(i - 1)
                 else:
                     return shape
-        
-        h5f = tables.openFile(filepath, 'r')
-        
+
+        h5f = tables.open_file(filepath, 'r')
+
         self.version = get_attribute(h5f.root, 'version')
         self.created_at = get_attribute(h5f.root, 'created_at')
         self.saved_at = get_attribute(h5f.root, 'saved_at')
         self.label = get_attribute(h5f.root, 'label')
         self.units = get_attribute(h5f.root, 'units')
-        
+
         if 'metadata' in h5f.root:
             self.metadata.load_pytables(h5f.root.metadata)
-        
+
         nodemap = {}
         for nn, h5node in enumerate(h5f.root.nodes.iterrows()):
             nodemap[nn] = parse_id(h5node)
-        
+
         elemmap = {}
         for ne, h5elem in enumerate(h5f.root.elements.iterrows()):
             elemmap[ne] = parse_id(h5elem)
-        
+
         node_pids = h5f.root.node_pids.read()
         # print h5f.root.params.read()
         for nn, h5node in enumerate(h5f.root.nodes.iterrows()):
             node_id = parse_id(h5node)
-            
+
             if h5node['type'] == 'standard':
                 values = numpy.zeros(parse_shape(h5node))
                 node = StdNode(self, node_id, values)
@@ -1222,7 +1328,7 @@ class Mesh(object):
 
             elif h5node['type'] == 'dependent':
                 node = DepNode(self, node_id,
-                        elemmap[h5node['element_id']], nodemap[h5node['node_id']])
+                               elemmap[h5node['element_id']], nodemap[h5node['node_id']])
                 node.shape = parse_shape(h5node)
                 node.cids = node_pids[h5node['pids'][0]:h5node['pids'][1]]
                 node._added = True
@@ -1230,44 +1336,44 @@ class Mesh(object):
 
             elif h5node['type'] == 'pca':
                 node = PCANode(self, node_id, nodemap[h5node['node_id']],
-                        nodemap[h5node['weights_id']], nodemap[h5node['variance_id']])
+                               nodemap[h5node['weights_id']], nodemap[h5node['variance_id']])
                 self.nodes.add(node)
-        
+
         self._core.P = h5f.root.params.read()
         elem_node = h5f.root.element_nodes.read()
-        
+
         for ne, h5elem in enumerate(h5f.root.elements.iterrows()):
             elem_id = parse_id(h5elem)
             self.add_element(elem_id, h5elem['basis'].split(' '),
-                [nodemap[nidx] for nidx in 
-                elem_node[h5elem['node_ids'][0]:h5elem['node_ids'][1]]])
-        
+                             [nodemap[nidx] for nidx in
+                              elem_node[h5elem['node_ids'][0]:h5elem['node_ids'][1]]])
+
         group_ids = h5f.root.node_group_ids.read()
         for h5group in h5f.root.node_groups.iterrows():
             idx = h5group['index_range']
             ids = [nodemap[nd] for nd in group_ids[idx[0]:idx[1]]]
             self.nodes.add_to_group(ids, group=parse_id(h5group))
-        
+
         group_ids = h5f.root.element_group_ids.read()
         for h5group in h5f.root.element_groups.iterrows():
             idx = h5group['index_range']
             ids = [elemmap[el] for el in group_ids[idx[0]:idx[1]]]
             self.elements.add_to_group(ids, group=parse_id(h5group))
-            
+
         h5f.close()
 
     def _save_h5py(self, filepath):
         import h5py
-        
+
         def get_attribute(source, default=""):
             if source == None:
                 return default
             return source
-        
-        compression = None #'gzip'
-        compression_opts = None #5
-        shuffle = False #True
-        
+
+        compression = None  # 'gzip'
+        compression_opts = None  # 5
+        shuffle = False  # True
+
         compression = 'gzip'
         compression_opts = 9
         shuffle = True
@@ -1294,22 +1400,23 @@ class Mesh(object):
             if node._type == 'standard':
                 h5node.attrs['shape'] = node.shape
                 h5node.create_dataset('pids', data=node.cids,
-                    compression=compression, compression_opts=compression_opts, shuffle=shuffle)
-            
+                                      compression=compression, compression_opts=compression_opts, shuffle=shuffle)
+
             elif node._type == 'dependent':
                 h5node.attrs['shape'] = node.shape
                 h5node.attrs['element_id'] = node.element
                 h5node.attrs['node_id'] = node.node
                 h5node.create_dataset('pids', data=node.cids,
-                    compression=compression, compression_opts=compression_opts, shuffle=shuffle)
+                                      compression=compression, compression_opts=compression_opts, shuffle=shuffle)
 
             elif node._type == 'pca':
                 h5node.attrs['node_id'] = node.node_id
                 h5node.attrs['weights_id'] = node.weights_id
                 h5node.attrs['variance_id'] = node.variance_id
 
-        h5mesh.create_dataset('params', data=self.params, compression=compression, compression_opts=compression_opts, shuffle=shuffle)
-        
+        h5mesh.create_dataset('params', data=self.params, compression=compression, compression_opts=compression_opts,
+                              shuffle=shuffle)
+
         # Save elements
         h5elems = h5mesh.create_group('elements')
         h5elems.attrs['size'] = self.elements.size()
@@ -1321,9 +1428,9 @@ class Mesh(object):
             h5elem.attrs['type'] = elem._type
             h5elem.attrs['basis'] = elem.basis
             h5elem.create_dataset('node_ids',
-                data=[nodemap[i] for i in elem.node_ids],
-                compression=compression, compression_opts=compression_opts, shuffle=shuffle)
-        
+                                  data=[nodemap[i] for i in elem.node_ids],
+                                  compression=compression, compression_opts=compression_opts, shuffle=shuffle)
+
         # Save node groups
         h5groups = h5mesh.create_group('node_groups')
         h5groups.attrs['size'] = len(self.nodes.groups.keys())
@@ -1331,9 +1438,9 @@ class Mesh(object):
             h5group = h5groups.create_group(str(gid))
             h5group.attrs['id'] = key
             h5group.create_dataset('node_ids',
-                data=[nodemap[nd.id] for nd in self.nodes.groups[key]],
-                compression=compression, compression_opts=compression_opts, shuffle=shuffle)
-        
+                                   data=[nodemap[nd.id] for nd in self.nodes.groups[key]],
+                                   compression=compression, compression_opts=compression_opts, shuffle=shuffle)
+
         # Save element groups
         h5groups = h5mesh.create_group('element_groups')
         h5groups.attrs['size'] = len(self.elements.groups.keys())
@@ -1341,19 +1448,19 @@ class Mesh(object):
             h5group = h5groups.create_group(str(gid))
             h5group.attrs['id'] = key
             h5group.create_dataset('element_ids',
-                data=[elemmap[el.id] for el in self.elements.groups[key]],
-                compression=compression, compression_opts=compression_opts, shuffle=shuffle)
-        
+                                   data=[elemmap[el.id] for el in self.elements.groups[key]],
+                                   compression=compression, compression_opts=compression_opts, shuffle=shuffle)
+
         h5.close()
-    
+
     def _load_h5py(self, filepath):
         import h5py
-        
+
         def get_attribute(h5node, key, default=None):
             if key in h5node.attrs.keys():
                 return h5node.attrs[key]
             return default
-            
+
         h5 = h5py.File(filepath)
         h5mesh = h5['mesh']
         self.version = get_attribute(h5mesh, 'version')
@@ -1361,7 +1468,7 @@ class Mesh(object):
         self.saved_at = get_attribute(h5mesh, 'saved_at')
         self.label = get_attribute(h5mesh, 'label')
         self.units = get_attribute(h5mesh, 'units')
-        
+
         # Load nodes
         h5nodes = h5mesh['nodes']
         total_nodes = h5nodes.attrs['size']
@@ -1376,7 +1483,7 @@ class Mesh(object):
                 self.nodes.add(node)
 
             elif h5node.attrs['type'] == 'dependent':
-                node = DepNode(self, h5node.attrs['id'],  h5node.attrs['element_id'], h5node.attrs['node_id'])
+                node = DepNode(self, h5node.attrs['id'], h5node.attrs['element_id'], h5node.attrs['node_id'])
                 node.shape = h5node.attrs['shape']
                 node.cids = h5node['pids'][...]
                 node._added = True
@@ -1384,11 +1491,11 @@ class Mesh(object):
 
             elif h5node.attrs['type'] == 'pca':
                 node = PCANode(self, h5node.attrs['id'], h5node.attrs['node_id'],
-                    h5node.attrs['weights_id'], h5node.attrs['variance_id'])
+                               h5node.attrs['weights_id'], h5node.attrs['variance_id'])
                 self.nodes.add(node)
 
         self.core.P = numpy.array(h5mesh['params'][...])
-        
+
         # Load elements
         h5elems = h5mesh['elements']
         total_elements = h5elems.attrs['size']
@@ -1397,8 +1504,8 @@ class Mesh(object):
             h5elem = h5elems[str(ne)]
             elemmap[ne] = h5elem.attrs['id']
             self.add_element(h5elem.attrs['id'], h5elem.attrs['basis'],
-                [nodemap[i] for i in h5elem['node_ids'][...]])
-        
+                             [nodemap[i] for i in h5elem['node_ids'][...]])
+
         # Load node groups
         h5groups = h5mesh['node_groups']
         total_groups = h5groups.attrs['size']
@@ -1406,7 +1513,7 @@ class Mesh(object):
             h5group = h5groups[str(ng)]
             node_ids = [nodemap[nd] for nd in h5group['node_ids'][...]]
             self.nodes.add_to_group(node_ids, group=h5group.attrs['id'])
-        
+
         # Load element groups
         h5groups = h5mesh['element_groups']
         total_groups = h5groups.attrs['size']
@@ -1414,16 +1521,16 @@ class Mesh(object):
             h5group = h5groups[str(ng)]
             elem_ids = [elemmap[el] for el in h5group['element_ids'][...]]
             self.elements.add_to_group(elem_ids, group=h5group.attrs['id'])
-            
+
         h5.close()
 
     def _load_dict(self, mesh_dict):
-        
+
         def get_attribute(datadict, key, default=None):
             if key in datadict.keys():
                 return datadict[key]
             return default
-            
+
         self.label = get_attribute(mesh_dict, 'label')
         self.created_at = get_attribute(mesh_dict, 'created_at')
         self.saved_at = get_attribute(mesh_dict, 'saved_at')
@@ -1437,19 +1544,19 @@ class Mesh(object):
                 node = self.add_depnode(node_dict['id'], None, None)
             elif node_dict['type'] == 'pca':
                 node = self.add_pcanode(node_dict['id'], None, None, None)
-            #~ else:
-                #~ raise InputError()
+                # ~ else:
+                # ~ raise InputError()
             node._load_dict(node_dict)
         for elem_dict in mesh_dict['elements']:
             elem = self.add_element(elem_dict['id'], None, None)
             elem._load_dict(elem_dict)
         self._core.P = mesh_dict['values']
-        
+
         if 'node_objlist' in mesh_dict.keys():
             self.nodes._load_dict(mesh_dict['node_objlist'])
         if 'element_objlist' in mesh_dict.keys():
             self.elements._load_dict(mesh_dict['element_objlist'])
-    
+
     def generate(self, force=False):
         '''
         Generates a flat representation of the mesh for faster
@@ -1461,12 +1568,12 @@ class Mesh(object):
             self._core.generate_dependent_node_map(self)
             self._regenerate = False
             self._reupdate = True
-        
+
         if self._reupdate == True:
             self._core.update_pca_nodes()
             self._core.update_dependent_nodes()
             self._reupdate = False
-        
+
     def update(self, force=False):
         '''
         Updates the dependent node. This update may be required if some
@@ -1478,25 +1585,26 @@ class Mesh(object):
             self._core.update_pca_nodes()
             self._core.update_dependent_nodes()
             self._reupdate = False
-    
+
     def _update_dependent_nodes(self):
         for node in self.nodes:
             if node._type == 'dependent' and node._added == False:
+                self.debug('Updating dependent node %s' % (str(node.id)))
                 elem = self.elements[node.element]
                 for enode in elem:
                     if enode.num_values > 0:
-                        node.set_values(numpy.zeros(enode.num_values))
+                        node.set_values(numpy.zeros(enode.values.shape))
                         break
-                        
+
     def update_pca_nodes(self):
         self._core.update_pca_nodes()
-    
+
     def get_variables(self):
         return self._core.get_variables()
-    
+
     def set_variables(self, variables):
         self._core.set_variables(variables)
-    
+
     def get_element_cids(self, elements=None):
         if elements == None:
             elements = self.elements
@@ -1504,14 +1612,14 @@ class Mesh(object):
         for elem in elements:
             cids.append(elem.cid)
         return cids
-    
+
     def update_parameters(self, param_ids, values):
         self._core.update_params(param_ids, values)
-    
+
     def interpolate(self, element_ids, xi, deriv=None):
         print 'Interpolate deprecated. Use evaluate instead.'
         return self.evaluate(element_ids, xi, deriv=deriv)
-        
+
     def evaluate(self, element_ids, xi, deriv=None):
         self.generate()
         if isinstance(xi, list):
@@ -1521,23 +1629,23 @@ class Mesh(object):
         else:
             if len(xi.shape) == 1:
                 xi = numpy.array([xi]).T
-                
+
         if not isinstance(element_ids, list):
             element_ids = [element_ids]
-        
+
         node0 = self.elements[element_ids[0]].nodes[0]
         num_fields = node0.num_fields
         num_elements = len(element_ids)
         num_xi = xi.shape[0]
         X = numpy.zeros((num_xi * num_elements, num_fields))
-        
+
         ind = 0
         for element in self.elements[element_ids]:
-            X[ind:ind+num_xi, :] = element.evaluate(xi, deriv=deriv)
+            X[ind:ind + num_xi, :] = element.evaluate(xi, deriv=deriv)
             ind += num_xi
-            
+
         return X
-    
+
     def normal(self, element_ids, xi, normalise=False):
         self.generate()
         if isinstance(xi, list):
@@ -1547,46 +1655,46 @@ class Mesh(object):
         else:
             if len(xi.shape) == 1:
                 xi = numpy.array([xi]).T
-                
+
         if not isinstance(element_ids, list):
             element_ids = [element_ids]
-        
+
         node0 = self.elements[element_ids[0]].nodes[0]
         num_fields = node0.num_fields
         num_elements = len(element_ids)
         num_xi = xi.shape[0]
         X = numpy.zeros((num_xi * num_elements, num_fields))
-        
+
         ind = 0
         for element in self.elements[element_ids]:
-            X[ind:ind+num_xi, :] = element.normal(xi)
+            X[ind:ind + num_xi, :] = element.normal(xi)
             ind += num_xi
-        
+
         if normalise:
             R = numpy.sqrt(numpy.sum(X * X, axis=1))
             for axis in range(X.shape[1]):
-                X[:,axis] /= R
-            
+                X[:, axis] /= R
+
         return X
-    
+
     def deformation_gradient_tensor(self, deformed_mesh, xi):
-        dx1 = self.elements[1].evaluate(xi, deriv=[1,0])
-        dx2 = self.elements[1].evaluate(xi, deriv=[0,1])
+        dx1 = self.elements[1].evaluate(xi, deriv=[1, 0])
+        dx2 = self.elements[1].evaluate(xi, deriv=[0, 1])
         dx = numpy.array([dx1, dx2])
         invdx = linalg.inv(dx)
-        
-        dX1 = deformed_mesh.elements[1].evaluate(xi, deriv=[1,0])
-        dX2 = deformed_mesh.elements[1].evaluate(xi, deriv=[0,1])
+
+        dX1 = deformed_mesh.elements[1].evaluate(xi, deriv=[1, 0])
+        dX2 = deformed_mesh.elements[1].evaluate(xi, deriv=[0, 1])
         dX = numpy.array([dX1, dX2])
         invdX = linalg.inv(dX)
         F = numpy.dot(invdx, dX.T)
         invF = linalg.inv(F)
         return F, invF
-    
-    def grid(self, res=[8, 8], shape='quad'):
+
+    def grid(self, res=[8, 8], shape='quad', method='fit'):
         return discretizer.xi_grid(
-                shape=shape, res=res, units='div')[0]
-                
+            shape=shape, res=res, units='div', method=method)[0]
+
     def get_nodes(self, nodes=None, group='_default'):
         self.generate()
         if nodes != None:
@@ -1602,7 +1710,7 @@ class Mesh(object):
             else:
                 Xn.append(node.values[:, 0])
         return numpy.array([xn for xn in Xn])
-        
+
     def get_node_ids(self, nodes=None, group='_default'):
         self.generate()
         if nodes != None:
@@ -1620,7 +1728,7 @@ class Mesh(object):
             else:
                 Xn.append(node.values[:, 0])
         return numpy.array([xn for xn in Xn]), labels
-    
+
     def get_lines(self, res=8, group='_default'):
         self.generate()
         Xl = []
@@ -1628,10 +1736,10 @@ class Mesh(object):
         for i, elem in enumerate(self.elements(group)):
             Xl.append(self._core.evaluate(elem.cid, xi))
         return Xl
-        
+
     def get_surfaces(self, res=8, elements=None, groups=None, include_xi=False):
-        self.generate()
-        
+        # self.generate() // Cannot use because it'll regenerate the pca nodes after they might've been translated.
+
         if elements == None:
             if groups == None:
                 Elements = self.elements
@@ -1639,12 +1747,12 @@ class Mesh(object):
                 Elements = self.elements.get_groups(groups)
         else:
             Elements = self.elements[elements]
-        
+
         XiT, TT = discretizer.xi_grid(shape='tri', res=res)
         XiQ, TQ = discretizer.xi_grid(shape='quad', res=res)
         NPT, NTT = XiT.shape[0], TT.shape[0]
         NPQ, NTQ = XiQ.shape[0], TQ.shape[0]
-        
+
         NP, NT = 0, 0
         for elem in Elements:
             if elem.shape == 'tri':
@@ -1653,7 +1761,7 @@ class Mesh(object):
             elif elem.shape == 'quad':
                 NP += NPQ
                 NT += NTQ
-                
+
         X = numpy.zeros((NP, elem.nodes[0].num_fields))
         T = numpy.zeros((NT, 3), dtype='uint32')
         if include_xi:
@@ -1661,23 +1769,23 @@ class Mesh(object):
         np, nt = 0, 0
         for elem in Elements:
             if elem.shape == 'tri':
-                X[np:np+NPT,:] = self._core.evaluate(elem.cid, XiT)
+                X[np:np + NPT, :] = self._core.evaluate(elem.cid, XiT)
                 if include_xi:
-                    Xi[np:np+NPT,:] = XiT
-                T[nt:nt+NTT,:] = TT + np
+                    Xi[np:np + NPT, :] = XiT
+                T[nt:nt + NTT, :] = TT + np
                 np += NPT
                 nt += NTT
             elif elem.shape == 'quad':
-                X[np:np+NPQ,:] = self._core.evaluate(elem.cid, XiQ)
-                T[nt:nt+NTQ,:] = TQ + np
+                X[np:np + NPQ, :] = self._core.evaluate(elem.cid, XiQ)
+                T[nt:nt + NTQ, :] = TQ + np
                 if include_xi:
-                    Xi[np:np+NPQ,:] = XiQ
+                    Xi[np:np + NPQ, :] = XiQ
                 np += NPQ
                 nt += NTQ
         if include_xi:
             return X, T, Xi
         return X, T
-        
+
     def get_faces(self, res=8, exterior_only=True, include_xi=False, elements=None):
         self.generate()
 
@@ -1698,10 +1806,10 @@ class Mesh(object):
         XiQ, TQ = discretizer.xi_grid(shape='quad', res=res)
         NPT, NTT = XiT.shape[0], TT.shape[0]
         NPQ, NTQ = XiQ.shape[0], TQ.shape[0]
-        
+
         XiQ0 = numpy.zeros(NPQ)
         XiQ1 = numpy.ones(NPQ)
-        
+
         NP, NT = 0, 0
         for face in Faces:
             if face.shape == 'tri':
@@ -1710,56 +1818,56 @@ class Mesh(object):
             elif face.shape == 'quad':
                 NP += NPQ
                 NT += NTQ
-                
-        X = numpy.zeros((NP, 3))#######TODO#####face.nodes[0].num_fields))
+
+        X = numpy.zeros((NP, 3))  #######TODO#####face.nodes[0].num_fields))
         T = numpy.zeros((NT, 3), dtype='uint32')
         if include_xi:
             Xi = numpy.zeros((NP, 2))
         np, nt = 0, 0
         for face in Faces:
             if face.shape == 'tri':
-                X[np:np+NPT,:] = self._core.evaluate(face.cid, XiT)
+                X[np:np + NPT, :] = self._core.evaluate(face.cid, XiT)
                 if include_xi:
-                    Xi[np:np+NPT,:] = XiT
-                T[nt:nt+NTT,:] = TT + np
+                    Xi[np:np + NPT, :] = XiT
+                T[nt:nt + NTT, :] = TT + np
                 np += NPT
                 nt += NTT
             elif face.shape == 'quad':
                 elem = self.elements[face.element_faces[0][0]]
                 face_index = face.element_faces[0][1]
                 if face_index == 0:
-                    X[np:np+NPQ,:] = self._core.evaluate(elem.cid,
-                        numpy.array([XiQ[:,0], XiQ[:,1], XiQ0]).T)
+                    X[np:np + NPQ, :] = self._core.evaluate(elem.cid,
+                                                            numpy.array([XiQ[:, 0], XiQ[:, 1], XiQ0]).T)
                 elif face_index == 1:
-                    X[np:np+NPQ,:] = self._core.evaluate(elem.cid,
-                        numpy.array([XiQ[:,0], XiQ[:,1], XiQ1]).T)
+                    X[np:np + NPQ, :] = self._core.evaluate(elem.cid,
+                                                            numpy.array([XiQ[:, 0], XiQ[:, 1], XiQ1]).T)
                 elif face_index == 2:
-                    X[np:np+NPQ,:] = self._core.evaluate(elem.cid,
-                        numpy.array([XiQ[:,0], XiQ0, XiQ[:,1]]).T)
+                    X[np:np + NPQ, :] = self._core.evaluate(elem.cid,
+                                                            numpy.array([XiQ[:, 0], XiQ0, XiQ[:, 1]]).T)
                 elif face_index == 3:
-                    X[np:np+NPQ,:] = self._core.evaluate(elem.cid,
-                        numpy.array([XiQ[:,0], XiQ1, XiQ[:,1]]).T)
+                    X[np:np + NPQ, :] = self._core.evaluate(elem.cid,
+                                                            numpy.array([XiQ[:, 0], XiQ1, XiQ[:, 1]]).T)
                 elif face_index == 4:
-                    X[np:np+NPQ,:] = self._core.evaluate(elem.cid,
-                        numpy.array([XiQ0, XiQ[:,0], XiQ[:,1]]).T)
+                    X[np:np + NPQ, :] = self._core.evaluate(elem.cid,
+                                                            numpy.array([XiQ0, XiQ[:, 0], XiQ[:, 1]]).T)
                 elif face_index == 5:
-                    X[np:np+NPQ,:] = self._core.evaluate(elem.cid,
-                        numpy.array([XiQ1, XiQ[:,0], XiQ[:,1]]).T)
-                    
-                T[nt:nt+NTQ,:] = TQ + np
+                    X[np:np + NPQ, :] = self._core.evaluate(elem.cid,
+                                                            numpy.array([XiQ1, XiQ[:, 0], XiQ[:, 1]]).T)
+
+                T[nt:nt + NTQ, :] = TQ + np
                 if include_xi:
-                    Xi[np:np+NPQ,:] = XiQ
+                    Xi[np:np + NPQ, :] = XiQ
                 np += NPQ
                 nt += NTQ
         if include_xi:
             return X, T, Xi
         return X, T
-        
+
     def append_lines(self, lines, elements, lindex, res=8):
         L = ((None, 0, 0), (None, 1, 0), (0, None, 0), (1, None, 0),
-            (None, 0, 1), (None, 1, 1), (0, None, 1), (1, None, 1),
-            (0, 0, None), (1, 0, None), (0, 1, None), (1, 1, None))
-        
+             (None, 0, 1), (None, 1, 1), (0, None, 1), (1, None, 1),
+             (0, 0, None), (1, 0, None), (0, 1, None), (1, 1, None))
+
         if isinstance(elements, int):
             elements = [elements]
         if isinstance(lindex, int):
@@ -1775,7 +1883,7 @@ class Mesh(object):
                     else:
                         Xi[:, i] = x
                 if False:
-                    lines.append(self.elements[eid].evaluate(Xi[:,:2]))
+                    lines.append(self.elements[eid].evaluate(Xi[:, :2]))
                 else:
                     lines.append(self.elements[eid].evaluate(Xi))
         return lines
@@ -1799,4 +1907,7 @@ class Mesh(object):
         for element in self.elements:
             V += element.volume()
         return V
-        
+
+    def debug(self, msg):
+        if self.debug_on:
+            print msg

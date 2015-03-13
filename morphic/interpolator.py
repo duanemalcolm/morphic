@@ -22,7 +22,19 @@ def weights(basis, X, deriv=None):
            [-0.6348, -2.1252,  0.8096,  2.7104, -0.1748, -0.5852]])
     
     """
-    
+
+    if 'V1' in basis:
+        WW = numpy.zeros(len(basis) + 1)
+        if deriv is None or numpy.array(deriv).sum() == 0:
+            WW[0] = 1
+            WW[1:] = numpy.array(X)
+        else:
+            if numpy.array(deriv).sum() == 1:
+                for i, d in enumerate(deriv):
+                    if d == 1:
+                        WW[i + 1] = 1
+        return WW
+
     basis_functions, dimensions = _get_basis_functions(basis, deriv)
     X = _process_x(X, dimensions)
     

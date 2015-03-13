@@ -17,7 +17,7 @@ class Metadata(object):
         d = self.__dict__
         for i, arg in enumerate(args):
             d = d.get(arg)
-            if d == None:
+            if d is None:
                 return default
         return d
     

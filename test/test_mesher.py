@@ -3,7 +3,6 @@ import unittest
 import doctest
 
 import numpy
-from numpy import array
 import numpy.testing as npt
 #~ sys.path.insert(0, os.path.abspath('..'))
 
@@ -620,7 +619,7 @@ class TestStdNode(unittest.TestCase):
         self.assertEqual(ns['num_components'], 2)
         self.assertEqual(ns['num_modes'], 0)
         self.assertEqual(ns['shape'], (2, 2))
-        self.assertEqual(len(ns.keys()), 9) 
+        self.assertEqual(len(ns.keys()), 9)
         
     def test_load(self):
         mesh = mesher.Mesh()
@@ -657,9 +656,10 @@ class TestDepNode(unittest.TestCase):
         self.assertEqual(ns['num_components'], 0)
         self.assertEqual(ns['num_modes'], 0)
         self.assertEqual(ns['shape'], (0, 0, 0))
+        self.assertEqual(ns['scale'], None)
         self.assertEqual(ns['element'], '7')
         self.assertEqual(ns['node'], '2')
-        self.assertEqual(len(ns.keys()), 11) 
+        self.assertEqual(len(ns.keys()), 12)
      
     def test_load(self):
         mesh = mesher.Mesh()
@@ -673,6 +673,234 @@ class TestDepNode(unittest.TestCase):
         self.assertEqual(node2._type, 'dependent')   
         self.assertEqual(node2.element, 3)   
         self.assertEqual(node2.node, 77)
+
+    def test_values_1d_L1(self):
+        mesh = mesher.Mesh()
+        mesh.add_node('xi', [0.5])
+        mesh.add_node(1, [0.5])
+        mesh.add_node(2, [1.5])
+        mesh.add_element(1, ['L1'], [1, 2])
+        dnode = mesh.add_depnode('dn', 1, 'xi')
+        mesh.generate()
+        x = dnode.evaluate()
+        npt.assert_array_almost_equal(x, [1.0])
+
+    def test_values_2d_L1(self):
+        mesh = mesher.Mesh()
+        mesh.add_node('xi', [0.5])
+        mesh.add_node(1, [0.5, 1])
+        mesh.add_node(2, [1.5, 2.5])
+        mesh.add_element(1, ['L1'], [1, 2])
+        dnode = mesh.add_depnode('dn', 1, 'xi')
+        mesh.generate()
+        x = dnode.evaluate()
+        npt.assert_array_almost_equal(x, [1.0, 1.75])
+
+    def test_values_3d_L1(self):
+        mesh = mesher.Mesh()
+        mesh.add_node('xi', [0.5])
+        mesh.add_node(1, [0.5, 1, -1])
+        mesh.add_node(2, [1.5, 2.5, -2])
+        mesh.add_element(1, ['L1'], [1, 2])
+        dnode = mesh.add_depnode('dn', 1, 'xi')
+        mesh.generate()
+        x = dnode.evaluate()
+        npt.assert_array_almost_equal(x, [1.0, 1.75, -1.5])
+
+    def test_values_1d_L2(self):
+        mesh = mesher.Mesh()
+        mesh.add_node('xi', [0.5])
+        mesh.add_node(1, [0.5])
+        mesh.add_node(2, [1.56])
+        mesh.add_node(3, [2.44])
+        mesh.add_element(1, ['L2'], [1, 2, 3])
+        dnode = mesh.add_depnode('dn', 1, 'xi')
+        mesh.generate()
+        x = dnode.evaluate()
+        npt.assert_array_almost_equal(x, [1.56])
+
+    def test_values_2d_L2(self):
+        mesh = mesher.Mesh()
+        mesh.add_node('xi', [0.5])
+        mesh.add_node(1, [0.5, .33])
+        mesh.add_node(2, [1.56, -.23])
+        mesh.add_node(3, [2.44, 0.45])
+        mesh.add_element(1, ['L2'], [1, 2, 3])
+        dnode = mesh.add_depnode('dn', 1, 'xi')
+        mesh.generate()
+        x = dnode.evaluate()
+        npt.assert_array_almost_equal(x, [1.56, -.23])
+
+    def test_values_3d_L2(self):
+        mesh = mesher.Mesh()
+        mesh.add_node('xi', [0.5])
+        mesh.add_node(1, [0.5, .33, 22])
+        mesh.add_node(2, [1.56, -.23, 33])
+        mesh.add_node(3, [2.44, 0.45, 44])
+        mesh.add_element(1, ['L2'], [1, 2, 3])
+        dnode = mesh.add_depnode('dn', 1, 'xi')
+        mesh.generate()
+        x = dnode.evaluate()
+        npt.assert_array_almost_equal(x, [1.56, -.23, 33])
+
+    def test_values_2d_H3(self):
+        mesh = mesher.Mesh()
+        mesh.add_node('xi', [0.7])
+        mesh.add_node(1, [[0.5, 1], [.33, -0.055]])
+        mesh.add_node(2, [[1.56, 0], [-.23, -0.1]])
+        mesh.add_element(1, ['H3'], [1, 2])
+        dnode = mesh.add_depnode('dn', 1, 'xi')
+        mesh.generate()
+        x = dnode.evaluate()
+        xpected = mesh.elements[1].evaluate([0.7])
+        npt.assert_array_almost_equal(x, xpected)
+
+    def test_values_2d_L2L1(self):
+        mesh = mesher.Mesh()
+        mesh.add_node('xi', [0.5, 0.2])
+        mesh.add_node(1, [0.5, .33])
+        mesh.add_node(2, [1.56, -.23])
+        mesh.add_node(3, [2.44, 0.45])
+        mesh.add_node(4, [1.22, 0.5])
+        mesh.add_node(5, [-0.5, -0.5])
+        mesh.add_node(6, [1.2, 2.3])
+        mesh.add_element(1, ['L2', 'L1'], [1, 2, 3, 4, 5, 6])
+        dnode = mesh.add_depnode('dn', 1, 'xi')
+        mesh.generate()
+        x = dnode.evaluate()
+        xpected = mesh.elements[1].evaluate([0.5, 0.2])
+        npt.assert_array_almost_equal(x, xpected)
+
+    def test_values_1d_V1(self):
+        mesh = mesher.Mesh()
+        mesh.add_node('xi', [0.5])
+        mesh.add_node(0, [0.5])
+        mesh.add_node(1, [2.0])
+        mesh.add_element(1, ['V1'], [0, 1])
+        dnode = mesh.add_depnode('dn', 1, 'xi')
+        mesh.generate()
+        x = mesh.elements[1].evaluate([0.1])
+        npt.assert_array_almost_equal(x, [0.7])
+        x = mesh.elements[1].evaluate([-10])
+        npt.assert_array_almost_equal(x, [-19.5])
+        x = mesh.elements[1].evaluate([0.1], deriv=[1])
+        npt.assert_array_almost_equal(x, [2.0])
+        x = mesh.elements[1].evaluate([1.1], deriv=[2])
+        npt.assert_array_almost_equal(x, [0.])
+        x = dnode.evaluate()
+        npt.assert_array_almost_equal(x, [1.5])
+
+    def test_values_2d_V1(self):
+        mesh = mesher.Mesh()
+        mesh.add_node('xi', [0.5])
+        mesh.add_node(0, [0.5, 2.5])
+        mesh.add_node(1, [2.0, -1.2])
+        mesh.add_element(1, ['V1'], [0, 1])
+        dnode = mesh.add_depnode('dn', 1, 'xi')
+        mesh.generate()
+        x = mesh.elements[1].evaluate([0.1])
+        npt.assert_array_almost_equal(x, [0.7, 2.38])
+        x = mesh.elements[1].evaluate([-0.1], deriv=[0])
+        npt.assert_array_almost_equal(x, [0.3, 2.62])
+        x = mesh.elements[1].evaluate([-0.1], deriv=[1])
+        npt.assert_array_almost_equal(x, [2.0, -1.2])
+        x = mesh.elements[1].evaluate([-0.1], deriv=[2])
+        npt.assert_array_almost_equal(x, [0., 0.])
+        x = dnode.evaluate()
+        npt.assert_array_almost_equal(x, [1.5, 1.9])
+
+    def test_values_2d_V1V1(self):
+        mesh = mesher.Mesh()
+        mesh.add_node('xi', [0.5, 0.7])
+        mesh.add_node(0, [0.5, 2.5])
+        mesh.add_node(1, [1., 0])
+        mesh.add_node(2, [0, 1.])
+        mesh.add_element(1, ['V1', 'V1'], [0, 1, 2])
+        dnode = mesh.add_depnode('dn', 1, 'xi')
+        mesh.generate()
+        x = mesh.elements[1].evaluate([0.1, 0.5])
+        npt.assert_array_almost_equal(x, [0.6, 3.])
+        x = mesh.elements[1].evaluate([0.1, 3.])
+        npt.assert_array_almost_equal(x, [0.6, 5.5])
+        x = mesh.elements[1].evaluate([0.1, 3.], deriv=[0, 0])
+        npt.assert_array_almost_equal(x, [0.6, 5.5])
+        x = mesh.elements[1].evaluate([0.1, 3.], deriv=[1, 0])
+        npt.assert_array_almost_equal(x, [1, 0])
+        x = mesh.elements[1].evaluate([0.1, 3.], deriv=[0, 1])
+        npt.assert_array_almost_equal(x, [0, 1])
+        x = mesh.elements[1].evaluate([0.1, 3.], deriv=[1, 1])
+        npt.assert_array_almost_equal(x, [0, 0])
+        x = mesh.elements[1].evaluate([0.1, 3.], deriv=[2, 0])
+        npt.assert_array_almost_equal(x, [0, 0])
+        x = mesh.elements[1].evaluate([0.1, 3.], deriv=[0, 2])
+        npt.assert_array_almost_equal(x, [0, 0])
+
+    def test_values_attribute(self):
+        mesh = mesher.Mesh()
+        mesh.add_node('xi', [0.5])
+        mesh.add_node(1, [0.5])
+        mesh.add_node(2, [1.5])
+        mesh.add_element(1, ['L1'], [1, 2])
+        dnode = mesh.add_depnode('dn', 1, 'xi')
+        mesh.generate()
+        npt.assert_array_almost_equal(dnode.values, [1.0])
+
+    def test_element_evaluate(self):
+        mesh = mesher.Mesh()
+        mesh.add_node('xi', [0.5])
+        mesh.add_node(1, [0.0, 0.0])
+        mesh.add_node(2, [1.0, 1.0])
+        dnode = mesh.add_depnode('dn', 1, 'xi')
+        mesh.add_node(4, [0.0, 1.0])
+        mesh.add_element(1, ['L1'], [1, 2])
+        mesh.add_element(2, ['L1'], ['dn', 4])
+        mesh.generate()
+        x = mesh.elements[2].evaluate([0.5])
+        npt.assert_array_almost_equal(x, [0.25, 0.75])
+
+    def test_element_evaluate_postmod(self):
+        mesh = mesher.Mesh()
+        mesh.add_node('xi', [0.1])
+        mesh.add_node(1, [0.0, 0.0])
+        mesh.add_node(2, [1.0, 1.0])
+        dnode = mesh.add_depnode('dn', 1, 'xi')
+        mesh.add_node(4, [0.0, 1.0])
+        mesh.add_element(1, ['L1'], [1, 2])
+        mesh.add_element(2, ['L1'], ['dn', 4])
+        mesh.generate()
+        mesh.nodes['xi'].set_values([0.5])
+        mesh.generate()
+        x = mesh.elements[2].evaluate([0.5])
+        npt.assert_array_almost_equal(x, [0.25, 0.75])
+
+
+    # def test_generate_weighted_sum(self):
+    #     mesh = mesher.Mesh()
+    #     mesh.add_node('xi', [0.4])
+    #     mesh.add_node(1, [0.0, 0.0])
+    #     mesh.add_node(2, [1.0, 1.0])
+    #     mesh.add_depnode('dn', 1, 'xi')
+    #     mesh.add_node(4, [1.0, .0])
+    #     mesh.add_element(1, ['L1'], [1, 2])
+    #     mesh.add_element(2, ['L1'], ['dn', 4])
+    #     mesh.generate()
+        # for nid in [1, 2, 4]:
+        #     mesh.nodes[nid].variables(False)
+        #     print nid, mesh.nodes[nid].cids
+
+        # print mesh.core.variable_ids
+        # print 'xi cids', mesh.nodes['xi'].cids
+        # print '1 cids', mesh.nodes[1].cids
+        # print '2 cids', mesh.nodes[2].cids
+        # print 'dn cids', mesh.nodes['dn'].cids
+        # print '4 cids', mesh.nodes[4].cids
+        # weights, cids, rhs = mesh.elements[2].compute_weighted_sum([0.1], 0)
+        # print rhs
+        # self.assertEqual(cids, [[1, 3, 5], [2, 4, 6]])
+        # self.assertEqual(weights, [0.54, 0.36, 0.9])
+        # self.assertEqual(rhs, 0)
+
+
 
 class TestPCANode(unittest.TestCase):
     """Unit tests for morphic interpolants."""
@@ -1013,9 +1241,9 @@ class TestElement(unittest.TestCase):
 class TestMesh(unittest.TestCase):
     """Unit tests for morphic interpolants."""
 
-    def test_doctests(self):
-        """Run interpolants doctests"""
-        doctest.testmod(mesher)
+    # def test_doctests(self):
+    #     """Run interpolants doctests"""
+    #     doctest.testmod(mesher)
         
     def test_mesh_init(self):
         mesh = mesher.Mesh()
@@ -1049,9 +1277,9 @@ class TestMesh(unittest.TestCase):
         self.assertEqual(mesh.units, 'mm')
         self.assertEqual(mesh.nodes.size(), 4)
         self.assertEqual(mesh.nodes[0].cids, [0])
-        self.assertEqual(mesh.nodes[1].cids, [1, 2])
-        self.assertEqual(mesh.nodes[2].cids, [3, 4])
-        self.assertEqual(mesh.nodes[3].cids, [5, 6])
+        npt.assert_array_equal(mesh.nodes[1].cids, [1, 2])
+        npt.assert_array_equal(mesh.nodes[2].cids, [3, 4])
+        npt.assert_array_equal(mesh.nodes[3].cids, [5, 6])
         npt.assert_almost_equal(mesh._core.P, 
                 [0.5, 0.0, 0.3, 1.0, 0.5, 0.5, 0.4])
         
@@ -1135,7 +1363,136 @@ class TestMesh(unittest.TestCase):
         self.assertEqual(mesh.elements('g2'), [e3])
         self.assertEqual(mesh.elements('g3'), [e5, e1])
         
-        
+class TestMeshEvaluate(unittest.TestCase):
+    """Unit tests for morphic interpolants."""
+
+    # def test_doctests(self):
+    #     """Run interpolants doctests"""
+    #     doctest.testmod(mesher)
+    
+    def test_L1_1d(self):
+        mesh = mesher.Mesh()
+        mesh.add_node(1, [1.])
+        mesh.add_node(2, [2.])
+        mesh.add_elem(1, ['L1'], [1, 2])
+        mesh.generate()
+        x = mesh.evaluate(1, [0.5])
+        npt.assert_almost_equal(x, [[1.5]])
+        x = mesh.evaluate(1, [[0.5]])
+        npt.assert_almost_equal(x, [[1.5]])
+        x = mesh.evaluate(1, [[0.5], [0.2]])
+        npt.assert_almost_equal(x, [[1.5], [1.2]])
+    
+    def test_L1_2d(self):
+        mesh = mesher.Mesh()
+        mesh.add_node(1, [1., 2.])
+        mesh.add_node(2, [2., 1.])
+        mesh.add_elem(1, ['L1'], [1, 2])
+        mesh.generate()
+        x = mesh.evaluate(1, [0.5])
+        npt.assert_almost_equal(x, [[1.5, 1.5]])
+        x = mesh.evaluate(1, [[0.5]])
+        npt.assert_almost_equal(x, [[1.5, 1.5]])
+        x = mesh.evaluate(1, [[0.5], [0.2]])
+        npt.assert_almost_equal(x, [[1.5, 1.5], [1.2, 1.8]])
+    
+    def test_L1_3d(self):
+        mesh = mesher.Mesh()
+        mesh.add_node(1, [1., 2., 0.])
+        mesh.add_node(2, [2., 1., 1.])
+        mesh.add_elem(1, ['L1'], [1, 2])
+        mesh.generate()
+        x = mesh.evaluate(1, [0.5])
+        npt.assert_almost_equal(x, [[1.5, 1.5, 0.5]])
+        x = mesh.evaluate(1, [[0.5]])
+        npt.assert_almost_equal(x, [[1.5, 1.5, 0.5]])
+        x = mesh.evaluate(1, [[0.5], [0.2]])
+        npt.assert_almost_equal(x, [[1.5, 1.5, 0.5], [1.2, 1.8, 0.2]])
+
+    def test_L3_1d(self):
+        mesh = mesher.Mesh()
+        mesh.add_node(1, [1.])
+        mesh.add_node(2, [2.])
+        mesh.add_node(3, [3.])
+        mesh.add_node(4, [4.])
+        mesh.add_elem(1, ['L3'], [1, 2, 3, 4])
+        mesh.generate()
+        x = mesh.evaluate(1, [0.5])
+        npt.assert_almost_equal(x, [[2.5]])
+        x = mesh.evaluate(1, [[0.5]])
+        npt.assert_almost_equal(x, [[2.5]])
+        x = mesh.evaluate(1, [[0.5], [0.2]])
+        npt.assert_almost_equal(x, [[2.5], [1.6]])
+
+    def test_L3_2d(self):
+        mesh = mesher.Mesh()
+        mesh.add_node(1, [1., 2.])
+        mesh.add_node(2, [2., 1.])
+        mesh.add_node(3, [3., 0.])
+        mesh.add_node(4, [4., -1.])
+        mesh.add_elem(1, ['L3'], [1, 2, 3, 4])
+        mesh.generate()
+        x = mesh.evaluate(1, [0.5])
+        npt.assert_almost_equal(x, [[2.5, 0.5]])
+        x = mesh.evaluate(1, [[0.5]])
+        npt.assert_almost_equal(x, [[2.5, 0.5]])
+        x = mesh.evaluate(1, [[0.5], [0.2]])
+        npt.assert_almost_equal(x, [[2.5, 0.5], [1.6, 1.4]])
+
+    def test_L3_3d(self):
+        mesh = mesher.Mesh()
+        mesh.add_node(1, [1., 2., 0.])
+        mesh.add_node(2, [2., 1., 1.])
+        mesh.add_node(3, [3., 0., 2.])
+        mesh.add_node(4, [4., -1., 3.])
+        mesh.add_elem(1, ['L3'], [1, 2, 3, 4])
+        mesh.generate()
+        x = mesh.evaluate(1, [0.5])
+        npt.assert_almost_equal(x, [[2.5, 0.5, 1.5]])
+        x = mesh.evaluate(1, [[0.5]])
+        npt.assert_almost_equal(x, [[2.5, 0.5, 1.5]])
+        x = mesh.evaluate(1, [[0.5], [0.2]])
+        npt.assert_almost_equal(x, [[2.5, 0.5, 1.5], [1.6, 1.4, 0.6]])
+
+    def test_H3_1d(self):
+        mesh = mesher.Mesh()
+        mesh.add_node(1, [[1., 1.]])
+        mesh.add_node(2, [[2., 1.]])
+        mesh.add_elem(1, ['H3'], [1, 2])
+        mesh.generate()
+        x = mesh.evaluate(1, [0.5])
+        npt.assert_almost_equal(x, [[1.5]])
+        x = mesh.evaluate(1, [[0.5]])
+        npt.assert_almost_equal(x, [[1.5]])
+        x = mesh.evaluate(1, [[0.5], [0.2]])
+        npt.assert_almost_equal(x, [[1.5], [1.2]])
+    
+    def test_H3_2d(self):
+        mesh = mesher.Mesh()
+        mesh.add_node(1, [[1., 1.], [2., -1.]])
+        mesh.add_node(2, [[2., 1.], [1., -1.]])
+        mesh.add_elem(1, ['H3'], [1, 2])
+        mesh.generate()
+        x = mesh.evaluate(1, [0.5])
+        npt.assert_almost_equal(x, [[1.5, 1.5]])
+        x = mesh.evaluate(1, [[0.5]])
+        npt.assert_almost_equal(x, [[1.5, 1.5]])
+        x = mesh.evaluate(1, [[0.5], [0.2]])
+        npt.assert_almost_equal(x, [[1.5, 1.5], [1.2, 1.8]])
+    
+    def test_H3_3d(self):
+        mesh = mesher.Mesh()
+        mesh.add_node(1, [[1., 1.], [2., -1.], [0, 2]])
+        mesh.add_node(2, [[2., 1.], [1., -1.], [2, 2]])
+        mesh.add_elem(1, ['H3'], [1, 2])
+        mesh.generate()
+        x = mesh.evaluate(1, [0.5])
+        npt.assert_almost_equal(x, [[1.5, 1.5, 1.]])
+        x = mesh.evaluate(1, [[0.5]])
+        npt.assert_almost_equal(x, [[1.5, 1.5, 1.]])
+        x = mesh.evaluate(1, [[0.5], [0.2]])
+        npt.assert_almost_equal(x, [[1.5, 1.5, 1], [1.2, 1.8, 0.4]])
+
         
 if __name__ == "__main__":
     unittest.main()

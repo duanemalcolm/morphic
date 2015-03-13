@@ -3,11 +3,12 @@ import morphic
 
 class PCAMesh(object):
 
-    def __init__(self):
+    def __init__(self, groups=None):
         self.X = []
         self.pca = None
         self.num_modes = 5
         self.input_mesh = None
+        self.groups = groups
         self.mesh = None
 
     def add_mesh(self, mesh):
@@ -16,8 +17,14 @@ class PCAMesh(object):
         if isinstance(mesh, str):
             mesh = morphic.Mesh(mesh)
         x = []
-        for node in mesh.nodes:
-            x.extend(node.values.flatten().tolist())
+        if self.groups is None:
+            for node in mesh.nodes:
+                if not isinstance(node, morphic.mesher.DepNode):
+                    x.extend(node.values.flatten().tolist())
+        else:
+            for node in mesh.nodes:
+                if node.in_group(self.groups):
+                    x.extend(node.values.flatten().tolist())
         self.X.append(x)
 
     def generate(self, num_modes=5, package='sklearn'):
@@ -53,19 +60,47 @@ class PCAMesh(object):
         
         # Add node values
         idx = 0
-        for node in self.input_mesh.nodes:
-            nsize = node.values.size
-            pca_node_shape = (node.shape[0], node.shape[1], self.num_modes)
-            x = numpy.zeros((node.shape[0], node.shape[1], self.num_modes + 1)) # +1 to include mean
-            x[:, :, 0] = self.mean[idx:idx+nsize].reshape(node.shape) # mean values
-            x[:, :, 1:] = self.components[idx:idx+nsize,:].reshape(pca_node_shape) # mode values
-            self.mesh.add_pcanode(node.id, x, 'weights', 'variance', group='pca')
-            idx += nsize
-        
+        if self.groups is None:
+            for node in self.input_mesh.nodes:
+                x = self.get_pca_node_values(node, idx)
+                self.mesh.add_pcanode(node.id, x, 'weights', 'variance', group='pca')
+                idx += nsize
+        else:
+            for node in self.input_mesh.nodes:
+                nsize = node.values.size
+                if node.in_group(self.groups):
+                    x = self.get_pca_node_values(node, idx)
+                    self.mesh.add_pcanode(node.id, x, 'weights', 'variance', group='pca')
+                    idx += nsize
+                else:
+                    if isinstance(node, morphic.mesher.StdNode):
+                        self.mesh.add_stdnode(node.id, node.values)
+                    elif isinstance(node, morphic.mesher.DepNode):
+                        self.mesh.add_depnode(node.id, node.element, node.node, shape=node.shape, scale=node.scale)
+                    if isinstance(node, morphic.mesher.PCANode):
+                        raise Exception("Not implemented")
+
         for element in self.input_mesh.elements:
             self.mesh.add_element(element.id, element.basis, element.node_ids)
         
         self.mesh.generate()
+
+    def get_pca_node_values(self, node, idx):
+        nsize = node.values.size
+        if len(node.shape) == 1:
+            pca_node_shape = (node.shape[0], 1, self.num_modes)
+            x = numpy.zeros((node.shape[0], 1, self.num_modes + 1)) # +1 to include mean
+            x[:, 0, 0] = self.mean[idx:idx+nsize].reshape(node.shape) # mean values
+            x[:, :, 1:] = self.components[idx:idx+nsize,:].reshape(pca_node_shape) # mode values
+            return x
+        elif len(node.shape) == 2:
+            pca_node_shape = (node.shape[0], node.shape[1], self.num_modes)
+            x = numpy.zeros((node.shape[0], node.shape[1], self.num_modes + 1)) # +1 to include mean
+            x[:, :, 0] = self.mean[idx:idx+nsize].reshape(node.shape) # mean values
+            x[:, :, 1:] = self.components[idx:idx+nsize,:].reshape(pca_node_shape) # mode values
+            return x
+        else:
+            print 'Cannot reshape this node when genrating pca mesh'
 
 
 def grid(divs=10, dims=2):

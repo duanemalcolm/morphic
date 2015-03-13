@@ -68,13 +68,13 @@ class TestNode(unittest.TestCase):
         
     def test_get_method_nonexistant_default(self):
         mesh = mesher.Mesh()
-        age = mesh.metadata.get('age', 25)
+        age = mesh.metadata.get('age', default=25)
         self.assertEqual(age, 25)
     
     def test_get_method_existant_default(self):
         mesh = mesher.Mesh()
         mesh.metadata.age = 23
-        age = mesh.metadata.get('age', 25)
+        age = mesh.metadata.get('age', default=25)
         self.assertEqual(age, 23)
     
     def test_set_method_overwrite(self):

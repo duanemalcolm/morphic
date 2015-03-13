@@ -238,6 +238,7 @@ class ObjectList:
 class Core():
     
     def __init__(self):
+        self.debug_on = False
         self.P = numpy.array([])
         self.EFn = []
         self.EMap = []
@@ -340,6 +341,7 @@ class Core():
         self.EMap = []
         cid = 0
         for elem in mesh.elements:
+            self.debug('Generating Element Map for %s' %  (str(elem.id)))
             self.EFn.append(elem.basis)
             self.EMap.append(elem._get_param_indicies())
             elem.set_core_id(cid)
@@ -351,7 +353,7 @@ class Core():
             if node._type == 'dependent':
                 elem = node.mesh.elements[node.element]
                 pnode = node.mesh.nodes[node.node]
-                self.DNMap.append([elem.cid, pnode.cids, node.cids])
+                self.DNMap.append([elem.cid, pnode.cids, node.cids, node.shape, node.scale])
     
     def update_dependent_nodes(self):
         # update dependent nodes
@@ -359,14 +361,34 @@ class Core():
             cid = dn[0]
             xi_cids = dn[1]
             dn_cids = dn[2]
+            shape = dn[3]
+            scale = dn[4]
             num_fields = len(self.EMap[cid])
             if num_fields == 1:
                 xi = numpy.array([self.P[xi_cids]]).T
             else:
                 xi = numpy.array([self.P[xi_cids]])
-            Phi = interpolator.weights(self.EFn[cid], xi)
-            for i in range(num_fields):
-                self.P[dn_cids[i]] = numpy.dot(Phi, self.P[self.EMap[cid][i]])
+            if len(shape) == 1:
+                Phi = interpolator.weights(self.EFn[cid], xi)
+                for i in range(num_fields):
+                    self.P[dn_cids[i]] = numpy.dot(Phi, self.P[self.EMap[cid][i]])
+            elif len(shape) == 2:
+                components = shape[1]
+                Phi = [interpolator.weights(self.EFn[cid], xi)]
+                if components == 2:
+                    Phi.append(interpolator.weights(self.EFn[cid], xi, deriv=[1]))
+                elif components == 4:
+                    Phi.append(interpolator.weights(self.EFn[cid], xi, deriv=[1, 0]))
+                    Phi.append(interpolator.weights(self.EFn[cid], xi, deriv=[0, 1]))
+                    Phi.append(interpolator.weights(self.EFn[cid], xi, deriv=[1, 1]))
+                comp_idx = 0
+                if scale is None:
+                    scale = numpy.ones((shape[1]))
+                for i in range(num_fields):
+                    for j, phi in enumerate(Phi):
+                        self.P[dn_cids[comp_idx]] = scale[j] * numpy.dot(phi, self.P[self.EMap[cid][i]])
+                        comp_idx += 1
+
     
     def add_pca_node(self, pca_node):
         self.PCAMap.append([
@@ -425,4 +447,8 @@ class Core():
             Phi = interpolator.weights(self.EFn[cid], xi, deriv=field[1:])
             X[:, i] = numpy.dot(Phi, self.P[self.EMap[cid][field[0]]])
         return X
-     
+
+    def debug(self, msg):
+        if self.debug_on:
+            print msg
+
