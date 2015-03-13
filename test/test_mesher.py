@@ -834,6 +834,8 @@ class TestDepNode(unittest.TestCase):
         npt.assert_array_almost_equal(x, [0, 0])
         x = mesh.elements[1].evaluate([0.1, 3.], deriv=[0, 2])
         npt.assert_array_almost_equal(x, [0, 0])
+        x = dnode.evaluate()
+        npt.assert_array_almost_equal(x, [1., 3.2])
 
     def test_values_attribute(self):
         mesh = mesher.Mesh()
