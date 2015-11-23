@@ -395,7 +395,7 @@ class Fit:
         mesh.set_variables(x)
         return mesh
     
-    def optimize2(self, mesh, data, ftol=1e-9, xtol=1e-9, maxiter=0, output=True):
+    def optimize2(self, mesh, data, ftol=1e-9, xtol=1e-9, epsfcn=None, maxiter=0, output=True):
         
         mesh.generate()
         
@@ -405,8 +405,7 @@ class Fit:
         x0 = mesh.get_variables()
         t0 = time.time()
         x, success = scipy.optimize.leastsq(self.objective_function,
-                x0, args=[mesh, data], ftol=ftol, xtol=xtol,
-                maxfev=maxiter)
+                x0, args=[mesh, data], ftol=ftol, xtol=xtol, epsfcn=epsfcn, maxfev=maxiter)
                 
         if output: print 'Fit Time: ', time.time()-t0
         mesh.set_variables(x)
@@ -417,6 +416,27 @@ class Fit:
         
         return mesh
     
+    def optimize_fmin(self, mesh, data, ftol=1e-9, xtol=1e-9, maxiter=0, output=True):
+
+        mesh.generate()
+
+        if self.on_start != None:
+            mesh, data = self.on_start(mesh, data)
+
+        x0 = mesh.get_variables()
+        t0 = time.time()
+        outputs = scipy.optimize.fmin_bfgs(self.objective_function,
+                x0, args=(mesh, data), gtol=ftol, maxiter=maxiter)
+
+        if output: print 'Fit Time: ', time.time()-t0
+        mesh.set_variables(outputs[0])
+        mesh.update()
+
+        if self.on_stop != None:
+            mesh, data = self.on_stop(mesh, data)
+
+        return mesh
+
     def objfn_mesh_to_data_closest(self, x0, args):
         mesh, Xd, Td = args[0], args[1], args[2]
         mesh.set_variables(x0)

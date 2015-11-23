@@ -675,8 +675,7 @@ class Element(object):
 
         def _volume_integral(X):
             V = X[:, 0] * (X[:, 4] * X[:, 8] - X[:, 5] * X[:, 7]) - X[:, 1] * (X[:, 3] * X[:, 8]
-                                                                               - X[:, 5] * X[:, 6]) + X[:, 2] * (
-                X[:, 3] * X[:, 7] - X[:, 4] * X[:, 6])
+                - X[:, 5] * X[:, 6]) + X[:, 2] * (X[:, 3] * X[:, 7] - X[:, 4] * X[:, 6])
             return V
 
         if self.shape == 'hexagonal':
@@ -1729,7 +1728,7 @@ class Mesh(object):
                 Xn.append(node.values[:, 0])
         return numpy.array([xn for xn in Xn]), labels
 
-    def get_lines(self, res=8, group='_default'):
+    def get_lines_old(self, res=8, group='_default'):
         self.generate()
         Xl = []
         xi = numpy.array([numpy.linspace(0, 1, res)]).T
@@ -1863,6 +1862,39 @@ class Mesh(object):
             return X, T, Xi
         return X, T
 
+    def get_lines(self, res=8, elements='all'):
+        lines = []
+        if elements == 'all':
+            elements = self.elements.keys()
+        elif not isinstance(elements, list):
+            elements = [elements]
+
+        element_nodes = [[0, 1], [2, 3], [0, 2], [1, 3], [4, 5], [6, 7], [4, 6], [5, 7], [0, 4], [1, 5], [2, 6], [4, 7]]
+        line_ids = []
+        for eid in elements:
+            element = self.elements[eid]
+            node_ids = element.node_ids
+            element_dimensions = len(element.basis)
+            if element_dimensions == 1:
+                num_lines = range(1)
+            elif element_dimensions == 2:
+                num_lines = range(4)
+            elif element_dimensions == 3:
+                num_lines = range(12)
+            line_index = []
+            for lidx in num_lines:
+                enode = element_nodes[lidx]
+                if node_ids[enode[0]] < node_ids[enode[1]]:
+                    line_id = str(node_ids[enode[0]]) + '-' + str(node_ids[enode[1]])
+                else:
+                    line_id = str(node_ids[enode[1]]) + '-' + str(node_ids[enode[0]])
+                if line_id not in line_ids:
+                    line_index.append(lidx)
+                    line_ids.append(line_id)
+            if len(line_index) > 0:
+                lines = self.append_lines(lines, eid, line_index, res=res)
+        return lines
+
     def append_lines(self, lines, elements, lindex, res=8):
         L = ((None, 0, 0), (None, 1, 0), (0, None, 0), (1, None, 0),
              (None, 0, 1), (None, 1, 1), (0, None, 1), (1, None, 1),
@@ -1870,22 +1902,22 @@ class Mesh(object):
 
         if isinstance(elements, int):
             elements = [elements]
+        elif isinstance(elements, str):
+            elements = [elements]
         if isinstance(lindex, int):
             lindex = [lindex]
 
         xi01 = numpy.linspace(0, 1, res)
         for eid in elements:
+            xi_dimensions = len(self.elements[eid].basis)
             for lidx in lindex:
-                Xi = numpy.zeros((res, 3))
-                for i, x in enumerate(L[lidx]):
-                    if x == None:
+                Xi = numpy.zeros((res, xi_dimensions))
+                for i, x in enumerate(L[lidx][:xi_dimensions]):
+                    if x is None:
                         Xi[:, i] = xi01
                     else:
                         Xi[:, i] = x
-                if False:
-                    lines.append(self.elements[eid].evaluate(Xi[:, :2]))
-                else:
-                    lines.append(self.elements[eid].evaluate(Xi))
+                lines.append(self.elements[eid].evaluate(Xi))
         return lines
 
     def collapse_pca_mesh(self, group='pca'):

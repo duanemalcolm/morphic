@@ -62,6 +62,7 @@ class PCAMesh(object):
         idx = 0
         if self.groups is None:
             for node in self.input_mesh.nodes:
+                nsize = node.values.size
                 x = self.get_pca_node_values(node, idx)
                 self.mesh.add_pcanode(node.id, x, 'weights', 'variance', group='pca')
                 idx += nsize
