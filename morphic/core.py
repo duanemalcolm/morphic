@@ -138,7 +138,16 @@ class ObjectList:
         if group:
             self.add_to_group(oid, group)
         return oid
-        
+
+    def remove(self, obj):
+        for key in self.groups.keys():
+            if obj in self.groups[key]:
+                self.groups[key].remove(obj)
+        if obj.id in self._object_ids.keys():
+            self._object_ids.pop(obj.id)
+        if obj in self._objects:
+            self._objects.remove(obj)
+
     def set_counter(self, value):
         '''
         Sets the counter value for finding unique ids.
@@ -176,12 +185,17 @@ class ObjectList:
     def add_to_group(self, uids, group):
         if not isinstance(uids, list):
             uids = [uids]
+        if not isinstance(group, list):
+            group_list = [group]
+        else:
+            group_list = group
         for uid in uids:
-            if group not in self.groups.keys():
-                self.groups[group] = []
-            obj = self._object_ids[uid]
-            if obj not in self.groups[group]:
-                self.groups[group].append(obj)
+            for group in group_list:
+                if group not in self.groups.keys():
+                    self.groups[group] = []
+                obj = self._object_ids[uid]
+                if obj not in self.groups[group]:
+                    self.groups[group].append(obj)
     
     def reset_object_list(self):
         self._objects = []

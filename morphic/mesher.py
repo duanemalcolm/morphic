@@ -1595,8 +1595,10 @@ class Mesh(object):
                         node.set_values(numpy.zeros(enode.values.shape))
                         break
 
-    def update_pca_nodes(self):
+    def update_pca_nodes(self, update_depnodes=True):
         self._core.update_pca_nodes()
+        if update_depnodes:
+            self._core.update_dependent_nodes()
 
     def get_variables(self):
         return self._core.get_variables()
@@ -1644,6 +1646,25 @@ class Mesh(object):
             ind += num_xi
 
         return X
+
+    def translate(self, translation_node_id, groups=None, update=True):
+        dx = self.nodes[translation_node_id].values
+        if groups is None:
+            for node in self.nodes:
+                if node.id != translation_node_id:
+                    if node.values.ndim == 2:
+                        node.values[:, 0] += dx
+                    else:
+                        node.values += dx
+        else:
+            for node in self.nodes:
+                if node.in_group(groups) and node.id != translation_node_id:
+                    if node.values.ndim == 2:
+                        node.values[:, 0] += dx
+                    else:
+                        node.values += dx
+        if update:
+            self._core.update_dependent_nodes()
 
     def normal(self, element_ids, xi, normalise=False):
         self.generate()

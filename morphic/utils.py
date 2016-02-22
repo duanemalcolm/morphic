@@ -11,7 +11,7 @@ class PCAMesh(object):
         self.groups = groups
         self.mesh = None
 
-    def add_mesh(self, mesh):
+    def add_mesh(self, mesh, index=0):
         if self.input_mesh == None:
             self.input_mesh = mesh
         if isinstance(mesh, str):
@@ -27,23 +27,15 @@ class PCAMesh(object):
                     x.extend(node.values.flatten().tolist())
         self.X.append(x)
 
-    def generate(self, num_modes=5, package='sklearn'):
+    def generate(self, num_modes=5):
+        from sklearn import decomposition
         self.X = numpy.array(self.X)
         self.num_modes = num_modes
-        if package == 'sklearn':
-            from sklearn import decomposition
-            self.pca = decomposition.PCA(n_components=num_modes)
-            self.pca.fit(self.X)
-            self.mean = self.pca.mean_
-            self.components = self.pca.components_.T
-            self.variance = self.pca.explained_variance_
-        else:
-            import mdp
-            self.pca = mdp.nodes.PCANode(output_dim=num_modes)
-            self.pca.execute(self.X)
-            self.mean = self.pca.avg[0]
-            self.components = self.pca.v
-            self.variance = self.pca.d
+        self.pca = decomposition.PCA(n_components=num_modes)
+        self.pca.fit(self.X)
+        self.mean = self.pca.mean_
+        self.components = self.pca.components_.T
+        self.variance = self.pca.explained_variance_
         self.generate_mesh()
         return self.mesh
 
