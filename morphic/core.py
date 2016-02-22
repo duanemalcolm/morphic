@@ -403,7 +403,6 @@ class Core():
                         self.P[dn_cids[comp_idx]] = scale[j] * numpy.dot(phi, self.P[self.EMap[cid][i]])
                         comp_idx += 1
 
-    
     def add_pca_node(self, pca_node):
         self.PCAMap.append([
             pca_node.cids,
@@ -415,7 +414,7 @@ class Core():
         for pcamap in self.PCAMap:
             self.P[pcamap[0]] = numpy.dot(
                 self.P[pcamap[2]].reshape(pcamap[1]),
-                self.P[pcamap[3]] * self.P[pcamap[4]])
+                self.P[pcamap[3]] * self.P[pcamap[4]]).flatten()
     
     def weights(self, cid, xi, deriv=None):
         return interpolator.weights(self.EFn[cid], xi, deriv=deriv)
