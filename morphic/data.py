@@ -2,6 +2,7 @@ import os
 import numpy
 import metadata
 
+
 class Data:
     
     def __init__(self, filepath=None):
@@ -13,7 +14,7 @@ class Data:
         self.metadata = metadata.Metadata()
         self.values = None
         self.kdtree = None
-        if filepath != None:
+        if filepath is not None:
             self.load(filepath)
 
     def load(self, filepath):
@@ -31,7 +32,7 @@ class Data:
     def load_vtk(self, filepath):
         fp = open(filepath, 'r')
         for i in range(5):
-            fp.readline() # skipping header lines
+            fp.readline()  # skipping header lines
         self.values = numpy.array([[float(x) for x in line.split()] for line in fp])
         fp.close()
 
@@ -43,7 +44,7 @@ class Data:
                 return h5node._v_attrs[key]
             return default
         
-        h5f = tables.openFile(filepath, 'r')
+        h5f = tables.open_file(filepath, 'r')
         
         self._version = get_attribute(h5f.root, 'version')
         self.created_at = get_attribute(h5f.root, 'created_at')
@@ -62,18 +63,18 @@ class Data:
         import tables
         import datetime
             
-        h5f = tables.openFile(filepath, 'w')
+        h5f = tables.open_file(filepath, 'w')
         filters = tables.Filters(complevel=5, complib='zlib', shuffle=True)
-        h5f.setNodeAttr(h5f.root, 'version', self._version)
-        h5f.setNodeAttr(h5f.root, 'created_at', self.created_at)
-        h5f.setNodeAttr(h5f.root, 'saved_at', datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"))
-        h5f.setNodeAttr(h5f.root, 'label', self.label)
-        h5f.setNodeAttr(h5f.root, 'units', self.units)
+        h5f.set_node_attr(h5f.root, 'version', self._version)
+        h5f.set_node_attr(h5f.root, 'created_at', self.created_at)
+        h5f.set_node_attr(h5f.root, 'saved_at', datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"))
+        h5f.set_node_attr(h5f.root, 'label', self.label)
+        h5f.set_node_attr(h5f.root, 'units', self.units)
         
-        metadata_node = h5f.createGroup(h5f.root, 'metadata')
+        metadata_node = h5f.create_group(h5f.root, 'metadata')
         self.metadata.save_pytables(metadata_node)
         
-        params = h5f.createCArray(h5f.root, 'values', tables.Float64Atom(), self.values.shape, filters=filters)
+        params = h5f.create_carray(h5f.root, 'values', tables.Float64Atom(), self.values.shape, filters=filters)
         params[:] = self.values
         
         h5f.close()   

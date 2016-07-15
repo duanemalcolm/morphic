@@ -3,12 +3,11 @@ import unittest
 import doctest
 
 import numpy
-from numpy import array
 import numpy.testing as npt
 
 sys.path.append('..')
-import core
-import mesher
+from morphic import core
+from morphic import mesher
 
 class TestNodeValues(unittest.TestCase):
     """Unit tests for morphic NodeValues class."""

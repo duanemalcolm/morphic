@@ -1,0 +1,9 @@
+# vtk DataFile Version 1.0
+Line representation of vtk
+ASCII
+DATASET POLYDATA
+POINTS 4 float
+110.025 22.275 -83.025
+111.375 22.95 -83.025
+110.7 22.275 -83.025
+112.7 22.256 -83.251

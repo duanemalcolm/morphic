@@ -96,6 +96,15 @@ class Node(object):
         self.mesh._regenerate = True
         self.mesh._reupdate = True
 
+    def is_stdnode(self):
+        return isinstance(self, StdNode)
+
+    def is_depnode(self):
+        return isinstance(self, DepNode)
+
+    def is_pcanode(self):
+        return isinstance(self, PCANode)
+
     @property
     def field_cids(self):
         return self._get_param_indicies()
@@ -174,6 +183,9 @@ class Node(object):
         self.mesh._regenerate = True
         self.mesh._reupdate = True
 
+    def get_pid(self, index):
+        return self.cids[index[0] * self.num_components + index[1]]
+
     def get_values(self, index=None):
         if index == None:
             return self.mesh._core.P[self.cids].reshape(
@@ -222,28 +234,11 @@ class Node(object):
         self.mesh._core.fix_parameters(self.cids, self.fixed)
 
     def _get_param_indicies(self):
-        # ~ if self.num_modes == 0:
-        # ~ pi = []
-        #~ ind = 0
-        #~ for f in range(self.num_fields):
-        #~ pi.append(self.cids[ind:ind+self.num_components])
-        #~ ind += self.num_components
-        #~ else:
-        #~ pi = []
-        #~ ind = 0
-        #~ for f in range(self.num_fields):
-        #~ pf = []
-        #~ for
-        #~ pi.append(self.cids[ind:ind+self.num_components])
-        #~ ind += self.num_components
         if len(self.shape) == 1:
             shape = (self.shape[0], 1)
         else:
             shape = self.shape
-        pi1 = numpy.array(self.cids).reshape(shape).tolist()
-        #~ print self.shape, pi, '=', pi1, '\n'
-
-        return pi1
+        return numpy.array(self.cids).reshape(shape).tolist()
 
     def variables(self, state=True, fields=None):
         if isinstance(fields, int):
@@ -493,7 +488,6 @@ class Element(object):
             # if self.mesh.auto_add_lines:
             # self.add_lines()
 
-
     def _get_param_indicies(self):
         PI = None
         for node in self:
@@ -592,7 +586,6 @@ class Element(object):
                     return self.mesh._core.evaluate(
                         self.cid, xi, deriv=deriv)
 
-
     def integrate(self, fields, func=None, ng=4):
         '''
         Integration using gaussian quadrature.
@@ -689,7 +682,6 @@ class Element(object):
             raise TypeError('You can only calculate the volume '
                             + 'of a 3D hexagonal element. Triangles not implemented.')
 
-
     def normal(self, Xi):
         '''
         Calculates the surface normals at xi locations on an element.
@@ -704,8 +696,8 @@ class Element(object):
             Xi = numpy.array([[0.1, 0.1], [0.3, 0.2], [0.7, 0.2]])
         
         '''
-        dx1 = self.mesh._core.evaluate(self.cid, Xi, deriv=[1, 0])
-        dx2 = self.mesh._core.evaluate(self.cid, Xi, deriv=[0, 1])
+        dx1 = self.mesh.core.evaluate(self.cid, Xi, deriv=[1, 0])
+        dx2 = self.mesh.core.evaluate(self.cid, Xi, deriv=[0, 1])
         return numpy.cross(dx1, dx2)
 
     def _project_objfn(self, xi, *args):
@@ -912,7 +904,7 @@ class Mesh(object):
     def add_node(self, uid, values, group='_default'):
         return self.add_stdnode(uid, values, group=group)
 
-    def add_stdnode(self, uid, values, group='_default', add_components=0):
+    def add_stdnode(self, uid, values, group=None, add_components=0):
         '''
         Adds a node to a mesh.
         
@@ -957,12 +949,12 @@ class Mesh(object):
         self.nodes.add(node, group=group)
         return node
 
-    def add_depnode(self, uid, element, node_id, shape=None, scale=None, group='_default'):
-        '''
+    def add_depnode(self, uid, element, node_id, shape=None, scale=None, group=None):
+        """
         Adds a dependent node to a mesh. A dependent node is typically
-        an interpolated location on an element. The location on the 
+        an interpolated location on an element. The location on the
         element is defined by a node.
-        
+
         >>> mesh = Mesh()
         >>> node1 = mesh.add_stdnode(1, [0, 0])
         >>> node2 = mesh.add_stdnode(2, [2, 1])
@@ -971,18 +963,19 @@ class Mesh(object):
         >>> node3 = mesh.add_depnode(3, 'elem1', 'xi') # hanging node
         >>> print mesh.get_nodes([3])
         [[ 1.2  0.6]]
-        '''
+
+        :param uid:
+        """
         if uid == None:
             uid = self.nodes.get_unique_id()
         node = DepNode(self, uid, element, node_id, shape=shape, scale=scale)
         self.nodes.add(node, group=group)
         return node
 
-    def add_pcanode(self, uid, values, weights_nid, variance_nid,
-                    group='_default'):
-        '''
+    def add_pcanode(self, uid, values, weights_nid, variance_nid, group=None):
+        """
         Adds a pca node to a mesh.
-        '''
+        """
         if uid == None:
             uid = self.nodes.get_unique_id()
         if isinstance(values, list) or isinstance(values, numpy.ndarray):
@@ -996,6 +989,32 @@ class Mesh(object):
         self.nodes.add(node, group=group)
         return node
 
+    def add_map(self, src, dst, scale=1.):
+        """
+
+        :param scale:
+        :param src:
+        :param dst:
+        :return:
+        """
+        if isinstance(src, tuple):
+            if len(src) == 1:
+                raise Exception('Not implemented')
+            elif len(src) == 2:
+                src_pid = self.nodes[src[0]].cids[src[1]]
+            elif len(src) == 3:
+                src_pid = self.nodes[src[0]].get_pid((src[1], src[2]))
+
+        if isinstance(dst, tuple):
+            if len(dst) == 1:
+                raise Exception('Not implemented')
+            elif len(dst) == 2:
+                dst_pid = self.nodes[dst[0]].cids[dst[1]]
+            elif len(dst) == 3:
+                dst_pid = self.nodes[dst[0]].get_pid((dst[1], dst[2]))
+
+        self.core.add_map(src_pid, dst_pid, scale)
+
     def fix_values(self, uids, fix):
         if not isinstance(uids, list):
             uids = [uids]
@@ -1005,17 +1024,17 @@ class Mesh(object):
     def add_elem(self, uid, basis, node_ids, group='_default'):
         self.add_element(uid, basis, node_ids, group=group)
 
-    def add_element(self, uid, basis, node_ids, group='_default'):
-        '''
+    def add_element(self, uid, basis, node_ids, group=None):
+        """
         Adds a element to a mesh.
-        
+
         >>> mesh = Mesh()
         >>> n1 = mesh.add_stdnode(1, [0.1])
         >>> n2 = mesh.add_stdnode(2, [0.2])
         >>> elem = mesh.add_element(1, ['L1'], [1, 2])
         >>> print elem.id, elem.basis, elem.node_ids
         1 ['L1'] [1, 2]
-        '''
+        """
         if uid == None:
             uid = self.elements.get_unique_id()
         if isinstance(node_ids, numpy.ndarray):
@@ -1133,7 +1152,6 @@ class Mesh(object):
         else:
             self._load_dict(pickle.load(open(filepath, "r")))
         self.generate(True)
-
 
     def _save_pytables(self, filepath):
         import tables
@@ -1571,6 +1589,7 @@ class Mesh(object):
         if self._reupdate == True:
             self._core.update_pca_nodes()
             self._core.update_dependent_nodes()
+            self._core.update_maps()
             self._reupdate = False
 
     def update(self, force=False):
@@ -1580,9 +1599,10 @@ class Mesh(object):
         called with `force=True` to force an update, e.g.,
         mesh.update(force=True)
         '''
-        if self._reupdate == True or force:
+        if self._reupdate is True or force:
             self._core.update_pca_nodes()
             self._core.update_dependent_nodes()
+            self._core.update_maps()
             self._reupdate = False
 
     def _update_dependent_nodes(self):
@@ -1599,6 +1619,12 @@ class Mesh(object):
         self._core.update_pca_nodes()
         if update_depnodes:
             self._core.update_dependent_nodes()
+
+    def update_dependent_nodes(self):
+        self._core.update_dependent_nodes()
+
+    def update_maps(self):
+        self.core.update_maps()
 
     def get_variables(self):
         return self._core.get_variables()
@@ -1942,17 +1968,74 @@ class Mesh(object):
         return lines
 
     def collapse_pca_mesh(self, group='pca'):
-        '''
+        """
         Collapses a PCA mesh to a flat mesh based of the currently
         set weights and "pca" node group.
         This node group can be set using the "group" keyword argument.
-        '''
+        """
         self.update_pca_nodes()
         mesh = Mesh()
         for node in self.nodes.groups[group]:
             mesh.add_stdnode(node.id, node.values)
         for element in self.elements:
             mesh.add_element(element.id, element.basis, element.node_ids)
+        return mesh
+
+    def reflect_nodes(self, origin, axis, nodes):
+        mirror_value = origin[axis]
+        for nid in nodes:
+            node = self.nodes[nid]
+            if isinstance(node, StdNode):
+                x = numpy.array(node.values)
+                if len(x.shape) == 1:
+                    x[axis] *= -1
+                    x[axis] += 2 * mirror_value
+                elif len(x.shape) == 2:
+                    x[axis, :4] *= -1
+                    x[axis, 0] += 2 * mirror_value
+                else:
+                    raise Exception('Not implemented')
+                node.values = x
+            elif isinstance(node, PCANode):
+                raise Exception('Not implemented')
+
+    def copy_mesh(self, elements=None):
+        if elements is None:
+            mesh_dict = self._save_dict()
+            mesh = Mesh()
+            mesh._load_dict(mesh_dict)
+            return mesh
+
+        nids = []
+        for eid in elements:
+            for node in self.elements[eid].nodes:
+                nids.append(node.id)
+                if isinstance(node, DepNode):
+                    if node.element not in elements:
+                        print "Warning: Dependent node element is not included in the list of elements to copy"
+                    nids.append(node.node)
+                elif isinstance(node, PCANode):
+                    if node.weights_id not in nids:
+                        nids.append(node.weights_id)
+                    if node.variance_id not in nids:
+                        nids.append(node.variance_id)
+
+        mesh = Mesh()
+        for node in self.nodes:
+            if node.id in nids:
+                if isinstance(node, StdNode):
+                    mesh.add_stdnode(node.id, node.values, group=node.groups())
+                elif isinstance(node, DepNode):
+                    mesh.add_depnode(node.id, node.element, node.node, group=node.groups())
+                elif isinstance(node, PCANode):
+                    mesh.add_pcanode(node.id, node.weights_id, node.variance_id, group=node.groups())
+
+        for element in self.elements:
+            if element.id in elements:
+                mesh.add_element(element.id, element.basis, element.node_ids)
+
+        mesh.generate()
+
         return mesh
 
     def volume(self):
