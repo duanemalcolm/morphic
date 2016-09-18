@@ -2044,6 +2044,79 @@ class Mesh(object):
             V += element.volume()
         return V
 
+    def export(self, filepath, element_ids='all', simplify=True, precision='%0.6f', format='json'):
+
+        def get_node_values_str(node, precision, space):
+            node_id = '"%d"' % node.id if isinstance(node.id, int) else '"%s"' % node.id
+            values = node.values
+            if len(values.shape) == 1:
+                return '%s: [' % node_id + ','.join([precision % v for v in values]) + ']'
+            elif len(values.shape) == 2:
+                values_rows = []
+                for row in values:
+                    values_rows.append('[' + ','.join([precision % v for v in row]) + ']')
+                return '%s: [\n%s' % (node_id, space) + (',\n%s' % space).join(values_rows) + ']'
+
+        def process_nodes(elements_nids, precision, space):
+            pids = []
+            nodes_strs = []
+            for nid in self.nodes.keys():
+                if nid in elements_nids:
+                    node = self.nodes[nid]
+                    nodes_strs.append(get_node_values_str(node, precision, space))
+                    pids.extend(node.cids)
+            return pids, nodes_strs
+
+        def get_basis_str(basis):
+            return '[' + ','.join(['"%s"' % b for b in basis]) + ']'
+
+        def get_element_nodes_str(nids):
+            nids_strs = []
+            for nid in nids:
+                nid_str = '"%d"' % nid if isinstance(nid, int) else '"%s"' % nid
+                nids_strs.append(nid_str)
+            return '[' + ','.join(nids_strs) + ']'
+
+        def get_element_str(element, space):
+            element_id = '"%d"' % element.id if isinstance(element.id, int) else element.id
+            return '%s: {' % element_id +\
+                   '"basis": %s, ' % get_basis_str(element.basis) +\
+                   '"nodes": %s' % get_element_nodes_str(element.node_ids) + '}'
+
+        def process_elements(element_ids):
+            elements_strs = []
+            for eid in self.elements.keys():
+                if eid in element_ids:
+                    element = self.elements[eid]
+                    elements_strs.append(get_element_str(element, space))
+            return elements_strs
+
+        space = '\t'
+        if element_ids == 'all':
+            element_ids = self.elements.keys()
+        elements_node_ids = []
+        for eid in element_ids:
+            element = self.elements[eid]
+            for nid in element.node_ids:
+                if nid not in elements_node_ids:
+                    elements_node_ids.append(nid)
+
+        fp = open(filepath, 'w')
+
+        pids, nodes_strs = process_nodes(elements_node_ids, precision, space)
+        fp.write('{\n')
+        fp.write('"nodes": {\n')
+        fp.write(',\n'.join(nodes_strs))
+        fp.write('\n\t},\n')
+
+        elements_strs = process_elements(element_ids)
+        fp.write('"elements": {\n')
+        fp.write(',\n'.join(elements_strs))
+        fp.write('\n\t}\n')
+        fp.write('}')
+
+        fp.close()
+
     def debug(self, msg):
         if self.debug_on:
             print msg
