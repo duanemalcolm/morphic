@@ -2044,7 +2044,10 @@ class Mesh(object):
             V += element.volume()
         return V
 
-    def export(self, filepath, element_ids='all', simplify=True, precision='%0.6f', format='json'):
+    def export_data(self, filepath, precision='%0.3f', format='json'):
+        pass
+
+    def export(self, filepath, element_ids='all', node_ids=[], precision='%0.6f', format='json'):
 
         def get_node_values_str(node, precision, space):
             node_id = '"%d"' % node.id if isinstance(node.id, int) else '"%s"' % node.id
@@ -2100,6 +2103,10 @@ class Mesh(object):
             for nid in element.node_ids:
                 if nid not in elements_node_ids:
                     elements_node_ids.append(nid)
+
+        for nid in node_ids:
+            if nid not in elements_node_ids:
+                elements_node_ids.append(nid)
 
         fp = open(filepath, 'w')
 
